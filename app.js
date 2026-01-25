@@ -5,19 +5,7 @@ const path = require('path');
 const app = express();
 const PORT = 3000;
 
-// ============================================
-// 🔧 CẤU HÌNH DẢI MẠNG VĂN PHÒNG (SUBNETS)
-// ============================================
-// Chỉ cần IP người dùng BẮT ĐẦU bằng các chuỗi này là được chấp nhận
-const OFFICE_IP_PREFIXES = [
-    '192.168.1.',          // Dải IPv4 nội bộ (chấp nhận 192.168.1.1 -> 192.168.1.255)
-    '2402:800:6e27:f7d:',  // Dải IPv6 mạng văn phòng bạn (lấy 4 block đầu)
-    '127.0.0.1',           // Localhost
-    '::1'                  // Localhost IPv6
-];
 
-// Để hiển thị trên giao diện
-const OFFICE_IP_DISPLAY = "Wi-Fi Văn Phòng (Local Network)";
 
 // File lưu trữ dữ liệu check-in
 const CHECKINS_FILE = path.join(__dirname, 'checkins.json');
@@ -123,7 +111,33 @@ function saveCheckins(checkins) {
     }
 }
 
-// Format thời gian theo múi giờ Việt Nam
+// File cấu hình
+const CONFIG_FILE = path.join(__dirname, 'config.json');
+
+// Đọc cấu hình
+function readConfig() {
+    try {
+        if (fs.existsSync(CONFIG_FILE)) {
+            return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+        }
+    } catch (error) {
+        console.error('Lỗi đọc file config:', error);
+    }
+    return { allowedIPs: ['127.0.0.1', '::1', '192.168.1.'] };
+}
+
+// Lưu cấu hình
+function saveConfig(config) {
+    try {
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+        return true;
+    } catch (error) {
+        console.error('Lỗi lưu file config:', error);
+        return false;
+    }
+}
+
+// Hàm format datetime
 function formatDateTime(date) {
     return new Date(date).toLocaleString('vi-VN', {
         timeZone: 'Asia/Ho_Chi_Minh',
@@ -143,20 +157,24 @@ function formatDateTime(date) {
 // Trang chủ - Form check-in
 app.get('/', (req, res) => {
     const clientIP = getClientIP(req);
+    const config = readConfig();
+    const officeIPDisplay = `Cho phép ${config.allowedIPs.length} dải IP`;
+    
     res.render('index', {
         message: null,
         success: false,
         clientIP: clientIP,
-        officeIP: OFFICE_IP_DISPLAY
+        officeIP: officeIPDisplay
     });
 });
 
-// Xử lý check-in
 // Xử lý check-in/check-out
 app.post('/checkin', (req, res) => {
     const { employeeName, action } = req.body;
     const clientIP = getClientIP(req);
     const type = action === 'checkout' ? 'checkout' : 'checkin';
+    const config = readConfig();
+    const officeIPDisplay = `Cho phép ${config.allowedIPs.length} dải IP`;
     
     // Validate tên nhân viên
     if (!employeeName || employeeName.trim() === '') {
@@ -164,19 +182,19 @@ app.post('/checkin', (req, res) => {
             message: '⚠️ Vui lòng nhập tên nhân viên!',
             success: false,
             clientIP: clientIP,
-            officeIP: OFFICE_IP_DISPLAY
+            officeIP: officeIPDisplay
         });
     }
     
     // Kiểm tra IP có thuộc dải mạng văn phòng không
-    const isValidIP = isIPMatch(clientIP, OFFICE_IP_PREFIXES);
+    const isValidIP = isIPMatch(clientIP, config.allowedIPs);
     
     if (!isValidIP) {
         return res.render('index', {
-            message: `❌ Bạn phải kết nối Wi-Fi văn phòng để chấm công!\n\nIP của bạn: ${clientIP}\nIP văn phòng: ${OFFICE_IP_DISPLAY}`,
+            message: `❌ Bạn phải kết nối Wi-Fi văn phòng để chấm công!\n\nIP của bạn: ${clientIP}\nIP Hợp lệ: ${config.allowedIPs.join(', ')}`,
             success: false,
             clientIP: clientIP,
-            officeIP: OFFICE_IP_DISPLAY
+            officeIP: officeIPDisplay
         });
     }
 
@@ -242,14 +260,14 @@ app.post('/checkin', (req, res) => {
             message: mess,
             success: true,
             clientIP: clientIP,
-            officeIP: OFFICE_IP_DISPLAY
+            officeIP: officeIPDisplay
         });
     } else {
         return res.render('index', {
             message: '❌ Lỗi hệ thống! Không thể lưu dữ liệu.',
             success: false,
             clientIP: clientIP,
-            officeIP: OFFICE_IP_DISPLAY
+            officeIP: officeIPDisplay
         });
     }
 });
@@ -257,11 +275,70 @@ app.post('/checkin', (req, res) => {
 // Trang quản trị - Xem danh sách check-in
 app.get('/admin', (req, res) => {
     const checkins = readCheckins();
-    // Sắp xếp theo thời gian mới nhất
+    const config = readConfig();
+    const clientIP = getClientIP(req);
+    
+    // Thống kê theo nhân viên
+    const stats = {};
+    
+    // Sắp xếp theo thời gian tăng dần để tính toán
+    const sortedCheckins = [...checkins].sort((a, b) => new Date(a.time) - new Date(b.time));
+    
+    sortedCheckins.forEach(record => {
+        // Chuẩn hóa tên (lowercase) để group, nhưng giữ tên gốc để hiển thị
+        const key = record.name.trim().toLowerCase();
+        
+        if (!stats[key]) {
+            stats[key] = { 
+                name: record.name, // Lấy tên gốc của lần check-in đầu tiên
+                totalMs: 0, 
+                lastCheckIn: null,
+                lastSeen: record.time
+            };
+        }
+        
+        stats[key].lastSeen = record.time;
+        
+        const type = record.type || 'checkin';
+        const t = new Date(record.time).getTime();
+        
+        if (type === 'checkin') {
+            // Nếu có check-in mới mà chưa check-out lượt trước -> Reset lượt trước
+            // Hoặc logic đơn giản: Cứ gặp check-in là bắt đầu phiên mới
+            stats[key].lastCheckIn = t;
+        } else if (type === 'checkout') {
+            if (stats[key].lastCheckIn !== null) {
+                const diff = t - stats[key].lastCheckIn;
+                if (diff > 0) {
+                    stats[key].totalMs += diff;
+                }
+                stats[key].lastCheckIn = null; // Kết thúc phiên
+            }
+        }
+    });
+    
+    // Helper format thời gian
+    const msToTime = (ms) => {
+        const hours = Math.floor(ms / (1000 * 60 * 60));
+        const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+        return `${hours} giờ ${minutes} phút`;
+    };
+    
+    const employeeStats = Object.values(stats).map(s => ({
+        name: s.name,
+        totalTime: msToTime(s.totalMs),
+        lastSeen: formatDateTime(s.lastSeen)
+    }));
+    
+    // Sắp xếp lại danh sách checkin để hiển thị (mới nhất lên đầu)
     checkins.sort((a, b) => new Date(b.time) - new Date(a.time));
+    
     res.render('admin', {
         checkins: checkins,
-        officeIP: OFFICE_IP_DISPLAY
+        employeeStats: employeeStats,
+        officeIP: `Cho phép ${config.allowedIPs.length} dải IP`,
+        allowedIPs: config.allowedIPs,
+        currentIP: clientIP
     });
 });
 
@@ -277,13 +354,28 @@ app.delete('/api/checkins/:id', (req, res) => {
     }
 });
 
+// API endpoint để thêm IP hiện tại vào danh sách cho phép
+app.post('/api/update-ip', (req, res) => {
+    const clientIP = getClientIP(req);
+    let config = readConfig();
+    
+    // Kiểm tra xem đã tồn tại chưa
+    if (!config.allowedIPs.includes(clientIP)) {
+        config.allowedIPs.push(clientIP);
+        saveConfig(config);
+    }
+    
+    res.json({ success: true, ip: clientIP, allowedIPs: config.allowedIPs });
+});
+
 // API endpoint để xem IP hiện tại
 app.get('/api/myip', (req, res) => {
     const clientIP = getClientIP(req);
+    const config = readConfig();
     res.json({
         yourIP: clientIP,
-        allowedPrefixes: OFFICE_IP_PREFIXES,
-        match: isIPMatch(clientIP, OFFICE_IP_PREFIXES)
+        allowedPrefixes: config.allowedIPs,
+        match: isIPMatch(clientIP, config.allowedIPs)
     });
 });
 
@@ -298,7 +390,6 @@ app.listen(PORT, () => {
     console.log(`║  🌐 Server:     http://localhost:${PORT}              ║`);
     console.log(`║  📋 Trang chủ:  http://localhost:${PORT}/             ║`);
     console.log(`║  🔧 Admin:      http://localhost:${PORT}/admin        ║`);
-    console.log(`║  📍 IP Rules:   Allow ${OFFICE_IP_PREFIXES.length} subnet prefixes`.padEnd(53) + '║');
     console.log('╚════════════════════════════════════════════════════╝');
     console.log('');
 });

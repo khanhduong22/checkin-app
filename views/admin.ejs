@@ -301,6 +301,28 @@
             transition: all 0.2s;
         }
 
+        .btn-update-ip {
+            width: 100%;
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px dashed rgba(52, 211, 153, 0.5);
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-update-ip:hover {
+            background: rgba(16, 185, 129, 0.3);
+            transform: translateY(-1px);
+        }
+
         .btn-delete:hover {
             background: rgba(239, 68, 68, 0.4);
         }
@@ -418,8 +440,64 @@
             <div class="stat-card">
                 <div class="icon blue">🏢</div>
                 <div class="value" style="font-size: 14px; word-break: break-all;"><%= officeIP %></div>
-                <div class="label">IP Văn phòng</div>
+                <div class="label">Cấu hình: <%= allowedIPs.length %> dải IP</div>
+                
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px;">IP HIỆN TẠI CỦA BẠN</div>
+                    <div style="font-family: monospace; color: #a5b4fc; font-weight: bold; margin-bottom: 8px;"><%= currentIP %></div>
+                    
+                    <button onclick="updateIP()" class="btn-update-ip">
+                        <span>➕ Thêm IP này vào whitelist</span>
+                    </button>
+                </div>
             </div>
+        </div>
+
+        <!-- Employee Stats -->
+        <div class="table-container" style="margin-bottom: 24px;">
+            <div class="table-header">
+                <h2>🏆 Thống kê nhân viên</h2>
+            </div>
+            
+            <% if (employeeStats.length === 0) { %>
+                <div class="empty-state">
+                    <p>Chưa có dữ liệu thống kê</p>
+                </div>
+            <% } else { %>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nhân viên</th>
+                                <th>Tổng thời gian làm việc</th>
+                                <th>Hoạt động gần nhất</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% employeeStats.forEach(stat => { %>
+                                <tr>
+                                    <td>
+                                        <div class="employee-name">
+                                            <div class="avatar"><%= stat.name.charAt(0).toUpperCase() %></div>
+                                            <strong><%= stat.name %></strong>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="time-badge">
+                                            <span class="time" style="color: #34d399;"><%= stat.totalTime %></span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span style="color: rgba(255,255,255,0.7); font-size: 13px;">
+                                            <%= stat.lastSeen %>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } %>
         </div>
 
         <!-- Table -->
@@ -549,6 +627,31 @@
             const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
             for (let i = 0; i < rows.length; i++) {
                 rows[i].getElementsByTagName('td')[0].textContent = i + 1;
+            }
+        }
+
+        // Cập nhật IP
+        async function updateIP() {
+            if (!confirm('Bạn có chắc muốn thêm IP hiện tại vào danh sách cho phép không?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/update-ip', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('✅ Đã thêm IP thành công!');
+                    location.reload();
+                } else {
+                    alert('❌ Lỗi khi thêm IP!');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Lỗi kết nối server!');
             }
         }
 
