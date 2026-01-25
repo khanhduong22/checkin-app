@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chấm Công Nội Bộ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px 32px;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 4px;
+        }
+
+        .logo p {
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 16px;
+            font-family: inherit;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            background: #f9fafb;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
+        }
+
+        .btn-checkin {
+            width: 100%;
+            padding: 18px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-checkin:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-checkin:active {
+            transform: translateY(0);
+        }
+
+        .message {
+            margin-top: 24px;
+            padding: 16px 20px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-line;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .message.success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+
+        .message.error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            border: 1px solid #f87171;
+        }
+
+        .ip-info {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f3f4f6;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .ip-info .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+        }
+
+        .ip-info .label {
+            font-weight: 500;
+        }
+
+        .ip-info .value {
+            font-family: 'Monaco', 'Consolas', monospace;
+            color: #374151;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .footer a:hover {
+            color: #764ba2;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .card {
+                padding: 32px 24px;
+            }
+
+            .logo-icon {
+                width: 64px;
+                height: 64px;
+                font-size: 32px;
+            }
+
+            .logo h1 {
+                font-size: 20px;
+            }
+        }
+
+        /* Clock animation */
+        .clock-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Loading state */
+        .btn-checkin.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .btn-checkin.loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo">
+                <div class="logo-icon clock-pulse">
+                    ⏰
+                </div>
+                <h1>Chấm Công Nội Bộ</h1>
+                <p>Hệ thống điểm danh qua IP văn phòng</p>
+            </div>
+
+            <form action="/checkin" method="POST" id="checkinForm">
+                <div class="form-group">
+                    <label for="employeeName">👤 Tên nhân viên</label>
+                    <input 
+                        type="text" 
+                        id="employeeName" 
+                        name="employeeName" 
+                        placeholder="Nhập họ và tên của bạn..."
+                        autocomplete="name"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="btn-checkin" id="btnCheckin">
+                    <span>📍</span>
+                    <span>Check-in ngay</span>
+                </button>
+            </form>
+
+            <% if (message) { %>
+                <div class="message <%= success ? 'success' : 'error' %>">
+                    <%= message %>
+                </div>
+            <% } %>
+
+            <div class="ip-info">
+                <div class="row">
+                    <span class="label">🌐 IP của bạn:</span>
+                    <span class="value"><%= clientIP %></span>
+                </div>
+                <div class="row">
+                    <span class="label">🏢 IP văn phòng:</span>
+                    <span class="value"><%= officeIP %></span>
+                </div>
+            </div>
+
+            <div class="footer">
+                <a href="/admin">🔧 Trang quản trị</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Hiệu ứng loading khi submit
+        document.getElementById('checkinForm').addEventListener('submit', function() {
+            const btn = document.getElementById('btnCheckin');
+            btn.classList.add('loading');
+            btn.innerHTML = '<span>Đang xử lý...</span>';
+        });
+
+        // Hiển thị thời gian hiện tại
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: 'Asia/Ho_Chi_Minh'
+            };
+        }
+        
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+    </script>
+</body>
+</html>
