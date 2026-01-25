@@ -272,6 +272,24 @@
             font-weight: 600;
         }
 
+        .badget-type {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badget-type.checkin {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .badget-type.checkout {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
         .btn-delete {
             background: rgba(239, 68, 68, 0.2);
             color: #fca5a5;
@@ -427,6 +445,7 @@
                             <tr>
                                 <th>#</th>
                                 <th>Nhân viên</th>
+                                <th>Loại</th>
                                 <th>Thời gian</th>
                                 <th>Địa chỉ IP</th>
                                 <th>Hành động</th>
@@ -441,6 +460,12 @@
                                             <div class="avatar"><%= checkin.name.charAt(0).toUpperCase() %></div>
                                             <span><%= checkin.name %></span>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <% const type = checkin.type || 'checkin'; %>
+                                        <span class="badget-type <%= type %>">
+                                            <%= type === 'checkin' ? 'Check-in' : 'Check-out' %>
+                                        </span>
                                     </td>
                                     <td>
                                         <div class="time-badge">

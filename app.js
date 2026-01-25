@@ -152,9 +152,11 @@ app.get('/', (req, res) => {
 });
 
 // Xử lý check-in
+// Xử lý check-in/check-out
 app.post('/checkin', (req, res) => {
-    const { employeeName } = req.body;
+    const { employeeName, action } = req.body;
     const clientIP = getClientIP(req);
+    const type = action === 'checkout' ? 'checkout' : 'checkin';
     
     // Validate tên nhân viên
     if (!employeeName || employeeName.trim() === '') {
@@ -167,7 +169,6 @@ app.post('/checkin', (req, res) => {
     }
     
     // Kiểm tra IP có thuộc dải mạng văn phòng không
-    // Hàm isIPMatch kiểm tra prefix (IPv4 subnet hoặc IPv6 prefix)
     const isValidIP = isIPMatch(clientIP, OFFICE_IP_PREFIXES);
     
     if (!isValidIP) {
@@ -178,23 +179,67 @@ app.post('/checkin', (req, res) => {
             officeIP: OFFICE_IP_DISPLAY
         });
     }
+
+    const now = new Date();
     
-    // Tạo bản ghi check-in mới
-    const checkinRecord = {
+    // Tạo bản ghi mới
+    const record = {
         id: Date.now(),
         name: employeeName.trim(),
-        time: new Date().toISOString(),
-        timeFormatted: formatDateTime(new Date()),
-        ip: clientIP
+        time: now.toISOString(),
+        timeFormatted: formatDateTime(now),
+        ip: clientIP,
+        type: type
     };
     
-    // Lưu vào file
+    // Đọc dữ liệu cũ
     const checkins = readCheckins();
-    checkins.push(checkinRecord);
+    checkins.push(record);
     
     if (saveCheckins(checkins)) {
+        let mess = '';
+        if (type === 'checkin') {
+            mess = `✅ Check-in thành công!\n\nTên: ${record.name}\nThời gian: ${record.timeFormatted}`;
+        } else {
+            // Tính tổng giờ làm trong ngày
+            const todayStr = now.toLocaleDateString('vi-VN');
+            const userRecords = checkins.filter(c => 
+                c.name.toLowerCase() === record.name.toLowerCase() && 
+                new Date(c.time).toLocaleDateString('vi-VN') === todayStr
+            );
+            
+            // Sắp xếp theo thời gian tăng dần
+            userRecords.sort((a, b) => new Date(a.time) - new Date(b.time));
+            
+            let totalMs = 0;
+            let lastCheckIn = null;
+            
+            for (const r of userRecords) {
+                const t = new Date(r.time).getTime();
+                // Với dữ liệu cũ không có field type, mặc định là checkin
+                const rType = r.type || 'checkin';
+                
+                if (rType === 'checkin') {
+                    if (lastCheckIn === null) {
+                        lastCheckIn = t;
+                    }
+                } else if (rType === 'checkout') {
+                    if (lastCheckIn !== null) {
+                        totalMs += (t - lastCheckIn);
+                        lastCheckIn = null;
+                    }
+                }
+            }
+            
+            // Chuyển sang giờ/phút
+            const hours = Math.floor(totalMs / (1000 * 60 * 60));
+            const minutes = Math.floor((totalMs % (1000 * 60 * 60)) / (1000 * 60));
+            
+            mess = `👋 Check-out thành công!\n\nTên: ${record.name}\nTổng giờ làm hôm nay: ${hours} giờ ${minutes} phút`;
+        }
+
         return res.render('index', {
-            message: `✅ Chấm công thành công!\n\nTên: ${checkinRecord.name}\nThời gian: ${checkinRecord.timeFormatted}`,
+            message: mess,
             success: true,
             clientIP: clientIP,
             officeIP: OFFICE_IP_DISPLAY
