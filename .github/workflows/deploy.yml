@@ -1,0 +1,31 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}       # IP của VPS
+          username: ${{ secrets.VPS_USER }}   # Tên đăng nhập (thường là root)
+          password: ${{ secrets.VPS_PASSWORD }} # Mật khẩu VPS
+          port: 22
+          script: |
+            # Di chuyển vào thư mục dự án (Cần đảm bảo thư mục này đúng đường dẫn trên VPS)
+            cd checkin-app
+            
+            # Lấy code mới nhất về
+            git pull origin main
+            
+            # Cài đặt view dependencies mới nếu có
+            npm install
+            
+            # Restart lại app với PM2 để áp dụng thay đổi
+            pm2 restart attendance-app || pm2 start app.js --name "attendance-app"
+            
+            echo "Deployment successful!"
