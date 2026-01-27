@@ -294,14 +294,16 @@
             <form action="/checkin" method="POST" id="checkinForm">
                 <div class="form-group">
                     <label for="employeeName">👤 Tên nhân viên</label>
-                    <input 
-                        type="text" 
-                        id="employeeName" 
-                        name="employeeName" 
-                        placeholder="Nhập họ và tên của bạn..."
-                        autocomplete="name"
-                        required
-                    >
+                    <select id="employeeName" name="employeeName" required style="width: 100%; padding: 16px 20px; font-size: 16px; font-family: inherit; border: 2px solid #e5e7eb; border-radius: 14px; background: #f9fafb; outline: none; transition: all 0.3s ease;">
+                        <option value="" disabled selected>-- Chọn tên nhân viên --</option>
+                        <% if (typeof employees !== 'undefined' && employees.length > 0) { %>
+                            <% employees.sort((a,b) => a.name.localeCompare(b.name)).forEach(emp => { %>
+                                <option value="<%= emp.name %>"><%= emp.name %></option>
+                            <% }); %>
+                        <% } else { %>
+                            <option value="" disabled>Chưa có danh sách nhân viên</option>
+                        <% } %>
+                    </select>
                 </div>
 
                 <div class="btn-group">

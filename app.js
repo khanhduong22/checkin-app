@@ -9,6 +9,8 @@ const PORT = 3000;
 
 // File lưu trữ dữ liệu check-in
 const CHECKINS_FILE = path.join(__dirname, 'checkins.json');
+// File lưu trữ danh sách nhân viên
+const EMPLOYEES_FILE = path.join(__dirname, 'employees.json');
 
 // Middleware
 app.set('view engine', 'ejs');
@@ -111,6 +113,30 @@ function saveCheckins(checkins) {
     }
 }
 
+// Đọc danh sách nhân viên
+function readEmployees() {
+    try {
+        if (fs.existsSync(EMPLOYEES_FILE)) {
+            const data = fs.readFileSync(EMPLOYEES_FILE, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        console.error('Lỗi đọc file employees:', error);
+    }
+    return [];
+}
+
+// Lưu danh sách nhân viên
+function saveEmployees(employees) {
+    try {
+        fs.writeFileSync(EMPLOYEES_FILE, JSON.stringify(employees, null, 2), 'utf8');
+        return true;
+    } catch (error) {
+        console.error('Lỗi lưu file employees:', error);
+        return false;
+    }
+}
+
 // File cấu hình
 const CONFIG_FILE = path.join(__dirname, 'config.json');
 
@@ -158,13 +184,15 @@ function formatDateTime(date) {
 app.get('/', (req, res) => {
     const clientIP = getClientIP(req);
     const config = readConfig();
+    const configEmployees = readEmployees(); // Lấy danh sách nhân viên để hiện dropdown
     const officeIPDisplay = `Cho phép ${config.allowedIPs.length} dải IP`;
     
     res.render('index', {
         message: null,
         success: false,
         clientIP: clientIP,
-        officeIP: officeIPDisplay
+        officeIP: officeIPDisplay,
+        employees: configEmployees
     });
 });
 
@@ -377,6 +405,154 @@ app.get('/api/myip', (req, res) => {
         allowedPrefixes: config.allowedIPs,
         match: isIPMatch(clientIP, config.allowedIPs)
     });
+});
+
+// ============================================
+// EMPLOYEE MANAGEMENT ROUTES
+// ============================================
+
+// Trang quản lý nhân viên & tính lương
+app.get('/admin/employees', (req, res) => {
+    const employees = readEmployees();
+    let checkins = readCheckins(); // Use let to filter
+    const clientIP = getClientIP(req);
+    
+    // Lấy tháng/năm hiện tại (hoặc từ query param)
+    const now = new Date();
+    const currentMonth = req.query.month ? parseInt(req.query.month) : now.getMonth() + 1; // 1-12
+    const currentYear = req.query.year ? parseInt(req.query.year) : now.getFullYear();
+    
+    // Filter checkins theo tháng/năm được chọn
+    const monthlyCheckins = checkins.filter(c => {
+        const d = new Date(c.time);
+        return (d.getMonth() + 1) === currentMonth && d.getFullYear() === currentYear;
+    });
+
+    // Tính toán giờ làm việc cho từng nhân viên CÓ TRONG DANH SÁCH checkin
+    // Tuy nhiên, ta ưu tiên loop qua danh sách Employees đã khai báo
+    
+    // Bước 1: Tính tổng giờ làm cho tất cả mọi người trong tháng này trước
+    const workHoursMap = {}; // name -> totalHours
+    
+    // Sort checkins để tính giờ
+    const sortedCheckins = [...monthlyCheckins].sort((a, b) => new Date(a.time) - new Date(b.time));
+    const tempStats = {};
+
+    sortedCheckins.forEach(record => {
+        const key = record.name.trim().toLowerCase();
+        if (!tempStats[key]) {
+            tempStats[key] = { lastCheckIn: null, totalMs: 0 };
+        }
+        
+        const type = record.type || 'checkin';
+        const t = new Date(record.time).getTime();
+        
+        if (type === 'checkin') {
+            tempStats[key].lastCheckIn = t;
+        } else if (type === 'checkout') {
+            if (tempStats[key].lastCheckIn !== null) {
+                const diff = t - tempStats[key].lastCheckIn;
+                if (diff > 0) tempStats[key].totalMs += diff;
+                tempStats[key].lastCheckIn = null;
+            }
+        }
+    });
+    
+    // Convert ms to hours (float) for salary calculation
+    Object.keys(tempStats).forEach(key => {
+        workHoursMap[key] = tempStats[key].totalMs / (1000 * 60 * 60);
+    });
+
+    // Bước 2: Build danh sách hiển thị
+    // Merge employees (có lương) vói checkin stats
+    // Note: Có thể có nhân viên đi làm nhưng chưa được tạo trong list Employees -> Vẫn hiện nhưng lương 0 hoặc N/A
+    // Hoặc chỉ hiện nhân viên trong list? -> User yêu cầu "quản lý danh sách nhân viên", "thống kê nhân viên đó làm bao nhiêu giờ".
+    // Better: Show All Unique Names from (Employees List + Checkin List)
+    
+    const allNames = new Set([
+        ...employees.map(e => e.name.trim().toLowerCase()),
+        ...Object.keys(workHoursMap)
+    ]);
+    
+    const reportData = [];
+    
+    allNames.forEach(normalizedName => {
+        // Find employee config
+        const empConfig = employees.find(e => e.name.trim().toLowerCase() === normalizedName);
+        
+        // Find work stats
+        const hours = workHoursMap[normalizedName] || 0;
+        
+        // Display Name: ưu tiên từ config, nếu ko thì lấy từ checkin (phải tìm lại checkin gốc để lấy proper case?? thui lấy title case)
+        let displayName = empConfig ? empConfig.name : normalizedName; // Fallback
+        
+        // Nếu ko có config nhưng có checkin, cần lấy tên gốc từ checkins list để đẹp hơn
+        if (!empConfig && workHoursMap[normalizedName]) {
+             const found = monthlyCheckins.find(c => c.name.trim().toLowerCase() === normalizedName);
+             if (found) displayName = found.name;
+        }
+
+        const rate = empConfig ? parseFloat(empConfig.rate) : 0;
+        const salary = hours * rate;
+        
+        reportData.push({
+            id: empConfig ? empConfig.id : null,
+            name: displayName,
+            rate: rate,
+            hours: hours.toFixed(2), // Giữ 2 số thập phân
+            salary: Math.floor(salary), // Làm tròn tiền
+            isConfigured: !!empConfig
+        });
+    });
+    
+    // Sort: Configured employees first, then by name
+    reportData.sort((a, b) => {
+        if (a.isConfigured && !b.isConfigured) return -1;
+        if (!a.isConfigured && b.isConfigured) return 1;
+        return a.name.localeCompare(b.name);
+    });
+
+    res.render('employees', {
+        reportData,
+        currentMonth,
+        currentYear,
+        currentIP: clientIP
+    });
+});
+
+// Thêm/Sửa nhân viên
+app.post('/admin/employees', (req, res) => {
+    const { id, name, rate } = req.body;
+    let employees = readEmployees();
+    
+    if (id) {
+        // Update
+        const index = employees.findIndex(e => e.id === parseInt(id));
+        if (index !== -1) {
+            employees[index].name = name.trim();
+            employees[index].rate = parseFloat(rate);
+        }
+    } else {
+        // Add new
+        const newId = Date.now();
+        employees.push({
+            id: newId,
+            name: name.trim(),
+            rate: parseFloat(rate)
+        });
+    }
+    
+    saveEmployees(employees);
+    res.redirect('/admin/employees');
+});
+
+// Xóa nhân viên
+app.post('/admin/employees/delete', (req, res) => {
+    const { id } = req.body;
+    let employees = readEmployees();
+    employees = employees.filter(e => e.id !== parseInt(id));
+    saveEmployees(employees);
+    res.redirect('/admin/employees');
 });
 
 // ============================================
