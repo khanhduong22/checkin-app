@@ -7,3 +7,5 @@ npm-debug.log*
 # Data files (Ignored to prevent conflicts with live data)
 checkins.json
 employees.json
+
+/generated/prisma
