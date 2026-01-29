@@ -44,7 +44,8 @@ export default async function Home() {
             checkins: {
                 where: { timestamp: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
                 orderBy: { timestamp: 'desc' }
-            }
+            },
+            achievements: true
         }
     })
   }
@@ -121,7 +122,14 @@ export default async function Home() {
             <div className={`p-6 pb-4 flex items-center justify-between ${streak > 0 || swapCount > 0 ? 'mt-6' : ''}`}>
                 <div>
                      <h1 className="text-xl font-bold tracking-tight">Chấm Công</h1>
-                     <p className="text-sm text-muted-foreground">Xin chào, {user?.name}</p>
+                     <p className="text-sm text-muted-foreground flex items-center gap-1">
+                         Xin chào, {user?.name}
+                         {user?.achievements?.map((a: any) => {
+                             if(a.code === 'LUCKY_STAR') return <span key={a.id} title="Ngôi Sao May Mắn">🌟</span>;
+                             if(a.code === 'GACHA_KING') return <span key={a.id} title="Vua Nhân Phẩm">👑</span>;
+                             return null;
+                         })}
+                     </p>
                 </div>
                  {streak === 0 && (
                      <div className="h-10 w-10 flex items-center justify-center rounded-full bg-primary/10 text-xl">

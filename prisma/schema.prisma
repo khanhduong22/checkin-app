@@ -73,6 +73,7 @@ model User {
   requests      Request[]
   stickyNotes   StickyNote[]
   adjustments   PayrollAdjustment[]
+  achievements  UserAchievement[]
 }
 
 model WorkShift {
@@ -128,6 +129,17 @@ model PayrollAdjustment {
   date      DateTime @default(now())
   createdAt DateTime @default(now())
 }
+
+model UserAchievement {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String   // EARLY_BIRD, STREAK_MASTER...
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, code])
+}
+
 
 
 model CheckIn {
