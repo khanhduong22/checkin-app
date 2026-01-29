@@ -71,6 +71,23 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
     if (!lastCheckin || lastCheckin.type === 'checkout') {
       return { success: false, message: "⚠️ Bạn chưa Check-in, không thể Check-out!" };
     }
+
+    // Validate Time Gap (Minimum 1 hour)
+    const now = new Date();
+    const diff = now.getTime() - lastCheckin.timestamp.getTime();
+
+    // Config: Prod = 60 min, Dev = 1 min (for testing)
+    const MIN_DURATION = process.env.NODE_ENV === 'development'
+      ? 1 * 60 * 1000
+      : 60 * 60 * 1000;
+
+    if (diff < MIN_DURATION) {
+      const remainingMin = Math.ceil((MIN_DURATION - diff) / 60000);
+      return {
+        success: false,
+        message: `⏳ Ca làm việc phải ít nhất 1 tiếng. Vui lòng chờ thêm ${remainingMin} phút nữa.`
+      };
+    }
   }
 
   try {
