@@ -75,6 +75,15 @@ export default async function Home() {
       createdAt: n.createdAt.toISOString()
   }));
 
+  // Check available swaps
+  const swapCount = await prisma.workShift.count({
+      where: {
+          isOpenForSwap: true,
+          userId: { not: user.id },
+          date: { gte: new Date() }
+      }
+  });
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
@@ -84,13 +93,20 @@ export default async function Home() {
 
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm relative overflow-hidden">
             {/* Streak Badge */}
-            {streak > 0 && (
-                <div className="absolute top-4 right-4 bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold border border-orange-200 flex items-center gap-1 shadow-sm">
-                    🔥 {streak} ngày streak
-                </div>
-            )}
+            <div className="absolute top-4 right-4 flex gap-2">
+                {swapCount > 0 && (
+                     <a href="/schedule" className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-[10px] font-bold border border-purple-200 shadow-sm animate-pulse hover:bg-purple-200 transition-colors">
+                        🎁 {swapCount} kèo thơm
+                    </a>
+                )}
+                {streak > 0 && (
+                    <div className="bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-[10px] font-bold border border-orange-200 shadow-sm">
+                        🔥 {streak}
+                    </div>
+                )}
+            </div>
 
-            <div className={`p-6 pb-4 flex items-center justify-between ${streak > 0 ? 'mt-6' : ''}`}>
+            <div className={`p-6 pb-4 flex items-center justify-between ${streak > 0 || swapCount > 0 ? 'mt-6' : ''}`}>
                 <div>
                      <h1 className="text-xl font-bold tracking-tight">Chấm Công</h1>
                      <p className="text-sm text-muted-foreground">Xin chào, {user?.name}</p>
@@ -109,6 +125,8 @@ export default async function Home() {
                     totalHours={stats.totalHours} 
                     totalSalary={stats.totalSalary} 
                     daysWorked={stats.daysWorked} 
+                    baseSalary={stats.baseSalary}
+                    totalAdjustments={stats.totalAdjustments}
                 />
 
                 <div className="relative">

@@ -42,16 +42,28 @@ export async function getUserMonthlyStats(userId: string) {
     }
   });
 
-  // Fetch user to get hourlyRate
+  // Fetch user to get hourlyRate and Adjustments
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { hourlyRate: true }
+    select: {
+      hourlyRate: true,
+      adjustments: {
+        where: {
+          date: { gte: startDate, lte: endDate }
+        }
+      }
+    }
   });
+
+  const baseSalary = totalHours * (user?.hourlyRate || 0);
+  const totalAdjustments = user?.adjustments.reduce((sum: number, adj: any) => sum + adj.amount, 0) || 0;
 
   return {
     totalHours,
     daysWorked: daysWorked.size,
     checkinCount: checkins.length,
-    totalSalary: totalHours * (user?.hourlyRate || 0)
+    baseSalary,
+    totalAdjustments,
+    totalSalary: baseSalary + totalAdjustments
   };
 }

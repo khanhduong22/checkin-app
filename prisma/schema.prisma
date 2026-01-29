@@ -72,6 +72,7 @@ model User {
   shifts        WorkShift[]
   requests      Request[]
   stickyNotes   StickyNote[]
+  adjustments   PayrollAdjustment[]
 }
 
 model WorkShift {
@@ -117,6 +118,17 @@ model StickyNote {
   userId    String
   createdAt DateTime @default(now())
 }
+
+model PayrollAdjustment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int      // Positive for Bonus, Negative for Penalty
+  reason    String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
 
 model CheckIn {
   id        Int      @id @default(autoincrement())
