@@ -98,6 +98,15 @@ model Request {
   createdAt DateTime @default(now())
 }
 
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  type      String   @default("INFO") // INFO, WARNING, SUCCESS, FIRE
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
 model CheckIn {
   id        Int      @id @default(autoincrement())
   userId    String

@@ -3,19 +3,16 @@ import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import CheckInButtons from "@/components/CheckInButtons"
-import UserProfile from "@/components/UserProfile"
 import { Button } from "@/components/ui/button"
+
 export default async function Home() {
   let session = await getServerSession(authOptions)
-
   let user;
 
   // --- DEV MODE: BYPASS LOGIN ---
   if (!session && process.env.NODE_ENV === 'development') {
     console.log("⚠️ Dev Mode: Bypassing Login");
     const devEmail = 'dev@local.host';
-    
-    // Create or retrieve a Dev User so functionality works
     user = await prisma.user.upsert({
         where: { email: devEmail },
         update: {},
@@ -27,66 +24,68 @@ export default async function Home() {
         },
         include: {
             checkins: {
-                where: {
-                    timestamp: { gte: new Date(new Date().setHours(0, 0, 0, 0)) }
-                },
+                where: { timestamp: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
                 orderBy: { timestamp: 'desc' }
             }
         }
     });
 
-    // Mock Session
     session = {
-        user: {
-            name: user.name,
-            email: user.email,
-            image: null,
-            // @ts-ignore
-            id: user.id,
-            role: user.role
-        },
+        user: { name: user.name, email: user.email, image: null, id: user.id, role: user.role },
         expires: '2099-12-31'
     } as any;
-
   } else if (!session) {
     redirect('/login')
   } else {
-    // Standard Production Logic
     user = await prisma.user.findUnique({
         where: { email: session.user?.email! },
         include: {
             checkins: {
-                where: {
-                    timestamp: {
-                        gte: new Date(new Date().setHours(0, 0, 0, 0))
-                    }
-                },
+                where: { timestamp: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
                 orderBy: { timestamp: 'desc' }
             }
         }
     })
   }
 
-  // Get Office IP (for display only, real check is in Server Action)
-  // Since we are server-side Next.js on Vercel, getting client IP here is tricky and strictly speaking 
-  // we check it in the Action when they click the button.
-  
   const { getUserMonthlyStats } = await import("@/lib/stats");
   const stats = await getUserMonthlyStats(user?.id!);
+
+  // New Features
+  const { calculateStreak } = await import("@/lib/streak");
+  const streak = await calculateStreak(user?.id!);
+
+  const announcements = await prisma.announcement.findMany({
+    where: { active: true },
+    orderBy: { createdAt: 'desc' }
+  });
+  const AnnouncementBar = (await import("@/components/AnnouncementBar")).default;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
         
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-            <div className="p-6 pb-4 flex items-center justify-between">
+        {/* Announcements */}
+        <AnnouncementBar announcements={announcements} />
+
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm relative overflow-hidden">
+            {/* Streak Badge */}
+            {streak > 0 && (
+                <div className="absolute top-4 right-4 bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold border border-orange-200 flex items-center gap-1 shadow-sm">
+                    🔥 {streak} ngày streak
+                </div>
+            )}
+
+            <div className={`p-6 pb-4 flex items-center justify-between ${streak > 0 ? 'mt-6' : ''}`}>
                 <div>
                      <h1 className="text-xl font-bold tracking-tight">Chấm Công</h1>
                      <p className="text-sm text-muted-foreground">Xin chào, {user?.name}</p>
                 </div>
-                <div className="h-10 w-10 flex items-center justify-center rounded-full bg-primary/10 text-xl">
-                    ⏰
-                </div>
+                 {streak === 0 && (
+                     <div className="h-10 w-10 flex items-center justify-center rounded-full bg-primary/10 text-xl">
+                        ⏰
+                    </div>
+                )}
             </div>
             
             <div className="px-6 pb-6 space-y-6">
@@ -116,19 +115,25 @@ export default async function Home() {
                 <div className="flex gap-3 pt-2">
                      <a href="/history" className="flex-1">
                         <Button variant="outline" className="w-full text-xs">
-                            📜 Xem Lịch sử
+                            📜 Lịch sử
                         </Button>
                     </a>
-                    <a href="/schedule" className="flex-1">
+                    <a href="/rewards" className="flex-1">
+                        <Button variant="outline" className="w-full text-xs text-orange-600 bg-orange-50 hover:bg-orange-100 border-orange-200">
+                            🎁 Thưởng/Phạt
+                        </Button>
+                    </a>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <a href="/schedule" className="block w-full">
                         <Button variant="outline" className="w-full text-xs">
                             📅 Đăng ký Lịch
                         </Button>
                     </a>
-                </div>
-                <div className="pt-2">
                     <a href="/requests" className="block w-full">
-                        <Button variant="ghost" className="w-full text-xs text-muted-foreground">
-                            📝 Xin giải trình / Nghỉ phép
+                        <Button variant="ghost" className="w-full text-xs text-muted-foreground bg-gray-100/50">
+                            📝 Xin giải trình
                         </Button>
                     </a>
                 </div>
@@ -145,7 +150,7 @@ export default async function Home() {
       </div>
       
       <div className="mt-6 text-[10px] text-muted-foreground font-mono opacity-50">
-        Internal System v2.0 • Secured by NextAuth
+        Internal System v2.1 • Secured by NextAuth
       </div>
     </main>
   )
