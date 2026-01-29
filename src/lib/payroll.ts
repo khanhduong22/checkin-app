@@ -18,12 +18,12 @@ export async function calculatePayroll(month: number, year: number) {
     }
   });
 
-  const payrollData = users.map(user => {
+  const payrollData = users.map((user: any) => {
     let totalHours = 0;
     const checkinsByDay: { [key: string]: any[] } = {};
 
     // Group checkins by day
-    user.checkins.forEach(c => {
+    user.checkins.forEach((c: any) => {
       const dateKey = c.timestamp.toISOString().split('T')[0];
       if (!checkinsByDay[dateKey]) checkinsByDay[dateKey] = [];
       checkinsByDay[dateKey].push(c);
@@ -58,7 +58,8 @@ export async function calculatePayroll(month: number, year: number) {
       hourlyRate: user.hourlyRate,
       totalHours,
       totalSalary: totalHours * user.hourlyRate,
-      checkinCount: Object.keys(checkinsByDay).length
+      checkinCount: Object.keys(checkinsByDay).length,
+      daysWorked: Object.keys(checkinsByDay).length // Add this field
     };
   });
 

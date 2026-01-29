@@ -1,11 +1,10 @@
 'use client';
 
-import { performCheckIn } from "@/app/actions";
-import { useState } from "react";
+import { performCheckIn, getIPStatus } from "@/app/actions";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-
-// Simple UI to show history
+import { Badge } from "@/components/ui/badge";
 
 function HistoryList({ checkins }: { checkins: any[] }) {
     if (checkins.length === 0) return null;
@@ -36,8 +35,19 @@ function HistoryList({ checkins }: { checkins: any[] }) {
 export default function CheckInButtons({ userId, todayCheckins }: { userId: string, todayCheckins: any[] }) {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+    const [ipStatus, setIpStatus] = useState<{ isAllowed: boolean, locationName: string, ip: string } | null>(null);
+
+    useEffect(() => {
+        getIPStatus().then(setIpStatus);
+    }, []);
 
     const handleAction = async (type: 'checkin' | 'checkout') => {
+        // Double check client side (optional, server side is source of truth)
+        if (ipStatus && !ipStatus.isAllowed) {
+            setMessage({ text: `❌ IP không hợp lệ (${ipStatus.ip}). Vui lòng kết nối Wifi công ty.`, type: 'error' });
+            return;
+        }
+
         setLoading(true);
         setMessage(null);
         
@@ -55,7 +65,28 @@ export default function CheckInButtons({ userId, todayCheckins }: { userId: stri
     };
 
     return (
-        <div>
+        <div className="space-y-4">
+            {/* Wifi Status Badge */}
+            <div className="flex justify-center">
+                {!ipStatus ? (
+                    <div className="h-6 w-32 bg-gray-200 animate-pulse rounded-full" />
+                ) : (
+                    <Badge variant={ipStatus.isAllowed ? "default" : "destructive"} className={cn("px-3 py-1 flex items-center gap-1.5", ipStatus.isAllowed ? "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200" : "")}>
+                        {ipStatus.isAllowed ? (
+                            <>
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                {ipStatus.locationName}
+                            </>
+                        ) : (
+                             <>🚫 {ipStatus.locationName} ({ipStatus.ip})</>
+                        )}
+                    </Badge>
+                )}
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
                 <Button
                     onClick={() => handleAction('checkin')}

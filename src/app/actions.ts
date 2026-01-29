@@ -13,8 +13,7 @@ function normalizeIP(ip: string) {
 }
 
 function isIPMatch(clientIP: string, allowedPrefixes: string[]) {
-  // DEV MODE BYPASS
-  if (process.env.NODE_ENV === 'development') return true;
+  // if (process.env.NODE_ENV === 'development') return true; // Disabled for strict testing
 
   const normalizedClient = normalizeIP(clientIP);
   for (const prefix of allowedPrefixes) {
@@ -22,9 +21,30 @@ function isIPMatch(clientIP: string, allowedPrefixes: string[]) {
     if (checkPrefix.startsWith('::ffff:') && !checkPrefix.includes(':')) {
       checkPrefix = checkPrefix.substring(7);
     }
-    if (normalizedClient.startsWith(checkPrefix)) return true;
+    // Simple verification
+    if (normalizedClient === checkPrefix || normalizedClient.startsWith(checkPrefix)) return true;
   }
   return false;
+}
+
+export async function getIPStatus() {
+  const headersList = headers();
+  const forwardedFor = headersList.get("x-forwarded-for");
+  const realIp = forwardedFor ? forwardedFor.split(',')[0].trim() : "127.0.0.1";
+
+  const allowedIps = await prisma.allowedIP.findMany();
+  const prefixes = allowedIps.map((r: any) => r.prefix);
+
+  // Auto-allow localhost for development if list is empty, otherwise enforce list
+  const isAllowed = (process.env.NODE_ENV === 'development' && prefixes.length === 0)
+    ? true
+    : isIPMatch(realIp, prefixes);
+
+  return {
+    ip: realIp,
+    isAllowed,
+    locationName: isAllowed ? (allowedIps.find((ip: any) => realIp.startsWith(ip.prefix))?.label || "Văn phòng") : "Ngoài vùng phủ sóng"
+  };
 }
 
 export async function performCheckIn(userId: string, type: 'checkin' | 'checkout') {
