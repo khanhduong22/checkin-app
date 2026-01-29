@@ -17,8 +17,8 @@ function LoginForm() {
         <div className="flex min-h-screen items-center justify-center p-4">
             <div className="card w-full max-w-[400px] p-8 text-center">
                 <div className="mb-6 flex justify-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-black text-white text-2xl shadow-sm">
-                        🔒
+                    <div className="h-20 w-20 overflow-hidden rounded-xl bg-yellow-400 shadow-md border-2 border-yellow-500 p-1 flex items-center justify-center">
+                         <img src="/logo.png" alt="LimArt" className="h-[90%] w-[90%] object-contain rounded-lg" />
                     </div>
                 </div>
                 

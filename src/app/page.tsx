@@ -109,11 +109,6 @@ export default async function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
         
-        {/* LOGO LIM ART */}
-        <div className="flex justify-center py-4">
-             <img src="/logo.png" alt="LimArt Logo" className="h-20 w-auto drop-shadow-md hover:scale-105 transition-transform" />
-        </div>
-
         {/* Announcements */}
         <AnnouncementBar announcements={announcements} />
 
@@ -147,11 +142,10 @@ export default async function Home() {
                          })}
                      </p>
                 </div>
-                 {streak === 0 && (
-                     <div className="h-10 w-10 flex items-center justify-center rounded-full bg-primary/10 text-xl">
-                        ⏰
-                    </div>
-                )}
+                 {/* LOGO REPLACEMENT */}
+                 <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-yellow-50 overflow-hidden shadow-sm border border-yellow-100">
+                    <img src="/logo.png" alt="LimArt" className="h-full w-full object-cover" />
+                </div>
             </div>
             
             <div className="px-6 pb-6 space-y-6">
