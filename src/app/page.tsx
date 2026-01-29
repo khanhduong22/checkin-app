@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import CheckInButtons from "@/components/CheckInButtons"
 import { Button } from "@/components/ui/button"
+import GachaButton from "@/components/GachaButton";
 
 export default async function Home() {
   let session = await getServerSession(authOptions)
@@ -76,13 +77,24 @@ export default async function Home() {
   }));
 
   // Check available swaps
-  const swapCount = await prisma.workShift.count({
+  const swapCount = user ? await prisma.workShift.count({
       where: {
           isOpenForSwap: true,
           userId: { not: user.id },
           date: { gte: new Date() }
       }
-  });
+  }) : 0;
+
+  // Check checkin status for Gacha
+  const todayStart = new Date();
+  todayStart.setHours(0,0,0,0);
+  const hasCheckedInToday = user ? await prisma.checkIn.findFirst({
+      where: {
+          userId: user.id,
+          timestamp: { gte: todayStart },
+          type: 'checkin'
+      }
+  }) : false;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
@@ -137,6 +149,11 @@ export default async function Home() {
 
                 <CheckInButtons userId={user?.id!} todayCheckins={user?.checkins || []} />
                 
+                {/* Gacha Game */}
+                <div className="pt-2">
+                    <GachaButton userId={user?.id!} hasCheckedIn={!!hasCheckedInToday} />
+                </div>
+
                 {/* Sticky Notes Widget */}
                 <div className="pt-2">
                     <StickyBoard notes={serializedNotes} currentUser={session?.user} />
