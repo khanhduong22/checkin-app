@@ -70,15 +70,9 @@ export default async function Home() {
   // Since we are server-side Next.js on Vercel, getting client IP here is tricky and strictly speaking 
   // we check it in the Action when they click the button.
   
-  // Import shadcn components locally if not imported at top, or assume imported.
-  // Wait, I need to add imports to the top of page.tsx first? Yes.
-  // Actually, let's keep it simple with manual classes for now to avoid multiple edits, 
-  // OR better: Since I'm editing the component, I can just use the classes I defined in 'globals.css' or 
-  // simply use the 'card' class which I defined to match Shadcn.
-  //
-  // BUT the user wanted the Shadcn look.
-  // Let's stick to the current structure but refine the classes to match exactly the screenshot provided (clean, bold).
-  
+  const { getUserMonthlyStats } = await import("@/lib/stats");
+  const stats = await getUserMonthlyStats(user?.id!);
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
@@ -87,7 +81,7 @@ export default async function Home() {
             <div className="p-6 pb-4 flex items-center justify-between">
                 <div>
                      <h1 className="text-xl font-bold tracking-tight">Chấm Công</h1>
-                     <p className="text-sm text-muted-foreground">Nội bộ công ty</p>
+                     <p className="text-sm text-muted-foreground">Xin chào, {user?.name}</p>
                 </div>
                 <div className="h-10 w-10 flex items-center justify-center rounded-full bg-primary/10 text-xl">
                     ⏰
@@ -95,8 +89,21 @@ export default async function Home() {
             </div>
             
             <div className="px-6 pb-6 space-y-6">
-                <UserProfile user={session.user} role={user?.role} />
                 
+                {/* Stats Summary */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-lg bg-secondary/50 p-3">
+                        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Tháng này</div>
+                        <div className="text-2xl font-bold text-primary">{stats.totalHours.toFixed(1)}h</div>
+                        <div className="text-[10px] text-muted-foreground">Giờ làm việc</div>
+                    </div>
+                    <div className="rounded-lg bg-secondary/50 p-3">
+                         <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Chăm chỉ</div>
+                         <div className="text-2xl font-bold text-primary">{stats.daysWorked}</div>
+                         <div className="text-[10px] text-muted-foreground">Ngày công</div>
+                    </div>
+                </div>
+
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t" />
@@ -105,10 +112,16 @@ export default async function Home() {
 
                 <CheckInButtons userId={user?.id!} todayCheckins={user?.checkins || []} />
                 
+                <div className="text-center">
+                    <a href="/history" className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline">
+                        Xem lịch sử đầy đủ →
+                    </a>
+                </div>
+
                 {user?.role === 'ADMIN' && (
-                     <div className="pt-2 text-center">
-                        <a href="/admin" className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
-                            🔧 Truy cập trang quản trị
+                     <div className="pt-2 text-center border-t border-dashed mt-4">
+                        <a href="/admin" className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 mt-4">
+                            🔧 Admin Dashboard
                         </a>
                     </div>
                 )}

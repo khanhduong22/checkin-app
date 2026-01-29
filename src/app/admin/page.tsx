@@ -12,7 +12,7 @@ export default async function AdminDashboard() {
     // Check Admin Role
     // @ts-ignore
     if (process.env.NODE_ENV === 'development') {
-    } else if (!session || session.user?.role !== 'ADMIN') {
+    } else if (!session || (session.user as any)?.role !== 'ADMIN') {
         if (session?.user?.email) {
              const user = await prisma.user.findUnique({ where: { email: session.user.email }});
              if (user?.role !== 'ADMIN') redirect('/?error=AccessDenied');
