@@ -29,24 +29,35 @@ export default async function HistoryPage() {
     const history = await prisma.checkIn.findMany({
         where: { userId: user.id },
         orderBy: { timestamp: 'desc' },
-        take: 100 // Limit last 100
+        take: 500 // Increase limit for chart history
     });
+    
+    // Client Component for Chart (passed serialized data)
+    // We import dynamic to avoid SSR hydration issues if dates are tricky, but here it's fine.
+    const { default: HistoryGantt } = await import("@/components/HistoryGantt");
 
     return (
-        <main className="min-h-screen bg-gray-50/50 p-4 flex justify-center">
-            <Card className="w-full max-w-2xl h-fit">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <div>
-                        <CardTitle>Lịch sử chấm công</CardTitle>
-                        <CardDescription>100 lượt gần nhất</CardDescription>
-                    </div>
+        <main className="min-h-screen bg-gray-50/50 p-4 justify-center">
+            <div className="w-full max-w-4xl mx-auto space-y-6">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-bold tracking-tight">Lịch sử chấm công</h1>
                     <a href="/">
-                        <Button variant="outline" size="sm">← Quay lại</Button>
+                        <Button variant="outline" size="sm">← Quay lại trang chủ</Button>
                     </a>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="border-t">
-                        {history.map((h: any) => (
+                </div>
+
+                {/* GANTT CHART Visualization */}
+                <HistoryGantt checkins={JSON.parse(JSON.stringify(history))} />
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <div>
+                            <CardTitle className="text-base">Chi tiết từng lượt</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="border-t max-h-[500px] overflow-auto">
+                        {history.slice(0, 100).map((h: any) => ( // Show only recent 100 in list to keep light
                             <div key={h.id} className="flex items-center justify-between p-4 border-b last:border-0 hover:bg-gray-50/50 transition-colors">
                                 <div className="flex items-center gap-4">
                                     <div className={`h-2.5 w-2.5 rounded-full ${h.type === 'checkin' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
@@ -72,9 +83,10 @@ export default async function HistoryPage() {
                         {history.length === 0 && (
                             <div className="p-8 text-center text-muted-foreground">Chưa có dữ liệu nào.</div>
                         )}
-                    </div>
-                </CardContent>
-            </Card>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         </main>
     );
 }

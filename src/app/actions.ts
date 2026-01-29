@@ -54,6 +54,25 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
     };
   }
 
+  // 2. Validate Sequence (Checkin -> Checkout -> Checkin)
+  const lastCheckin = await prisma.checkIn.findFirst({
+    where: { userId },
+    orderBy: { timestamp: 'desc' }
+  });
+
+  if (type === 'checkin') {
+    if (lastCheckin && lastCheckin.type === 'checkin') {
+      // Check if it's a new day? (Optional: auto-reset or force checkout)
+      // For strict validation: Force checkout first.
+      return { success: false, message: "⚠️ Bạn chưa Check-out lượt trước đó!" };
+    }
+  } else {
+    // type === 'checkout'
+    if (!lastCheckin || lastCheckin.type === 'checkout') {
+      return { success: false, message: "⚠️ Bạn chưa Check-in, không thể Check-out!" };
+    }
+  }
+
   try {
     await prisma.checkIn.create({
       data: {
