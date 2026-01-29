@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import CheckInButtons from "@/components/CheckInButtons"
 import { Button } from "@/components/ui/button"
 import GachaButton from "@/components/GachaButton";
+import ShopPetWidget from "@/components/ShopPetWidget";
 
 export default async function Home() {
   let session = await getServerSession(authOptions)
@@ -27,7 +28,8 @@ export default async function Home() {
             checkins: {
                 where: { timestamp: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
                 orderBy: { timestamp: 'desc' }
-            }
+            },
+            achievements: true
         }
     });
 
@@ -97,12 +99,21 @@ export default async function Home() {
       }
   }) : false;
 
+  // Get Pet Status
+  let shopPet = await prisma.shopPet.findUnique({ where: { id: "shop_pet" } });
+  if (!shopPet) {
+     shopPet = await prisma.shopPet.create({ data: { id: "shop_pet" } });
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
         
         {/* Announcements */}
         <AnnouncementBar announcements={announcements} />
+
+        {/* SHOP PET WIDGET */}
+        <ShopPetWidget pet={shopPet} />
 
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm relative overflow-hidden">
             {/* Streak Badge */}

@@ -140,6 +140,20 @@ model UserAchievement {
   @@unique([userId, code])
 }
 
+model ShopPet {
+  id        String   @id @default("shop_pet")
+  name      String   @default("Mèo Họa Sĩ")
+  level     Int      @default(1)
+  exp       Int      @default(0)
+  health    Int      @default(100) // Max 100
+  mood      Int      @default(100) // Max 100
+  updatedAt DateTime @updatedAt
+}
+
+
+
+
+
 
 
 model CheckIn {
