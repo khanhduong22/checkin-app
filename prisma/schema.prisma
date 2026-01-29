@@ -77,7 +77,9 @@ model WorkShift {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date      DateTime // Store as date only (e.g., set time to 00:00:00 UTC)
-  shift     String   // "MORNING", "AFTERNOON", "FULL"
+  shift     String   // "MORNING", "AFTERNOON", "FULL", "CUSTOM"
+  startTime String?  // Format "HH:mm"
+  endTime   String?  // Format "HH:mm"
   status    String   @default("APPROVED") 
   createdAt DateTime @default(now())
 

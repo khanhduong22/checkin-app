@@ -41,3 +41,27 @@ export async function cancelShift(shiftId: number) {
   revalidatePath('/schedule');
   return { success: true, message: "Đã hủy ca." };
 }
+
+export async function assignCustomShift(userId: string, dateStr: string, startTime: string, endTime: string) {
+  const session = await getServerSession(authOptions);
+  // @ts-ignore
+  if (session?.user?.role !== 'ADMIN') return { success: false, message: "Forbidden" };
+
+  try {
+    const date = new Date(dateStr);
+    await prisma.workShift.create({
+      data: {
+        userId,
+        date,
+        shift: 'CUSTOM', // Type CUSTOM
+        startTime,
+        endTime,
+        status: 'APPROVED'
+      }
+    });
+    revalidatePath('/admin/schedule');
+    return { success: true, message: "Đã gán ca thành công!" };
+  } catch (e) {
+    return { success: false, message: "Lỗi: Có thể nhân viên đã có ca ngày này." };
+  }
+}
