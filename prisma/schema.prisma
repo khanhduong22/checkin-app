@@ -70,6 +70,7 @@ model User {
   sessions      Session[]
   checkins      CheckIn[]
   shifts        WorkShift[]
+  requests      Request[]
 }
 
 model WorkShift {
@@ -84,6 +85,17 @@ model WorkShift {
   createdAt DateTime @default(now())
 
   @@unique([userId, date, shift]) 
+}
+
+model Request {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "LATE", "EARLY", "MISSING", "OTHER"
+  date      DateTime // Ngày xảy ra sự việc
+  reason    String   // Lý do giải trình
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt DateTime @default(now())
 }
 
 model CheckIn {

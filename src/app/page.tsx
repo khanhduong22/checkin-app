@@ -125,6 +125,13 @@ export default async function Home() {
                         </Button>
                     </a>
                 </div>
+                <div className="pt-2">
+                    <a href="/requests" className="block w-full">
+                        <Button variant="ghost" className="w-full text-xs text-muted-foreground">
+                            📝 Xin giải trình / Nghỉ phép
+                        </Button>
+                    </a>
+                </div>
 
                 {user?.role === 'ADMIN' && (
                      <div className="pt-2 text-center border-t border-dashed mt-4">
