@@ -1,35 +1,37 @@
 'use client';
 
-import { signOut } from "next-auth/react";
+import { Button } from "@/components/ui/button"
+import { signOut } from "next-auth/react"
 
 export default function UserProfile({ user, role }: { user: any, role?: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl bg-white/10 p-4 border border-white/10">
-      <div className="flex items-center gap-3">
-        {user.image ? (
-            <img src={user.image} alt="Avatar" className="h-10 w-10 rounded-full border border-white/20" />
-        ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500 font-bold text-white">
-                {user.name?.charAt(0).toUpperCase()}
-            </div>
-        )}
+    <div className="flex items-center justify-between rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
+      <div className="flex items-center gap-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
+           {user.image ? (
+                <img src={user.image} alt={user.name} className="h-full w-full rounded-full object-cover" />
+            ) : (
+                user.name?.charAt(0).toUpperCase()
+            )}
+        </div>
         <div>
-            <div className="font-semibold text-gray-900">{user.name}</div>
-            <div className="text-xs text-gray-600 email-text">{user.email}</div>
+            <div className="font-medium">{user.name}</div>
+            <div className="text-sm text-muted-foreground">{user.email}</div>
             {role === 'ADMIN' && (
-                <span className="mt-1 inline-block rounded bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">
+                <span className="mt-1 inline-flex items-center rounded-full border border-transparent bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                     ADMIN
                 </span>
             )}
         </div>
       </div>
-      <button 
+      <Button 
+        variant="ghost" 
+        size="icon"
         onClick={() => signOut()}
-        className="rounded-lg p-2 text-sm text-red-100 hover:bg-red-500/20 hover:text-red-600 transition-colors"
         title="Đăng xuất"
       >
         🚪
-      </button>
+      </Button>
     </div>
   );
 }

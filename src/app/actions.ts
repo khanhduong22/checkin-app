@@ -13,6 +13,9 @@ function normalizeIP(ip: string) {
 }
 
 function isIPMatch(clientIP: string, allowedPrefixes: string[]) {
+  // DEV MODE BYPASS
+  if (process.env.NODE_ENV === 'development') return true;
+
   const normalizedClient = normalizeIP(clientIP);
   for (const prefix of allowedPrefixes) {
     let checkPrefix = prefix;
@@ -32,7 +35,7 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
 
   // 1. Get Allowed IPs
   const allowedIps = await prisma.allowedIP.findMany();
-  const prefixes = allowedIps.map(r => r.prefix);
+  const prefixes = allowedIps.map((r: { prefix: string }) => r.prefix);
 
   // If no allowed IPs defined yet, allow localhost for setup (Optional safety)
   if (prefixes.length === 0) {
