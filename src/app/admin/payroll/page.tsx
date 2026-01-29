@@ -2,6 +2,8 @@ import { calculatePayroll } from "@/lib/payroll";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+import ExportButton from "@/components/admin/ExportButton";
+
 export const dynamic = 'force-dynamic';
 
 export default async function PayrollPage({ searchParams }: { searchParams: { month?: string, year?: string } }) {
@@ -15,6 +17,17 @@ export default async function PayrollPage({ searchParams }: { searchParams: { mo
     const fmt = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
     const fmtNum = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
 
+    // Prepare Export Data
+    const exportData = payroll.map((p: any) => ({
+        "ID": p.id,
+        "Nhân viên": p.name,
+        "Email": p.email,
+        "Số công": p.checkinCount,
+        "Tổng giờ làm": p.totalHours.toFixed(2),
+        "Mức lương/h": p.hourlyRate,
+        "Tổng Lương": p.totalSalary
+    }));
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -22,7 +35,9 @@ export default async function PayrollPage({ searchParams }: { searchParams: { mo
                      <h2 className="text-2xl font-bold tracking-tight">Bảng Lương</h2>
                      <p className="text-muted-foreground">Tháng {month}/{year}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                     <ExportButton data={exportData} fileName={`bang-luong-${month}-${year}.csv`} />
+                     <div className="h-4 w-px bg-gray-200 mx-2" />
                      {/* Simple navigation - In production use proper UI */}
                      <a href={`/admin/payroll?month=${month === 1 ? 12 : month - 1}&year=${month === 1 ? year - 1 : year}`}>
                         <Button variant="outline" size="sm">◀ Tháng trước</Button>
@@ -47,7 +62,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: { mo
                                 </tr>
                             </thead>
                             <tbody className="[&_tr:last-child]:border-0">
-                                {payroll.map((p) => (
+                                {payroll.map((p: any) => (
                                     <tr key={p.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                                         <td className="p-4 align-middle font-medium">
                                             <div className="flex items-center gap-3">

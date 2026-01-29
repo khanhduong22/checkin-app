@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { checkTimeStatus } from "@/lib/utils";
 
 export const dynamic = 'force-dynamic';
 
@@ -70,8 +71,16 @@ export default async function HistoryPage() {
                                         </span>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="font-mono text-sm font-medium">
+                                <div className="text-right flex flex-col items-end gap-1">
+                                    <div className="font-mono text-sm font-medium flex items-center gap-2">
+                                        {(() => {
+                                            const status = checkTimeStatus(new Date(h.timestamp), h.type as any);
+                                            return status ? (
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${status.color}`}>
+                                                    {status.label}
+                                                </span>
+                                            ) : null;
+                                        })()}
                                         {new Date(h.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                     <div className="text-[10px] text-muted-foreground font-mono">
