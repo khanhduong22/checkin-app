@@ -21,7 +21,7 @@ export async function getUserMonthlyStats(userId: string) {
   const daysWorked = new Set();
   const checkinsByDay: { [key: string]: any[] } = {};
 
-  checkins.forEach(c => {
+  checkins.forEach((c: any) => {
     const dateKey = c.timestamp.toISOString().split('T')[0];
     daysWorked.add(dateKey);
     if (!checkinsByDay[dateKey]) checkinsByDay[dateKey] = [];
@@ -42,9 +42,16 @@ export async function getUserMonthlyStats(userId: string) {
     }
   });
 
+  // Fetch user to get hourlyRate
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { hourlyRate: true }
+  });
+
   return {
     totalHours,
     daysWorked: daysWorked.size,
-    checkinCount: checkins.length
+    checkinCount: checkins.length,
+    totalSalary: totalHours * (user?.hourlyRate || 0)
   };
 }

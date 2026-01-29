@@ -71,6 +71,7 @@ model User {
   checkins      CheckIn[]
   shifts        WorkShift[]
   requests      Request[]
+  stickyNotes   StickyNote[]
 }
 
 model WorkShift {
@@ -82,6 +83,7 @@ model WorkShift {
   startTime String?  // Format "HH:mm"
   endTime   String?  // Format "HH:mm"
   status    String   @default("APPROVED") 
+  isOpenForSwap Boolean @default(false)
   createdAt DateTime @default(now())
 
   @@unique([userId, date, shift]) 
@@ -104,6 +106,15 @@ model Announcement {
   content   String
   type      String   @default("INFO") // INFO, WARNING, SUCCESS, FIRE
   active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model StickyNote {
+  id        String   @id @default(cuid())
+  content   String
+  color     String   @default("yellow") // yellow, pink, blue, green
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
   createdAt DateTime @default(now())
 }
 

@@ -60,6 +60,20 @@ export default async function Home() {
     orderBy: { createdAt: 'desc' }
   });
   const AnnouncementBar = (await import("@/components/AnnouncementBar")).default;
+  const StickyBoard = (await import("@/components/StickyBoard")).default;
+  const PrivacyStats = (await import("@/components/PrivacyStats")).default;
+
+  const notes = await prisma.stickyNote.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+      include: { user: true }
+  });
+
+  // Serialize Notes for Client Component
+  const serializedNotes = notes.map((n: any) => ({
+      ...n,
+      createdAt: n.createdAt.toISOString()
+  }));
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
@@ -90,19 +104,12 @@ export default async function Home() {
             
             <div className="px-6 pb-6 space-y-6">
                 
-                {/* Stats Summary */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-lg bg-secondary/50 p-3">
-                        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Tháng này</div>
-                        <div className="text-2xl font-bold text-primary">{stats.totalHours.toFixed(1)}h</div>
-                        <div className="text-[10px] text-muted-foreground">Giờ làm việc</div>
-                    </div>
-                    <div className="rounded-lg bg-secondary/50 p-3">
-                         <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Chăm chỉ</div>
-                         <div className="text-2xl font-bold text-primary">{stats.daysWorked}</div>
-                         <div className="text-[10px] text-muted-foreground">Ngày công</div>
-                    </div>
-                </div>
+                {/* Privacy Stats */}
+                <PrivacyStats 
+                    totalHours={stats.totalHours} 
+                    totalSalary={stats.totalSalary} 
+                    daysWorked={stats.daysWorked} 
+                />
 
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -112,6 +119,11 @@ export default async function Home() {
 
                 <CheckInButtons userId={user?.id!} todayCheckins={user?.checkins || []} />
                 
+                {/* Sticky Notes Widget */}
+                <div className="pt-2">
+                    <StickyBoard notes={serializedNotes} currentUser={session?.user} />
+                </div>
+
                 <div className="flex gap-3 pt-2">
                      <a href="/history" className="flex-1">
                         <Button variant="outline" className="w-full text-xs">
@@ -137,7 +149,8 @@ export default async function Home() {
                         </Button>
                     </a>
                 </div>
-
+                
+                {/* Admin Link... */}
                 {user?.role === 'ADMIN' && (
                      <div className="pt-2 text-center border-t border-dashed mt-4">
                         <a href="/admin" className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 mt-4">
@@ -150,7 +163,7 @@ export default async function Home() {
       </div>
       
       <div className="mt-6 text-[10px] text-muted-foreground font-mono opacity-50">
-        Internal System v2.1 • Secured by NextAuth
+        Internal System v2.2 • Secured by NextAuth
       </div>
     </main>
   )
