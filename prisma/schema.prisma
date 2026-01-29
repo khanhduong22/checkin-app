@@ -69,6 +69,19 @@ model User {
   accounts      Account[]
   sessions      Session[]
   checkins      CheckIn[]
+  shifts        WorkShift[]
+}
+
+model WorkShift {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime // Store as date only (e.g., set time to 00:00:00 UTC)
+  shift     String   // "MORNING", "AFTERNOON", "FULL"
+  status    String   @default("APPROVED") 
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date, shift]) 
 }
 
 model CheckIn {

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import CheckInButtons from "@/components/CheckInButtons"
 import UserProfile from "@/components/UserProfile"
+import { Button } from "@/components/ui/button"
 export default async function Home() {
   let session = await getServerSession(authOptions)
 
@@ -112,9 +113,16 @@ export default async function Home() {
 
                 <CheckInButtons userId={user?.id!} todayCheckins={user?.checkins || []} />
                 
-                <div className="text-center">
-                    <a href="/history" className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline">
-                        Xem lịch sử đầy đủ →
+                <div className="flex gap-3 pt-2">
+                     <a href="/history" className="flex-1">
+                        <Button variant="outline" className="w-full text-xs">
+                            📜 Xem Lịch sử
+                        </Button>
+                    </a>
+                    <a href="/schedule" className="flex-1">
+                        <Button variant="outline" className="w-full text-xs">
+                            📅 Đăng ký Lịch
+                        </Button>
                     </a>
                 </div>
 
