@@ -25,8 +25,24 @@ export default async function SchedulePage() {
         }
     });
 
+    // Get Available Swaps (From OTHERS, in future)
+    const availableSwaps = await prisma.workShift.findMany({
+        where: {
+            isOpenForSwap: true,
+            userId: { not: user.id },
+            date: { gte: new Date() }
+        },
+        include: { user: true }
+    });
+
     // Serialize dates
     const serializedShifts = shifts.map((s: any) => ({
+        ...s,
+        date: s.date.toISOString(),
+        createdAt: s.createdAt.toISOString()
+    }));
+
+    const serializedSwaps = availableSwaps.map((s: any) => ({
         ...s,
         date: s.date.toISOString(),
         createdAt: s.createdAt.toISOString()
@@ -35,7 +51,7 @@ export default async function SchedulePage() {
     return (
         <main className="min-h-screen bg-gray-50/50 p-4 flex justify-center">
             <div className="w-full max-w-4xl">
-                 <ScheduleClient shifts={serializedShifts} />
+                 <ScheduleClient shifts={serializedShifts} availableSwaps={serializedSwaps} />
             </div>
         </main>
     );
