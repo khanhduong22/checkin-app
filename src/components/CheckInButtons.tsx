@@ -5,7 +5,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner"; // Use sonner
 
+// ... Keep HistoryList as is ...
 function HistoryList({ checkins }: { checkins: any[] }) {
     if (checkins.length === 0) return null;
     return (
@@ -34,7 +36,6 @@ function HistoryList({ checkins }: { checkins: any[] }) {
 
 export default function CheckInButtons({ userId, todayCheckins }: { userId: string, todayCheckins: any[] }) {
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
     const [ipStatus, setIpStatus] = useState<{ isAllowed: boolean, locationName: string, ip: string } | null>(null);
 
     useEffect(() => {
@@ -42,23 +43,24 @@ export default function CheckInButtons({ userId, todayCheckins }: { userId: stri
     }, []);
 
     const handleAction = async (type: 'checkin' | 'checkout') => {
-        // Double check client side (optional, server side is source of truth)
         if (ipStatus && !ipStatus.isAllowed) {
-            setMessage({ text: `❌ IP không hợp lệ (${ipStatus.ip}). Vui lòng kết nối Wifi công ty.`, type: 'error' });
+            toast.error(`❌ IP không hợp lệ (${ipStatus.ip}).`, {
+                description: "Vui lòng kết nối Wifi công ty."
+            });
             return;
         }
 
         setLoading(true);
-        setMessage(null);
         
         try {
             const result = await performCheckIn(userId, type);
-            setMessage({
-                text: result.message,
-                type: result.success ? 'success' : 'error'
-            });
+            if (result.success) {
+                toast.success(result.message);
+            } else {
+                toast.error(result.message);
+            }
         } catch (e) {
-            setMessage({ text: 'Lỗi kết nối server', type: 'error' });
+            toast.error('Lỗi kết nối server');
         } finally {
             setLoading(false);
         }
@@ -91,7 +93,7 @@ export default function CheckInButtons({ userId, todayCheckins }: { userId: stri
                 <Button
                     onClick={() => handleAction('checkin')}
                     disabled={loading}
-                    className="h-16 text-md font-semibold bg-emerald-600 hover:bg-emerald-700"
+                    className="h-12 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700"
                 >
                     📍 Check-in
                 </Button>
@@ -99,7 +101,7 @@ export default function CheckInButtons({ userId, todayCheckins }: { userId: stri
                     onClick={() => handleAction('checkout')}
                     disabled={loading}
                     variant="outline"
-                    className="h-16 text-md font-semibold border-2"
+                    className="h-12 text-sm font-semibold border-2"
                 >
                     👋 Check-out
                 </Button>
@@ -107,15 +109,6 @@ export default function CheckInButtons({ userId, todayCheckins }: { userId: stri
 
             {loading && <div className="mt-4 text-center text-xs text-muted-foreground animate-pulse">Đang xử lý...</div>}
 
-            {message && (
-                <div className={cn("mt-4 rounded-md p-3 text-sm font-medium", 
-                    message.type === 'success' 
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-900' 
-                        : 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-900'
-                )}>
-                    {message.text}
-                </div>
-            )}
 
             <HistoryList checkins={todayCheckins} />
         </div>
