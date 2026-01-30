@@ -11,7 +11,7 @@ export default function AdminNavLinks() {
         { href: "/admin", label: "🏠 Dashboard" },
         { href: "/admin/employees", label: "👥 Nhân sự" },
         { href: "/admin/schedule", label: "📅 Lịch làm việc" },
-        { href: "/admin/reports", label: "📈 Báo cáo" },
+        { href: "/admin/reports", label: "📈 Bảng thành tích" },
         { href: "/admin/requests", label: "🔔 Duyệt yêu cầu" },
         { href: "/admin/announcements", label: "📢 Thông báo" },
         { href: "/admin/payroll", label: "💰 Bảng Lương" },

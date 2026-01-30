@@ -105,6 +105,23 @@ export default async function Home() {
      shopPet = await prisma.shopPet.create({ data: { id: "shop_pet" } });
   }
 
+  // Get today's shift
+  const todayStart2 = new Date();
+  todayStart2.setHours(0,0,0,0);
+  const todayEnd2 = new Date();
+  todayEnd2.setHours(23,59,59,999);
+
+  const todayShift = user ? await prisma.workShift.findFirst({
+      where: {
+          userId: user.id,
+          start: {
+              gte: todayStart2,
+              lte: todayEnd2
+          }
+      },
+      orderBy: { start: 'asc' } // Should prioritize earliest shift if multiple? Or last? Usually earliest.
+  }) : null;
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
@@ -165,7 +182,15 @@ export default async function Home() {
                     </div>
                 </div>
 
-                <CheckInButtons userId={user?.id!} todayCheckins={user?.checkins || []} />
+                <CheckInButtons 
+                    userId={user?.id!} 
+                    todayCheckins={user?.checkins || []} 
+                    todayShift={todayShift ? {
+                        ...todayShift,
+                        start: todayShift.start.toISOString(),
+                        end: todayShift.end.toISOString()
+                    } : null}
+                />
                 
                 {/* Gacha Game */}
                 <div className="pt-2">

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getUserMonthlyStats } from "@/lib/stats";
 import PayrollDetailView from "@/components/PayrollDetailView";
 import PayrollMonthSelector from "@/components/PayrollMonthSelector";
+import PayrollExplanationModal from "@/components/PayrollExplanationModal";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -48,7 +49,8 @@ export default async function PayrollPage({ searchParams }: { searchParams: { mo
                             <ChevronLeft className="h-5 w-5" />
                         </Button>
                     </Link>
-                    <h1 className="text-xl font-bold">Chi tiết lương</h1>
+                    <h1 className="text-xl font-bold flex-1">Chi tiết lương</h1>
+                    <PayrollExplanationModal />
                 </div>
                 
                 <div className="bg-white p-4 rounded-xl shadow-sm border">
