@@ -56,14 +56,116 @@ export async function updateUserRate(userId: string, hourlyRate: number) {
 }
 
 export async function updateUserName(userId: string, name: string) {
-    try {
-        await prisma.user.update({
-            where: { id: userId },
-            data: { name }
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { name }
+    });
+    revalidatePath('/admin');
+    return { success: true, message: 'Đã cập nhật tên' };
+  } catch (e) {
+    return { success: false, message: 'Lỗi cập nhật tên' };
+  }
+}
+
+export async function updateUserEmploymentType(userId: string, type: 'FULL_TIME' | 'PART_TIME') {
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { employmentType: type }
+    });
+
+    if (type === 'FULL_TIME') {
+      // Auto generate shifts: 9:00 - 17:00, Mon-Sat (1-6), for next 3 months
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 3);
+
+      const shiftsToCreate = [];
+
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const day = d.getDay(); // 0 = Sun, 1 = Mon, ... 6 = Sat
+        if (day === 0) continue; // Skip Sunday
+
+        // Set 9:00 - 17:00 (Local Time relative to server, which might be UTC)
+        // Assuming simplistic local time expectation (VN).
+        // If server is UTC, 9:00 VN = 2:00 UTC.
+        // Best practice: Store as UTC.
+        // But user sees 9-17.
+        // "9g-17g" implies VN time (UTC+7).
+        // 9:00 VN = 02:00 UTC.
+        // 17:00 VN = 10:00 UTC.
+
+        const shiftStart = new Date(d);
+        shiftStart.setUTCHours(2, 0, 0, 0); // 09:00 GMT+7
+
+        const shiftEnd = new Date(d);
+        shiftEnd.setUTCHours(10, 0, 0, 0); // 17:00 GMT+7
+
+        // Check overlap? Expensive to check per day.
+        // Since this is "Reset/Set" for Full Time.
+        // Let's rely on checking existence by day?
+
+        // For simplicity and performance, we'll try strict checking or skip if exists
+        // We'll insert and ignore if fails? No unique constraint on userId+start.
+
+        // Let's just create. Admin can manage dupes if any. 
+        // Or better: Delete future shifts and recreate?
+        // "Tự động gán" -> Override?
+        // Let's Delete existing future shifts for this user before creating to avoid messes.
+
+        // Wait, deleting might remove specific swaps/custom shifts.
+        // But switching to FULL TIME implies standard schedule.
+        // I will NOT delete, but simply skip if a shift exists on that day?
+
+        // To avoid N+1 queries, fetch existing shifts in range first.
+      }
+
+      // Optimization: Fetch existing shifts
+      const existing = await prisma.workShift.findMany({
+        where: {
+          userId,
+          start: { gte: startDate, lte: endDate }
+        },
+        select: { start: true }
+      });
+      const existingDates = new Set(existing.map(s => s.start.toISOString().split('T')[0]));
+
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const day = d.getDay();
+        if (day === 0) continue; // No Sunday
+
+        // We compare via Date String (UTC)
+        // d is iterating. Note d.toISOString() uses UTC.
+        // We want 9:00 VN (02:00 UTC).
+        const shiftStart = new Date(d);
+        shiftStart.setUTCHours(2, 0, 0, 0);
+
+        const shiftEnd = new Date(d);
+        shiftEnd.setUTCHours(10, 0, 0, 0);
+
+        const dateKey = shiftStart.toISOString().split('T')[0];
+        if (!existingDates.has(dateKey)) {
+          shiftsToCreate.push({
+            userId,
+            start: shiftStart,
+            end: shiftEnd,
+            status: 'APPROVED'
+          });
+        }
+      }
+
+      if (shiftsToCreate.length > 0) {
+        await prisma.workShift.createMany({
+          data: shiftsToCreate
         });
-        revalidatePath('/admin');
-        return { success: true, message: 'Đã cập nhật tên' };
-    } catch (e) {
-        return { success: false, message: 'Lỗi cập nhật tên' };
+      }
     }
+
+    revalidatePath('/admin');
+    return { success: true, message: 'Đã cập nhật loại nhân viên & lịch làm' };
+  } catch (e) {
+    console.error(e);
+    return { success: false, message: 'Lỗi cập nhật' };
+  }
 }

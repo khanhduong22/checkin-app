@@ -76,21 +76,33 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         setModalOpen(false); // Close modal immediately
 
         // Call server action
-        const result: any = await registerShift(start, end);
-        
-        if (result.success) {
-            toast.success("Đăng ký thành công!");
-            // Update the optimistic event with real data if needed, or just leave it
-            // Ideally we should replace the temp event with the confirmed one, 
-            // but since we don't have the full real object returned with ID, 
-            // we'll keep the optimistic one. Revalidating path on server means next generic refresh will fix it.
-            // Update title to confirm
-            setEvents(prev => prev.map(e => e.id === tempId ? { ...e, title: 'Đã đăng ký', id: result.id || tempId } : e));
-        } else {
-            toast.error(result.error || "Lỗi đăng ký");
-            // Rollback
-            setEvents(prev => prev.filter(e => e.id !== tempId));
-        }
+        const callRegister = async (override: boolean = false) => {
+             const result: any = await registerShift(start, end, override);
+             
+             if (result.success) {
+                toast.success("Đăng ký thành công!");
+                setEvents(prev => prev.map(e => e.id === tempId ? { ...e, title: 'Đã đăng ký', id: result.id || tempId } : e));
+             } else {
+                if (result.error === 'LIMIT_PART_TIME') {
+                    if (isAdmin) {
+                         // Show native confirm or custom dialog
+                         if (window.confirm(`⚠️ CẢNH BÁO: Đã có ${result.count} nhân viên Part-time trong khung giờ này.\n\nBạn có chắc chắn muốn duyệt thêm người này (Ví dụ: Ngày lễ)?`)) {
+                             // Retry with override
+                             await callRegister(true);
+                             return;
+                         }
+                    } else {
+                        toast.error("Không thể đăng ký: Đã đủ số lượng Part-time!");
+                    }
+                } else {
+                    toast.error(result.error || "Lỗi đăng ký");
+                }
+                // Rollback
+                setEvents(prev => prev.filter(e => e.id !== tempId));
+             }
+        };
+
+        await callRegister(false);
     }
 
     const handleSelectEvent = useCallback(

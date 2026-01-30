@@ -55,6 +55,11 @@ enum UserRole {
   ADMIN
 }
 
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -64,6 +69,7 @@ model User {
   
   // Custom fields
   role          UserRole  @default(USER) // Quyền hạn (ADMIN/USER)
+  employmentType EmploymentType @default(PART_TIME)
   hourlyRate    Float     @default(0)   // Lương theo giờ
   
   accounts      Account[]

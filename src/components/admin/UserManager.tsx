@@ -34,6 +34,20 @@ function UserItem({ user }: { user: any }) {
         }
     };
 
+    const handleEmploymentTypeChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newType = e.target.value as 'FULL_TIME' | 'PART_TIME';
+        setLoading(true);
+        try {
+            const { updateUserEmploymentType } = await import('@/app/admin/actions');
+            const res = await updateUserEmploymentType(user.id, newType);
+            if (!res.success) alert(res.message);
+        } catch (error) {
+            alert('Có lỗi xảy ra');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="flex items-center justify-between p-4 border-b last:border-0 hover:bg-gray-50/50 transition-colors">
             <div className="flex items-center gap-4 flex-1">
@@ -54,6 +68,17 @@ function UserItem({ user }: { user: any }) {
                         {user.role === 'ADMIN' && <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded">ADMIN</span>}
                     </div>
                     <div className="text-sm text-muted-foreground">{user.email}</div>
+                    <div className="mt-1">
+                        <select 
+                            className="text-xs border rounded p-1 bg-white"
+                            value={user.employmentType || 'PART_TIME'}
+                            onChange={handleEmploymentTypeChange}
+                            disabled={loading}
+                        >
+                            <option value="PART_TIME">Part Time</option>
+                            <option value="FULL_TIME">Full Time</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             

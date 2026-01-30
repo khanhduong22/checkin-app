@@ -30,6 +30,9 @@ export default async function AdminSchedulePage() {
         userId: s.userId,
     }));
 
+    // Get all users for validation
+    const allUsers = await prisma.user.findMany();
+
     return (
         <div className="space-y-6">
              <div className="flex justify-between items-center">
