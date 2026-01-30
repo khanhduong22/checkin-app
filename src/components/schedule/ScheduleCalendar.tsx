@@ -35,7 +35,7 @@ interface CalendarEvent {
 export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false }: { initialEvents: any[], userId: string, isAdmin?: boolean }) {
     const [events, setEvents] = useState<CalendarEvent[]>(initialEvents.map(e => ({
         id: e.id,
-        title: e.user.name || 'Staff',
+        title: e.title || 'Staff', // Use existing title mapped from server component
         start: new Date(e.start),
         end: new Date(e.end),
         resource: e,
