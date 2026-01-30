@@ -80,15 +80,18 @@ model WorkShift {
   id        Int      @id @default(autoincrement())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date      DateTime // Store as date only (e.g., set time to 00:00:00 UTC)
-  shift     String   // "MORNING", "AFTERNOON", "FULL", "CUSTOM"
-  startTime String?  // Format "HH:mm"
-  endTime   String?  // Format "HH:mm"
+  start     DateTime // Thay thế date/startTime cũ
+  end       DateTime // Thay thế endTime cũ
+  
+  // Backward compat fields (optional or remove)
+  shiftType String?   // "CUSTOM" mostly
+  
   status    String   @default("APPROVED") 
   isOpenForSwap Boolean @default(false)
   createdAt DateTime @default(now())
 
-  @@unique([userId, date, shift]) 
+  // Allow multiple shifts per day, so no unique constraint on date
+  @@index([userId, start])
 }
 
 model Request {

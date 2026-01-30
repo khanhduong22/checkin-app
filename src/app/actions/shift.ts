@@ -16,13 +16,29 @@ export async function registerShift(dateStr: string, shift: string) {
     const date = new Date(dateStr);
     // Normalize to midnight UTC or specific timezone handling if needed
     // For simplicity, let's just use the Input Date (YYYY-MM-DD) as UTC midnight
+    // Convert old shift types to new time range
+    const start = new Date(date);
+    const end = new Date(date);
+
+    // Default hours
+    if (shift === 'MORNING') {
+      start.setHours(8, 0, 0, 0);
+      end.setHours(12, 0, 0, 0);
+    } else if (shift === 'AFTERNOON') {
+      start.setHours(13, 30, 0, 0);
+      end.setHours(17, 30, 0, 0);
+    } else { // FULL or others
+      start.setHours(8, 0, 0, 0);
+      end.setHours(17, 0, 0, 0);
+    }
 
     await prisma.workShift.create({
       data: {
         userId: user.id,
-        date: date,
-        shift: shift,
-        status: 'APPROVED' // Auto approve for now
+        start: start,
+        end: end,
+        shiftType: shift, // store original type for ref
+        status: 'APPROVED'
       }
     });
 
@@ -49,20 +65,32 @@ export async function assignCustomShift(userId: string, dateStr: string, startTi
 
   try {
     const date = new Date(dateStr);
+
+    // Create Date objects from time strings
+    const start = new Date(date);
+    const [startH, startM] = startTime.split(':').map(Number);
+    start.setHours(startH, startM, 0, 0);
+
+    const end = new Date(date);
+    const [endH, endM] = endTime.split(':').map(Number);
+    end.setHours(endH, endM, 0, 0);
+
+    // Validate end > start
+    if (end <= start) return { success: false, message: "Giờ kết thúc phải sau giờ bắt đầu" };
+
     await prisma.workShift.create({
       data: {
         userId,
-        date,
-        shift: 'CUSTOM', // Type CUSTOM
-        startTime,
-        endTime,
+        start,
+        end,
+        shiftType: 'CUSTOM', // Type CUSTOM
         status: 'APPROVED'
       }
     });
     revalidatePath('/admin/schedule');
     return { success: true, message: "Đã gán ca thành công!" };
   } catch (e) {
-    return { success: false, message: "Lỗi: Có thể nhân viên đã có ca ngày này." };
+    return { success: false, message: "Lỗi: Có thể nhân viên đã có ca trùng giờ." };
   }
 }
 

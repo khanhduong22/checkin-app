@@ -78,12 +78,13 @@ async function main() {
     const date = new Date(2026, 0, i)
     if (date.getDay() === 0) continue
 
+    const start = new Date(2026, 0, i, 8, 0, 0)
+    const end = new Date(2026, 0, i, 17, 0, 0)
     shifts.push({
       userId: user.id,
-      date: date,
-      shift: 'FULL',
-      startTime: '08:00',
-      endTime: '17:00'
+      start: start,
+      end: end,
+      // shift: 'FULL' // optional
     })
   }
 

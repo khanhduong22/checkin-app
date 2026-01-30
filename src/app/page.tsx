@@ -84,7 +84,7 @@ export default async function Home() {
       where: {
           isOpenForSwap: true,
           userId: { not: user.id },
-          date: { gte: new Date() }
+          start: { gte: new Date() }
       }
   }) : 0;
 

@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   }
 };
 
+import NextTopLoader from 'nextjs-toploader';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -22,8 +24,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
-        <Toaster position="top-center" richColors />
+        <NextTopLoader color="#059669" shadow="0 0 10px #059669,0 0 5px #059669" showSpinner={false} />
+        {children} {/* Children must be below provider if any */}
+        <Toaster />
       </body>
     </html>
   );
