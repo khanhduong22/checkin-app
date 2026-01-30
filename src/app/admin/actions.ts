@@ -160,6 +160,9 @@ export async function updateUserEmploymentType(userId: string, type: 'FULL_TIME'
           data: shiftsToCreate
         });
       }
+      revalidatePath('/admin');
+      revalidatePath('/schedule');
+      revalidatePath('/admin/schedule');
     }
 
     revalidatePath('/admin');
