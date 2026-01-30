@@ -32,10 +32,10 @@ interface CalendarEvent {
     isOwner?: boolean; // Can modify?
 }
 
-export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false }: { initialEvents: any[], userId: string, isAdmin?: boolean }) {
+export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false, defaultDate = new Date() }: { initialEvents: any[], userId: string, isAdmin?: boolean, defaultDate?: Date }) {
     const [events, setEvents] = useState<CalendarEvent[]>(initialEvents.map(e => ({
         id: e.id,
-        title: e.title || 'Staff', // Use existing title mapped from server component
+        title: e.title || 'Staff',
         start: new Date(e.start),
         end: new Date(e.end),
         resource: e,
@@ -53,9 +53,6 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 return;
             }
             
-            // Check overlaps locally for fast feedback
-            // ...
-
             setPendingEvent({ start, end });
             setModalOpen(true);
         },
@@ -66,19 +63,34 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         if (!pendingEvent) return;
 
         const { start, end } = pendingEvent;
+        // Optimistic UI: Add immediately
+        const tempId = Date.now();
+        const optimisticEvent: CalendarEvent = {
+            id: tempId,
+            title: 'Đang xếp lịch...',
+            start,
+            end,
+            isOwner: true
+        };
+        setEvents(prev => [...prev, optimisticEvent]);
+        setModalOpen(false); // Close modal immediately
+
         // Call server action
         const result: any = await registerShift(start, end);
         
         if (result.success) {
             toast.success("Đăng ký thành công!");
-            // Optimistically update or just refresh page? Refresh is safer for IDs.
-            // But let's add locally for smooth UX. We need real ID though for deletion.
-            // Best to refresh.
-            window.location.reload(); 
+            // Update the optimistic event with real data if needed, or just leave it
+            // Ideally we should replace the temp event with the confirmed one, 
+            // but since we don't have the full real object returned with ID, 
+            // we'll keep the optimistic one. Revalidating path on server means next generic refresh will fix it.
+            // Update title to confirm
+            setEvents(prev => prev.map(e => e.id === tempId ? { ...e, title: 'Đã đăng ký', id: result.id || tempId } : e));
         } else {
             toast.error(result.error || "Lỗi đăng ký");
+            // Rollback
+            setEvents(prev => prev.filter(e => e.id !== tempId));
         }
-        setModalOpen(false);
     }
 
     const handleSelectEvent = useCallback(
@@ -142,6 +154,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 startAccessor={(event: any) => new Date(event.start)}
                 endAccessor={(event: any) => new Date(event.end)}
                 defaultView={Views.WEEK}
+                defaultDate={defaultDate} // Use prop
                 views={[Views.WEEK, Views.DAY]}
                 step={60} // 60 mins per slot
                 min={new Date(0, 0, 0, 7, 0, 0)} // Start at 7:00

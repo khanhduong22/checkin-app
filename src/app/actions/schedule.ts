@@ -35,7 +35,7 @@ export async function registerShift(start: Date, end: Date) {
   if (overlap > 0) return { success: false, error: 'Bạn đã có lịch đăng ký trùng giờ này!' };
 
   try {
-    await prisma.workShift.create({
+    const newShift = await prisma.workShift.create({
       data: {
         userId: user.id,
         start: start,
@@ -44,7 +44,7 @@ export async function registerShift(start: Date, end: Date) {
       }
     });
     revalidatePath('/schedule');
-    return { success: true };
+    return { success: true, id: newShift.id };
   } catch (e) {
     console.error(e);
     return { success: false, error: 'Lỗi khi lưu lịch làm' };

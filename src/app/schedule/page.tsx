@@ -57,6 +57,7 @@ export default async function SchedulePage() {
                     initialEvents={safeEvents} 
                     userId={currentUser.id} 
                     isAdmin={currentUser.role === 'ADMIN'}
+                    defaultDate={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)}
                  />
             </div>
         </main>
