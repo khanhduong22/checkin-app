@@ -183,9 +183,9 @@ export default async function Home() {
                             📜 Lịch sử
                         </Button>
                     </a>
-                    <a href="/rewards" className="flex-1">
-                        <Button variant="outline" className="w-full text-xs text-orange-600 bg-orange-50 hover:bg-orange-100 border-orange-200">
-                            🎁 Thưởng/Phạt
+                    <a href="/payroll" className="flex-1">
+                        <Button variant="outline" className="w-full text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200">
+                            💰 Chi tiết lương
                         </Button>
                     </a>
                 </div>

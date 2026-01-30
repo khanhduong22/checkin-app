@@ -49,14 +49,21 @@ export default function PayrollAdminClient({ data }: { data: any[] }) {
                                 <div className="flex justify-between"><span>Điều chỉnh:</span> <span className={user.stats.totalAdjustments > 0 ? "text-emerald-600" : "text-red-600"}>{f(user.stats.totalAdjustments)}</span></div>
                             </div>
 
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="w-full text-xs"
-                                onClick={() => setSelectedUser(user)}
-                            >
-                                💸 Thưởng / Phạt
-                            </Button>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-xs"
+                                    onClick={() => setSelectedUser(user)}
+                                >
+                                    💸 Thưởng / Phạt
+                                </Button>
+                                <a href={`/admin/payroll/${user.id}`} className="block">
+                                    <Button variant="secondary" size="sm" className="w-full text-xs">
+                                        📄 Chi tiết
+                                    </Button>
+                                </a>
+                            </div>
 
                             {/* Recent History */}
                              {user.recentAdjustments.length > 0 && (
