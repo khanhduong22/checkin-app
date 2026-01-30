@@ -129,9 +129,6 @@ export default async function Home() {
         {/* Announcements */}
         <AnnouncementBar announcements={announcements} />
 
-        {/* SHOP PET WIDGET */}
-        <ShopPetWidget pet={shopPet} />
-
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm relative overflow-hidden">
             {/* Streak Badge */}
             <div className="absolute top-4 right-4 flex gap-2">
@@ -238,10 +235,14 @@ export default async function Home() {
                 )}
             </div>
         </div>
+
+        {/* SHOP PET WIDGET MOVED HERE */}
+        <ShopPetWidget pet={shopPet} />
+
       </div>
       
       <div className="mt-6 text-[10px] text-muted-foreground font-mono opacity-50">
-        Internal System v2.2 • Secured by NextAuth
+        Lim Art Internal Tool
       </div>
     </main>
   )

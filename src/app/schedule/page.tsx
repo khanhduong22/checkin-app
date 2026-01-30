@@ -3,6 +3,9 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ScheduleCalendar from "@/components/schedule/ScheduleCalendar";
+import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = 'force-dynamic';
 
@@ -28,16 +31,13 @@ export default async function SchedulePage() {
     const events = shifts.map((s: any) => ({
         id: s.id,
         title: s.user.name || 'Staff',
-        start: s.start, // Date object directly passed to client component (Next.js server component passes Date fine to Client Component props since recent versions, or needs serialization)
-                        // Actually, Next.js Server Actions / Server Components -> Client Components need JSON serializable props generally. Date is NOT JSON serializable in standard JSON, but Next.js swc compiler handles it better now? 
-                        // To be safe: pass as string and parse in client.
+        start: s.start,
         end: s.end,
         userId: s.userId,
-        // resource for more check
     }));
 
     // Serialization for Client Component Props safety
-    const safeEvents = events.map(e => ({
+    const safeEvents = events.map((e: any) => ({
         ...e,
         start: e.start.toISOString(),
         end: e.end.toISOString()
@@ -47,7 +47,14 @@ export default async function SchedulePage() {
         <main className="min-h-screen bg-gray-50/50 p-4">
             <div className="max-w-6xl mx-auto space-y-4">
                  <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm">
-                     <h1 className="text-xl font-bold">📅 Lịch làm việc</h1>
+                     <div className="flex items-center gap-2">
+                        <Link href="/">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 -ml-2">
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                        </Link>
+                        <h1 className="text-xl font-bold">📅 Lịch làm việc</h1>
+                     </div>
                      <div className="text-sm text-gray-500">
                          Kéo thả vào khung giờ trống để đăng ký. Click vào lịch của bạn để xóa.
                      </div>
