@@ -92,8 +92,8 @@ export default function HistoryGantt({ checkins }: { checkins: CheckInRaw[] }) {
                     {/* Time Scale Header */}
                     <div className="flex text-[10px] text-muted-foreground pb-2 border-b pl-[80px]">
                         <div className="flex-1 relative h-4">
-                            {[6, 9, 12, 15, 18, 21].map(h => (
-                                <div key={h} className="absolute top-0 -translate-x-1/2" style={{ left: `${(h/24)*100}%` }}>
+                            {[7, 9, 11, 13, 15, 17, 19, 21].map(h => (
+                                <div key={h} className="absolute top-0 -translate-x-1/2" style={{ left: `${((h - 7)/14)*100}%` }}>
                                     {h}h
                                 </div>
                             ))}
@@ -118,22 +118,38 @@ export default function HistoryGantt({ checkins }: { checkins: CheckInRaw[] }) {
                                     </span>
                                 </div>
 
-                                {/* Gantt Bar Area (0h - 24h) */}
-                                <div className="flex-1 relative h-full mx-2">
-                                     {/* Background Grid Lines */}
-                                     {[6, 12, 18].map(h => (
-                                        <div key={h} className="absolute top-0 bottom-0 border-l border-dashed border-muted-foreground/10" style={{ left: `${(h/24)*100}%` }} />
+                                {/* Gantt Bar Area (7h - 21h) */}
+                                <div className="flex-1 relative h-full mx-2 overflow-hidden">
+                                     {/* Background Grid Lines (Noon and 5pm often useful, or just grid) */}
+                                     {[12, 17].map(h => (
+                                        <div key={h} className="absolute top-0 bottom-0 border-l border-dashed border-red-500/20" style={{ left: `${((h - 7)/14)*100}%` }} title={h + 'h'} />
+                                     ))}
+                                     {/* Standard grid every 2h lighter */}
+                                     {[9, 11, 13, 15, 19].map(h => (
+                                        <div key={h} className="absolute top-0 bottom-0 border-l border-dashed border-muted-foreground/5" style={{ left: `${((h - 7)/14)*100}%` }} />
                                      ))}
 
                                      {/* Sessions */}
                                      {day.sessions.map((session, i) => {
-                                        const startH = session.start.getHours() + session.start.getMinutes()/60;
-                                        const endH = session.end 
+                                        let startH = session.start.getHours() + session.start.getMinutes()/60;
+                                        let endH = session.end 
                                             ? session.end.getHours() + session.end.getMinutes()/60 
-                                            : (isToday ? new Date().getHours() + new Date().getMinutes()/60 : startH + 0.5); // If running, extend to Now, else +30m dot
+                                            : (isToday ? new Date().getHours() + new Date().getMinutes()/60 : startH + 0.5);
 
-                                        const left = (startH / 24) * 100;
-                                        const width = Math.max(((endH - startH) / 24) * 100, 0.5); // Min width
+                                        // Constrain to View Range 7-21
+                                        const START_VIEW = 7;
+                                        const END_VIEW = 21;
+                                        const TOTAL_VIEW = 14;
+
+                                        // Skip if completely out of range
+                                        if (endH < START_VIEW || startH > END_VIEW) return null;
+
+                                        // Clamp
+                                        const displayStart = Math.max(startH, START_VIEW);
+                                        const displayEnd = Math.min(endH, END_VIEW);
+
+                                        const left = ((displayStart - START_VIEW) / TOTAL_VIEW) * 100;
+                                        const width = Math.max(((displayEnd - displayStart) / TOTAL_VIEW) * 100, 0.5); // Min width
                                         
                                         const isRunning = !session.end; 
 
@@ -146,7 +162,7 @@ export default function HistoryGantt({ checkins }: { checkins: CheckInRaw[] }) {
                                                 style={{ left: `${left}%`, width: `${width}%` }}
                                                 title={`${session.start.toLocaleTimeString()} - ${session.end?.toLocaleTimeString() || 'Đang làm'}`}
                                             >
-                                                {width > 5 && (session.duration.toFixed(1) + 'h')}
+                                                {width > 8 && (session.duration.toFixed(1) + 'h')}
                                             </div>
                                         )
                                      })}

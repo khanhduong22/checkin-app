@@ -52,8 +52,18 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 toast.error("Không thể đăng ký lịch trong quá khứ!");
                 return;
             }
+
+            // Enforce minimum 4 hours logic (Helpful for Mobile Taps)
+            let finalEnd = end;
+            const diff = finalEnd.getTime() - start.getTime();
+            const minDuration = 4 * 60 * 60 * 1000; // 4 hours
             
-            setPendingEvent({ start, end });
+            if (diff < minDuration) {
+                finalEnd = new Date(start.getTime() + minDuration);
+                // toast.info("Đã tự động điều chỉnh tối thiểu 4 tiếng");
+            }
+            
+            setPendingEvent({ start, end: finalEnd });
             setModalOpen(true);
         },
         [events]
@@ -172,6 +182,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 min={new Date(0, 0, 0, 7, 0, 0)} // Start at 7:00
                 max={new Date(0, 0, 0, 21, 0, 0)} // End at 21:00
                 selectable
+                longPressThreshold={100} // Improve touch support
                 onSelectSlot={(slotInfo: any) => handleSelectSlot(slotInfo)}
                 onSelectEvent={(event: any) => handleSelectEvent(event)}
                 eventPropGetter={(event: any) => eventPropGetter(event)}
@@ -197,11 +208,14 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                         <DialogTitle>Xác nhận đăng ký ca làm</DialogTitle>
                         <DialogDescription>
                             Bạn muốn đăng ký làm việc vào khung giờ: <br/>
-                            <span className="font-bold text-emerald-600">
+                            <span className="font-bold text-emerald-600 block text-lg my-2">
                                 {pendingEvent && moment(pendingEvent.start).format('HH:mm')} - {pendingEvent && moment(pendingEvent.end).format('HH:mm')}
                             </span>
-                            <br/>
-                            (Ngày {pendingEvent && moment(pendingEvent.start).format('DD/MM/YYYY')})
+                             (Ngày {pendingEvent && moment(pendingEvent.start).format('DD/MM/YYYY')})
+                             <br/>
+                             <span className="text-xs text-gray-400 italic mt-1 block">
+                                *Hệ thống tự động chọn tối thiểu 4 tiếng.
+                             </span>
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
