@@ -26,7 +26,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: { mo
     return (
         <div className="space-y-8">
             <div>
-                 <h2 className="text-3xl font-bold tracking-tight">Báo cáo & Thống kê</h2>
+                 <h2 className="text-3xl font-bold tracking-tight">Bảng Thành Tích</h2>
                  <p className="text-muted-foreground">Tháng {month}/{year}</p>
             </div>
 
