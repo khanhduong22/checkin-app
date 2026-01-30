@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import PayrollAdminClient from "@/components/admin/PayrollAdminClient";
+import PayrollExplanationModal from "@/components/PayrollExplanationModal";
 
 export const dynamic = 'force-dynamic';
 
@@ -36,9 +37,12 @@ export default async function AdminPayrollPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                 <h2 className="text-2xl font-bold tracking-tight">Quản lý Lương & Thưởng</h2>
-                 <p className="text-muted-foreground">Xem bảng lương tạm tính và điều chỉnh thưởng phạt.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                     <h2 className="text-2xl font-bold tracking-tight">Quản lý Lương & Thưởng</h2>
+                     <p className="text-muted-foreground">Xem bảng lương tạm tính và điều chỉnh thưởng phạt.</p>
+                </div>
+                <PayrollExplanationModal />
             </div>
             <PayrollAdminClient data={payrollData} />
         </div>
