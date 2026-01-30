@@ -45,39 +45,57 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
 
   Object.keys(checkinsByDay).forEach(date => {
     const daily = checkinsByDay[date];
-    // daily.sort((a,b) => a.timestamp - b.timestamp); // Already sorted by query
+    // daily is sorted by timestamp asc
 
-    if (daily.length >= 2) {
-      const first = daily[0];
-      const last = daily[daily.length - 1];
+    let dayHours = 0;
+    let lastCheckInTime: number | null = null;
+    let firstCheckIn = null;
+    let lastCheckOut = null;
+    let isValidDay = true;
+    let errorMsg = '';
 
-      let hours = 0;
-      if (first.type === 'checkin' && last.type === 'checkout') {
-        const diff = last.timestamp.getTime() - first.timestamp.getTime();
-        hours = diff / (1000 * 60 * 60);
-        totalHours += hours;
+    for (let i = 0; i < daily.length; i++) {
+      const event = daily[i];
+
+      if (event.type === 'checkin') {
+        // If we already have a pending checkin (forgot checkout before this one), ignore proper pair logic or handle error?
+        // For simplicity: Update lastCheckInTime to current. This implies previous checkin was abandoned.
+        lastCheckInTime = event.timestamp.getTime();
+        if (!firstCheckIn) firstCheckIn = event.timestamp;
+      } else if (event.type === 'checkout') {
+        if (lastCheckInTime !== null) {
+          const diff = event.timestamp.getTime() - lastCheckInTime;
+          dayHours += diff / (1000 * 60 * 60);
+          lastCheckInTime = null; // Pair consumed
+          lastCheckOut = event.timestamp;
+        } else {
+          // Checkout without checkin
+          isValidDay = false;
+          errorMsg = 'Có Check-out nhưng thiếu Check-in trước đó';
+        }
       }
-
-      dailyDetails.push({
-        date: date,
-        checkIn: first.timestamp,
-        checkOut: last.type === 'checkout' ? last.timestamp : null,
-        hours: hours,
-        salary: hours * hourlyRate,
-        isValid: first.type === 'checkin' && last.type === 'checkout'
-      });
-    } else if (daily.length === 1) {
-      // Missing checkout or checkin
-      dailyDetails.push({
-        date: date,
-        checkIn: daily[0].type === 'checkin' ? daily[0].timestamp : null,
-        checkOut: daily[0].type === 'checkout' ? daily[0].timestamp : null,
-        hours: 0,
-        salary: 0,
-        isValid: false,
-        error: daily[0].type === 'checkin' ? 'Quên Checkout' : 'Quên Checkin'
-      });
     }
+
+    // Check if day ended with a pending checkin
+    if (lastCheckInTime !== null) {
+      isValidDay = false;
+      errorMsg = 'Quên Check-out';
+      // Optional: Count hours up to now if today? No, better safe than sorry.
+    }
+
+    if (dayHours > 0) {
+      totalHours += dayHours;
+    }
+
+    dailyDetails.push({
+      date: date,
+      checkIn: firstCheckIn,
+      checkOut: lastCheckOut,
+      hours: dayHours,
+      salary: dayHours * hourlyRate,
+      isValid: isValidDay && dayHours > 0,
+      error: errorMsg || (dayHours === 0 ? 'Không có giờ làm hợp lệ' : undefined)
+    });
   });
 
   // Sort daily details by date desc
