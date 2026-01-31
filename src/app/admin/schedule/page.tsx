@@ -28,6 +28,7 @@ export default async function AdminSchedulePage() {
         start: s.start.toISOString(), 
         end: s.end.toISOString(),
         userId: s.userId,
+        employmentType: s.user.employmentType,
     }));
 
     // Get all users for validation

@@ -8,7 +8,9 @@ import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import { useState, useCallback } from 'react';
 import { toast } from "sonner";
-import { registerShift, deleteShift } from "@/app/actions/schedule"; // Import actions
+import { registerShift, deleteShift } from "@/app/actions/schedule"; 
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import {
   Dialog,
   DialogContent,
@@ -29,7 +31,8 @@ interface CalendarEvent {
     start: Date;
     end: Date;
     resource?: any; 
-    isOwner?: boolean; // Can modify?
+    isOwner?: boolean; 
+    employmentType?: string;
 }
 
 export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false, defaultDate = new Date() }: { initialEvents: any[], userId: string, isAdmin?: boolean, defaultDate?: Date }) {
@@ -39,28 +42,33 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         start: new Date(e.start),
         end: new Date(e.end),
         resource: e,
-        isOwner: e.userId === userId || isAdmin
+        isOwner: e.userId === userId || isAdmin,
+        employmentType: e.employmentType || 'PART_TIME', 
     })));
+
+    const [hideFullTime, setHideFullTime] = useState(true);
+
+    const displayedEvents = events.filter(e => {
+        if (hideFullTime && e.employmentType === 'FULL_TIME') return false;
+        return true;
+    });
 
     const [modalOpen, setModalOpen] = useState(false);
     const [pendingEvent, setPendingEvent] = useState<{start: Date, end: Date} | null>(null);
 
     const handleSelectSlot = useCallback(
         ({ start, end }: { start: Date, end: Date }) => {
-            // Check if start time is in past?
             if (start < new Date()) {
                 toast.error("Không thể đăng ký lịch trong quá khứ!");
                 return;
             }
 
-            // Enforce minimum 4 hours logic (Helpful for Mobile Taps)
             let finalEnd = end;
             const diff = finalEnd.getTime() - start.getTime();
             const minDuration = 4 * 60 * 60 * 1000; // 4 hours
             
             if (diff < minDuration) {
                 finalEnd = new Date(start.getTime() + minDuration);
-                // toast.info("Đã tự động điều chỉnh tối thiểu 4 tiếng");
             }
             
             setPendingEvent({ start, end: finalEnd });
@@ -73,17 +81,18 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         if (!pendingEvent) return;
 
         const { start, end } = pendingEvent;
-        // Optimistic UI: Add immediately
+        // Optimistic UI
         const tempId = Date.now();
         const optimisticEvent: CalendarEvent = {
             id: tempId,
             title: 'Đang xếp lịch...',
             start,
             end,
-            isOwner: true
+            isOwner: true,
+            employmentType: 'PART_TIME' // Assume cur user part time logic or fetch? UI agnostic.
         };
         setEvents(prev => [...prev, optimisticEvent]);
-        setModalOpen(false); // Close modal immediately
+        setModalOpen(false); 
 
         // Call server action
         const callRegister = async (override: boolean = false) => {
@@ -95,9 +104,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
              } else {
                 if (result.error === 'LIMIT_PART_TIME') {
                     if (isAdmin) {
-                         // Show native confirm or custom dialog
-                         if (window.confirm(`⚠️ CẢNH BÁO: Đã có ${result.count} nhân viên Part-time trong khung giờ này.\n\nBạn có chắc chắn muốn duyệt thêm người này (Ví dụ: Ngày lễ)?`)) {
-                             // Retry with override
+                         if (window.confirm(`⚠️ CẢNH BÁO: Đã có ${result.count} nhân viên Part-time trong khung giờ này.\n\nBạn có chắc chắn muốn duyệt thêm người này?`)) {
                              await callRegister(true);
                              return;
                          }
@@ -107,7 +114,6 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 } else {
                     toast.error(result.error || "Lỗi đăng ký");
                 }
-                // Rollback
                 setEvents(prev => prev.filter(e => e.id !== tempId));
              }
         };
@@ -118,7 +124,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
     const handleSelectEvent = useCallback(
         (event: CalendarEvent) => {
             if (!event.isOwner) {
-                 toast.info(`Lịch của ${event.title}`);
+                 // toast.info(`Lịch của ${event.title}`);
                  return;
             }
 
@@ -126,7 +132,6 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 deleteShift(event.id).then((res: any) => {
                     if (res.success) {
                         toast.success("Đã xóa lịch làm việc");
-                         // Remove from state
                          setEvents((prev) => prev.filter((e) => e.id !== event.id))
                     } else {
                         toast.error("Không thể xóa lịch này");
@@ -137,30 +142,27 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         []
     )
 
-    // Style events
     const eventPropGetter = useCallback(
         (event: CalendarEvent) => ({
              style: {
-                 backgroundColor: event.isOwner ? '#10b981' : '#6b7280', // Green for me, Gray for others
-                 opacity: 0.8,
+                 backgroundColor: event.isOwner ? '#10b981' : '#6b7280', 
+                 opacity: 0.9,
                  color: 'white',
                  border: '0px',
-                 display: 'block'
+                 display: 'block',
+                 zoom: 1, // Fix potential overlap scaling
+                 fontSize: '0.75rem', 
              },
         }),
         []
     )
     
-    // Style business hours background
     const slotPropGetter = useCallback(
         (date: Date) => {
             const hour = date.getHours();
              if (hour >= 8 && hour < 17) {
                  return {
-                     style: {
-                         backgroundColor: '#fafafa', // Slightly different bg for office hours? Or default white.
-                         // Maybe highlight non-working hours?
-                     }
+                     style: { backgroundColor: '#fafafa' }
                  }
              }
              return {}
@@ -169,20 +171,30 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
     )
 
     return (
-        <div className="h-[600px] bg-white p-4 rounded-xl shadow-sm border">
+        <div className="h-[750px] bg-white p-4 rounded-xl shadow-sm border flex flex-col">
+            <div className="flex items-center justify-end space-x-2 mb-2 px-2 pb-2 border-b">
+                <Switch 
+                    id="hide-full-time" 
+                    checked={hideFullTime} 
+                    onCheckedChange={setHideFullTime} 
+                />
+                <Label htmlFor="hide-full-time" className="cursor-pointer text-sm font-medium">Ẩn nhân viên Full-time</Label>
+            </div>
+
             <DnDCalendar
                 localizer={localizer}
-                events={events}
+                events={displayedEvents}
                 startAccessor={(event: any) => new Date(event.start)}
                 endAccessor={(event: any) => new Date(event.end)}
                 defaultView={Views.WEEK}
-                defaultDate={defaultDate} // Use prop
+                defaultDate={defaultDate}
                 views={[Views.WEEK, Views.DAY]}
-                step={60} // 60 mins per slot
-                min={new Date(0, 0, 0, 7, 0, 0)} // Start at 7:00
-                max={new Date(0, 0, 0, 21, 0, 0)} // End at 21:00
+                step={30} 
+                timeslots={2}
+                min={new Date(0, 0, 0, 7, 0, 0)} 
+                max={new Date(0, 0, 0, 21, 0, 0)} 
                 selectable
-                longPressThreshold={100} // Improve touch support
+                longPressThreshold={100}
                 onSelectSlot={(slotInfo: any) => handleSelectSlot(slotInfo)}
                 onSelectEvent={(event: any) => handleSelectEvent(event)}
                 eventPropGetter={(event: any) => eventPropGetter(event)}

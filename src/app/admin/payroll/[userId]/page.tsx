@@ -16,7 +16,20 @@ export default async function AdminEmployeePayrollPage({
     params: { userId: string }, 
     searchParams: { month?: string, year?: string } 
 }) {
-    const session = await getServerSession(authOptions);
+    let session = await getServerSession(authOptions);
+
+    // --- Dev Mode Bypass ---
+    if (!session && process.env.NODE_ENV === 'development') {
+        session = {
+            user: {
+                name: "Developer Local",
+                email: "dev@local.host",
+                image: "",
+                role: "ADMIN"
+            }
+        } as any;
+    }
+
     if (!session || (session.user as any).role !== 'ADMIN') redirect('/');
 
     const userId = params.userId;
