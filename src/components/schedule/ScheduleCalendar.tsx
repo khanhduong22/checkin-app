@@ -142,19 +142,49 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         []
     )
 
+    // Generate distinct color from string
+    const stringToColor = useCallback((str: string) => {
+        if (!str) return '#6b7280';
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        // Tailwind-ish Palette (300-600 range for readability)
+        const colors = [
+            '#ef4444', // Red
+            '#f97316', // Orange
+            '#f59e0b', // Amber
+            '#84cc16', // Lime
+            '#10b981', // Emerald
+            '#06b6d4', // Cyan
+            '#3b82f6', // Blue
+            '#6366f1', // Indigo
+            '#8b5cf6', // Violet
+            '#d946ef', // Fuchsia
+            '#f43f5e', // Rose
+            '#0ea5e9', // Sky
+            '#14b8a6', // Teal
+        ];
+        return colors[Math.abs(hash) % colors.length];
+    }, []);
+
     const eventPropGetter = useCallback(
-        (event: CalendarEvent) => ({
-             style: {
-                 backgroundColor: event.isOwner ? '#10b981' : '#6b7280', 
-                 opacity: 0.9,
-                 color: 'white',
-                 border: '0px',
-                 display: 'block',
-                 zoom: 1, // Fix potential overlap scaling
-                 fontSize: '0.75rem', 
-             },
-        }),
-        []
+        (event: CalendarEvent) => {
+            const backgroundColor = stringToColor(event.title);
+            return {
+                style: {
+                    backgroundColor: backgroundColor,
+                    opacity: 0.9,
+                    color: 'white',
+                    border: event.isOwner ? '2px solid white' : '0px', // Highlight own shifts with border
+                    display: 'block',
+                    zoom: 1, 
+                    fontSize: '0.75rem', 
+                    boxShadow: event.isOwner ? '0 0 0 2px #000' : 'none', // Extra visibility for owner
+                },
+            }
+        },
+        [stringToColor]
     )
     
     const slotPropGetter = useCallback(
