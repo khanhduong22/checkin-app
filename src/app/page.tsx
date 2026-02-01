@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import GachaButton from "@/components/GachaButton";
 import ShopPetWidget from "@/components/ShopPetWidget";
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   let session = await getServerSession(authOptions)
   let user;
