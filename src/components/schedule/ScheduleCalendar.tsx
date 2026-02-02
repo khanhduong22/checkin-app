@@ -131,7 +131,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
              
              if (result.success) {
                 toast.success("Đăng ký thành công!");
-                setEvents(prev => prev.map(e => e.id === tempId ? { ...e, title: 'Đã đăng ký', id: result.id || tempId } : e));
+                setEvents(prev => prev.map(e => e.id === tempId ? { ...e, title: result.title || 'Đã đăng ký', id: result.id || tempId } : e));
              } else {
                 if (result.error === 'LIMIT_PART_TIME') {
                     if (isAdmin) {

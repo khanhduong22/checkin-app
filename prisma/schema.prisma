@@ -71,6 +71,7 @@ model User {
   role          UserRole  @default(USER) // Quyền hạn (ADMIN/USER)
   employmentType EmploymentType @default(PART_TIME)
   hourlyRate    Float     @default(0)   // Lương theo giờ
+  monthlySalary Float     @default(6000000) // Lương theo tháng for FULL_TIME
   
   accounts      Account[]
   sessions      Session[]

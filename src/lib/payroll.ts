@@ -49,17 +49,26 @@ export async function calculatePayroll(month: number, year: number) {
       }
     });
 
+    let calculatedSalary = 0;
+    if (user.employmentType === 'FULL_TIME') {
+      calculatedSalary = user.monthlySalary || 6000000;
+    } else {
+      calculatedSalary = totalHours * (user.hourlyRate || 0);
+    }
+
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       image: user.image,
       role: user.role,
+      employmentType: user.employmentType,
       hourlyRate: user.hourlyRate,
+      monthlySalary: user.monthlySalary,
       totalHours,
-      totalSalary: totalHours * user.hourlyRate,
+      totalSalary: calculatedSalary,
       checkinCount: Object.keys(checkinsByDay).length,
-      daysWorked: Object.keys(checkinsByDay).length // Add this field
+      daysWorked: Object.keys(checkinsByDay).length
     };
   });
 

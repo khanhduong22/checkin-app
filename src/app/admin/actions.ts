@@ -55,6 +55,19 @@ export async function updateUserRate(userId: string, hourlyRate: number) {
   }
 }
 
+export async function updateUserMonthlySalary(userId: string, monthlySalary: number) {
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { monthlySalary }
+    });
+    revalidatePath('/admin');
+    return { success: true, message: 'Đã cập nhật lương cứng' };
+  } catch (e) {
+    return { success: false, message: 'Lỗi cập nhật' };
+  }
+}
+
 export async function updateUserName(userId: string, name: string) {
   try {
     await prisma.user.update({

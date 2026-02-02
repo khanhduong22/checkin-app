@@ -1,18 +1,25 @@
 'use client';
 
-import { updateUserRole, updateUserRate } from '@/app/admin/actions';
+import { updateUserRole, updateUserRate, updateUserMonthlySalary } from '@/app/admin/actions';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useState } from 'react';
 
 function UserItem({ user }: { user: any }) {
     const [rate, setRate] = useState(user.hourlyRate.toString());
+    const [monthlySalary, setMonthlySalary] = useState(user.monthlySalary?.toString() || '6000000');
     const [name, setName] = useState(user.name || '');
     const [loading, setLoading] = useState(false);
 
     const handleUpdateRate = async () => {
         setLoading(true);
         await updateUserRate(user.id, parseFloat(rate));
+        setLoading(false);
+    };
+
+    const handleUpdateMonthlySalary = async () => {
+        setLoading(true);
+        await updateUserMonthlySalary(user.id, parseFloat(monthlySalary));
         setLoading(false);
     };
 
@@ -84,14 +91,29 @@ function UserItem({ user }: { user: any }) {
             
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Lương/h:</span>
-                    <input 
-                        type="number" 
-                        className="w-24 h-8 rounded border px-2 text-sm text-right"
-                        value={rate}
-                        onChange={e => setRate(e.target.value)}
-                        onBlur={handleUpdateRate}
-                    />
+                    {user.employmentType === 'FULL_TIME' ? (
+                        <>
+                            <span className="text-sm text-muted-foreground">Lương cứng:</span>
+                            <input 
+                                type="number" 
+                                className="w-28 h-8 rounded border px-2 text-sm text-right"
+                                value={monthlySalary}
+                                onChange={e => setMonthlySalary(e.target.value)}
+                                onBlur={handleUpdateMonthlySalary}
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <span className="text-sm text-muted-foreground">Lương/h:</span>
+                            <input 
+                                type="number" 
+                                className="w-24 h-8 rounded border px-2 text-sm text-right"
+                                value={rate}
+                                onChange={e => setRate(e.target.value)}
+                                onBlur={handleUpdateRate}
+                            />
+                        </>
+                    )}
                 </div>
                 
                 <Button variant="outline" size="sm" onClick={toggleRole}>

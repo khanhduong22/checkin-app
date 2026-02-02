@@ -83,7 +83,12 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
     });
     revalidatePath('/schedule');
     revalidatePath('/admin/schedule');
-    return { success: true, id: newShift.id };
+
+    const requesterName = requester.nickname || requester.name || requester.email;
+    const targetName = targetUser.nickname || targetUser.name || targetUser.email;
+    const title = `${requesterName} đã gán lịch cho ${targetName}`;
+
+    return { success: true, id: newShift.id, title };
   } catch (e) {
     console.error(e);
     return { success: false, error: 'Lỗi khi lưu lịch làm' };
