@@ -103,3 +103,29 @@ export async function deleteShift(shiftId: number) {
   revalidatePath('/schedule');
   return { success: true };
 }
+
+export async function updateShift(shiftId: number, start: Date, end: Date) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) return { success: false, error: 'Unauthorized' };
+
+  const user = await prisma.user.findUnique({ where: { email: session.user.email! } });
+  const existing = await prisma.workShift.findUnique({ where: { id: shiftId } });
+
+  if (!existing) return { success: false, error: 'Not found' };
+
+  if (user?.role !== 'ADMIN' && existing.userId !== user?.id) {
+    return { success: false, error: 'Forbidden' };
+  }
+
+  const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+  if (duration < 4) return { success: false, error: 'Tối thiểu 4 tiếng!' };
+
+  await prisma.workShift.update({
+    where: { id: shiftId },
+    data: { start, end }
+  });
+
+  revalidatePath('/schedule');
+  revalidatePath('/admin/schedule');
+  return { success: true };
+}

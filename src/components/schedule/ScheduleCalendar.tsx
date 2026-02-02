@@ -8,7 +8,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import { useState, useCallback } from 'react';
 import { toast } from "sonner";
-import { registerShift, deleteShift } from "@/app/actions/schedule"; 
+import { registerShift, deleteShift, updateShift } from "@/app/actions/schedule"; 
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import {
@@ -55,6 +55,34 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
     const [modalOpen, setModalOpen] = useState(false);
     const [pendingEvent, setPendingEvent] = useState<{start: Date, end: Date} | null>(null);
+
+    const handleEventUpdate = useCallback(
+        async ({ event, start, end }: any) => {
+             if (!event.isOwner) return;
+
+             // Optimistic update
+             const oldStart = event.start;
+             const oldEnd = event.end;
+             
+             setEvents(prev => prev.map(e => e.id === event.id ? { ...e, start, end } : e));
+
+             try {
+                // @ts-ignore
+                const res = await updateShift(event.id, start, end);
+                if (!res.success) {
+                    toast.error(res.error || "Không thể cập nhật");
+                    // Rollback
+                    setEvents(prev => prev.map(e => e.id === event.id ? { ...e, start: oldStart, end: oldEnd } : e));
+                } else {
+                    toast.success("Đã cập nhật");
+                }
+             } catch (e) {
+                 // Rollback
+                 setEvents(prev => prev.map(e => e.id === event.id ? { ...e, start: oldStart, end: oldEnd } : e));
+             }
+        },
+        []
+    );
 
     const handleSelectSlot = useCallback(
         ({ start, end }: { start: Date, end: Date }) => {
@@ -224,6 +252,9 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 min={new Date(0, 0, 0, 7, 0, 0)} 
                 max={new Date(0, 0, 0, 21, 0, 0)} 
                 selectable
+                resizable
+                onEventDrop={handleEventUpdate}
+                onEventResize={handleEventUpdate}
                 longPressThreshold={100}
                 onSelectSlot={(slotInfo: any) => handleSelectSlot(slotInfo)}
                 onSelectEvent={(event: any) => handleSelectEvent(event)}
