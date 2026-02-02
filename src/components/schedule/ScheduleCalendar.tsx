@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 moment.locale('vi');
 const localizer = momentLocalizer(moment)
@@ -35,7 +36,7 @@ interface CalendarEvent {
     employmentType?: string;
 }
 
-export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false, defaultDate = new Date() }: { initialEvents: any[], userId: string, isAdmin?: boolean, defaultDate?: Date }) {
+export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false, defaultDate = new Date(), users = [] }: { initialEvents: any[], userId: string, isAdmin?: boolean, defaultDate?: Date, users?: any[] }) {
     const [events, setEvents] = useState<CalendarEvent[]>(initialEvents.map(e => ({
         id: e.id,
         title: e.title || 'Staff',
@@ -55,6 +56,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
     const [modalOpen, setModalOpen] = useState(false);
     const [pendingEvent, setPendingEvent] = useState<{start: Date, end: Date} | null>(null);
+    const [targetUserId, setTargetUserId] = useState<string>(userId);
 
     const handleEventUpdate = useCallback(
         async ({ event, start, end }: any) => {
@@ -100,6 +102,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
             }
             
             setPendingEvent({ start, end: finalEnd });
+            setTargetUserId(userId); // Reset to current user (self) or keep previous? Reset is safer.
             setModalOpen(true);
         },
         [events]
@@ -124,7 +127,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
         // Call server action
         const callRegister = async (override: boolean = false) => {
-             const result: any = await registerShift(start, end, override);
+             const result: any = await registerShift(start, end, override, targetUserId);
              
              if (result.success) {
                 toast.success("Đăng ký thành công!");
@@ -291,6 +294,25 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                              </span>
                         </DialogDescription>
                     </DialogHeader>
+                    
+                    {isAdmin && users && users.length > 0 && (
+                        <div className="py-2">
+                            <Label className="mb-2 block text-sm font-medium">Chọn nhân viên (Quyền Admin)</Label>
+                            <Select value={targetUserId} onValueChange={setTargetUserId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Chọn nhân viên" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-[200px]">
+                                    {users.map((u: any) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                            {u.nickname || u.name || u.email}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setModalOpen(false)}>Hủy</Button>
                         <Button onClick={handleConfirmRegister}>Đăng ký ngay</Button>

@@ -14,7 +14,7 @@ async function main() {
       email: 'test@example.com',
       name: 'Nhân viên Mẫu',
       image: 'https://github.com/shadcn.png',
-      role: 'USER',
+      role: 'ADMIN',
       hourlyRate: 50000, // 50k/giờ
     },
   })

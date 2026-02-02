@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-export async function registerShift(start: Date, end: Date, override: boolean = false) {
+export async function registerShift(start: Date, end: Date, override: boolean = false, targetUserId?: string) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) return { success: false, error: 'Unauthorized' };
 
@@ -15,13 +15,21 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
   const email = session.user.email;
   if (!email) return { success: false, error: 'No email' };
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return { success: false, error: 'User not found' };
+  const requester = await prisma.user.findUnique({ where: { email } });
+  if (!requester) return { success: false, error: 'User not found' };
 
-  // Check self overlap
+  let targetUser = requester;
+  if (targetUserId && targetUserId !== requester.id) {
+    if (requester.role !== 'ADMIN') return { success: false, error: 'Chỉ Admin mới được xếp lịch cho người khác!' };
+    const found = await prisma.user.findUnique({ where: { id: targetUserId } });
+    if (!found) return { success: false, error: 'Nhân viên không tồn tại' };
+    targetUser = found;
+  }
+
+  // Check self overlap (for targetUser)
   const overlap = await prisma.workShift.count({
     where: {
-      userId: user.id,
+      userId: targetUser.id,
       OR: [
         { start: { lte: start }, end: { gt: start } },
         { start: { lt: end }, end: { gte: end } },
@@ -30,12 +38,10 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
     }
   });
 
-  if (overlap > 0) return { success: false, error: 'Bạn đã có lịch đăng ký trùng giờ này!' };
+  if (overlap > 0) return { success: false, error: 'Nhân viên này đã có lịch đăng ký trùng giờ này!' };
 
   // PART_TIME Limit Validation
-  // Only check if Current User is PART_TIME (or if enforcing globally, but usually Full Time don't count towards Part Time limit)
-  // Assuming limit is "Max 2 Part-time employees working at the same time".
-  if (user.employmentType === 'PART_TIME') {
+  if (targetUser.employmentType === 'PART_TIME') {
     const overlappingShifts = await prisma.workShift.findMany({
       where: {
         OR: [
@@ -48,19 +54,16 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
     });
 
     const partTimeCount = overlappingShifts.reduce((count, s) => {
-      // Count only distinct users?
-      // Assuming shifts don't overlap for same user (checked above).
       if (s.user.employmentType === 'PART_TIME' || (s.user as any).employmentType === 'PART_TIME') return count + 1;
       return count;
     }, 0);
 
     if (partTimeCount >= 2) {
       if (override) {
-        if (user.role !== 'ADMIN') return { success: false, error: 'Cần quyền Admin để vượt giới hạn nhân sự!' };
+        if (requester.role !== 'ADMIN') return { success: false, error: 'Cần quyền Admin để vượt giới hạn nhân sự!' };
         // Allowed
       } else {
-        // Return special error code for UI to handle (Show popup if Admin)
-        if (user.role === 'ADMIN') {
+        if (requester.role === 'ADMIN') {
           return { success: false, error: 'LIMIT_PART_TIME', count: partTimeCount };
         } else {
           return { success: false, error: 'Đã đủ số lượng nhân viên Part-time (2/2) trong khung giờ này.' };
@@ -72,13 +75,14 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
   try {
     const newShift = await prisma.workShift.create({
       data: {
-        userId: user.id,
+        userId: targetUser.id,
         start: start,
         end: end,
         status: 'APPROVED'
       }
     });
     revalidatePath('/schedule');
+    revalidatePath('/admin/schedule');
     return { success: true, id: newShift.id };
   } catch (e) {
     console.error(e);

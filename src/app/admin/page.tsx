@@ -11,7 +11,6 @@ import { LATEST_VERSION, CHANGELOGS } from "@/lib/changelogs";
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard() {
-
     const session = await getServerSession(authOptions);
     
     // Check Admin Role
@@ -124,7 +123,7 @@ export default async function AdminDashboard() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Lượt Check-out</CardTitle>
-                        <div className="h-4 w-4 text-muted-foreground">�</div>
+                        <div className="h-4 w-4 text-muted-foreground">👋</div>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{checkinsToday.filter((c: any) => c.type === 'checkout').length}</div>
