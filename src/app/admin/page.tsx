@@ -3,10 +3,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import ChangelogPopup from "@/components/admin/ChangelogPopup";
+import { LATEST_VERSION, CHANGELOGS } from "@/lib/changelogs";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard() {
+
     const session = await getServerSession(authOptions);
     
     // Check Admin Role
@@ -81,7 +86,12 @@ export default async function AdminDashboard() {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+            <div className="flex justify-between items-center">
+                <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+                <Link href="/admin/changelog">
+                    <Button variant="outline" size="sm">📜 Lịch sử cập nhật</Button>
+                </Link>
+            </div>
             
             <div className="grid gap-4 md:grid-cols-4">
                 <Card>
@@ -193,6 +203,7 @@ export default async function AdminDashboard() {
                     </CardContent>
                 </Card>
             </div>
+            <ChangelogPopup latestVersion={LATEST_VERSION} changelog={CHANGELOGS[0]} />
         </div>
     );
 }
