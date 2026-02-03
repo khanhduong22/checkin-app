@@ -4,7 +4,13 @@ import UserManager from "@/components/admin/UserManager";
 export const dynamic = 'force-dynamic';
 
 export default async function EmployeesPage() {
-    const users = await prisma.user.findMany({ orderBy: { name: 'asc' } });
+    const users = await prisma.user.findMany({ 
+        orderBy: [
+            { role: 'asc' },             // ADMIN (A) comes before USER (U)
+            { employmentType: 'asc' },   // FULL_TIME (F) comes before PART_TIME (P)
+            { name: 'asc' }
+        ]
+    });
 
     return (
         <div className="space-y-6">

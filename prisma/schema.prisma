@@ -140,6 +140,32 @@ model PayrollAdjustment {
   createdAt DateTime @default(now())
 }
 
+model LuckyWheelPrize {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  image       String?  
+  quantity    Int      @default(0) // Total quantity
+  remaining   Int      @default(0) // Remaining quantity to win
+  probability Float    @default(0) // 0-100%
+  type        String   @default("PHYSICAL") // PHYSICAL, POINT, ONE_MORE_TURN, BETTER_LUCK_NEXT_TIME
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  history     LuckyWheelHistory[]
+}
+
+model LuckyWheelHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prizeId   String?  
+  prize     LuckyWheelPrize? @relation(fields: [prizeId], references: [id], onDelete: SetNull)
+  prizeName String  
+  createdAt DateTime @default(now())
+}
+
 model UserAchievement {
   id        String   @id @default(cuid())
   userId    String

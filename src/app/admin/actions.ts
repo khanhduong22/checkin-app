@@ -3,6 +3,17 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+// --- User Management Actions (Delete) ---
+export async function deleteUser(userId: string) {
+  try {
+    await prisma.user.delete({ where: { id: userId } });
+    revalidatePath('/admin');
+    return { success: true, message: 'Đã xóa nhân viên' };
+  } catch (e) {
+    return { success: false, message: 'Lỗi khi xóa nhân viên' };
+  }
+}
+
 // --- IP Management ---
 
 export async function addAllowedIP(prefix: string, label: string) {
