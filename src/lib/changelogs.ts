@@ -1,6 +1,18 @@
 
 export const CHANGELOGS = [
   {
+    version: '1.5.0',
+    date: '04/02/2026',
+    title: 'Tối ưu Dashboard & Chấm công',
+    tags: ['Admin', 'Dashboard', 'Fix'],
+    changes: [
+      '🚀 **Dashboard Gọn Gàng**: Tinh giản giao diện Admin, ẩn các chỉ số ít dùng, tập trung vào Lương & Đơn từ.',
+      '💰 **Dự phóng Lương**: Hiển thị tổng lương tạm tính kèm con số "Dự kiến cuối tháng" để Sếp dễ cân đối ngân sách.',
+      '🛠️ **Chấm công hộ v2.0**: Admin chấm hộ sẽ hiện rõ Note trong bảng công. Fix lỗi tính "Đi muộn" cho nhân viên Part-time (đã trừ 5p đi đường).',
+      '🔔 **UI/UX**: Thay thế các cảnh báo (Alert) cũ kỹ bằng Popup thông báo (Toast) hiện đại, mượt mà.'
+    ]
+  },
+  {
     version: '1.4.0',
     date: '03/02/2026',
     title: 'Hồ sơ Nhân viên & Lương Full-time',
@@ -60,4 +72,4 @@ export const CHANGELOGS = [
   }
 ];
 
-export const LATEST_VERSION = CHANGELOGS[0].version;
+// No change needed, code is dynamic.
