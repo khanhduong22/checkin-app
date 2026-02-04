@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 function normalizeIP(ip: string) {
   if (!ip) return '';
   if (ip.startsWith('::ffff:')) return ip.substring(7);
-  if (ip === '::1') return '127.0.0.1';
+  // if (ip === '::1') return '127.0.0.1'; // Don't convert localhost IPv6 to IPv4 prevents matching if DB has ::1
   return ip;
 }
 

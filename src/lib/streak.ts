@@ -10,6 +10,16 @@ export async function calculateStreak(userId: string) {
 
   let streak = 0;
 
+  // Fetch approved leaves
+  const leaves = await prisma.request.findMany({
+    where: {
+      userId,
+      status: 'APPROVED',
+      type: 'LEAVE',
+      date: { gte: new Date(new Date().setDate(new Date().getDate() - 40)) } // Optimization: fetch last 40 days
+    }
+  });
+
   // Helper to check if date matches
   const isSameDate = (d1: Date, d2: Date) =>
     d1.getFullYear() === d2.getFullYear() &&
@@ -18,26 +28,11 @@ export async function calculateStreak(userId: string) {
 
   // Start checking from TODAY or YESTERDAY
   const today = new Date();
-  let currentDate = new Date(today); // Clone
-  currentDate.setHours(0, 0, 0, 0);
 
-  // If today has passed 8:30 and no checkin, streak might be broken if not handled, 
-  // but usually we calculate completed days. 
-  // Let's iterate back day by day.
-
-  // Allow gap of today (if not checked in yet)
   // Check if user checked in today?
   const todayCheckin = checkins.find((c: any) => isSameDate(c.timestamp, today));
 
-  // If checked in today and ON TIME -> streak starts at 1
-  // If not checked in today -> start checking from yesterday
-
   let loopDate = new Date(today);
-
-  // Adjustment: If today is active working day but user hasn't checked in yet, 
-  // we don't break streak immediately, we just don't count today.
-  // BUT if user Check-in today LATE, streak reset? 
-  // Let's simplify: Count CONSECUTIVE ON-TIME CHECK-INS backwards.
 
   if (todayCheckin) {
     const hour = todayCheckin.timestamp.getHours() + todayCheckin.timestamp.getMinutes() / 60;
@@ -48,16 +43,19 @@ export async function calculateStreak(userId: string) {
     }
     loopDate.setDate(loopDate.getDate() - 1); // Move to yesterday
   } else {
-    // Not checked in today yet.
-    // If it's already past working hours? Let's be lenient, maybe they are on leave.
-    // Start checking from yesterday.
+    // Check if today is a Leave day?
+    const todayLeave = leaves.find((l: any) => isSameDate(l.date, today));
+    if (todayLeave) {
+      streak++;
+    }
+    // If not leave and not checked in, assume day not started or missed.
+    // If it's passed 9am? Logic kept simple: start checking from yesterday.
     loopDate.setDate(loopDate.getDate() - 1);
   }
 
   // Max lookback 30 days
   for (let i = 0; i < 30; i++) {
-    // Skip Weekend (Sat/Sun) - assuming office closed
-    // 0 = Sun, 6 = Sat
+    // Skip Weekend (Sat/Sun)
     const dayOfWeek = loopDate.getDay();
     if (dayOfWeek === 0 || dayOfWeek === 6) {
       loopDate.setDate(loopDate.getDate() - 1);
@@ -75,12 +73,13 @@ export async function calculateStreak(userId: string) {
         break; // Late! Streak broken.
       }
     } else {
-      // No check-in this day.
-      // Was it a holiday? Or Leave Request?
-      // For MVP: If missing checkin on weekday -> Streak Broken.
-
-      // TODO: Check Approved Leave Requests here to maintain streak
-      break;
+      // Check for Leave
+      const leave = leaves.find((l: any) => isSameDate(l.date, loopDate));
+      if (leave) {
+        streak++; // Maintain and increment streak on Leave
+      } else {
+        break; // No checkin, No leave -> Broken
+      }
     }
 
     loopDate.setDate(loopDate.getDate() - 1);

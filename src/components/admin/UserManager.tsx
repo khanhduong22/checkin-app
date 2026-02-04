@@ -80,11 +80,13 @@ function UserItem({ user }: { user: any }) {
         <>
             <div className="flex items-center justify-between p-4 border-b last:border-0 hover:bg-gray-50/50 transition-colors">
             <div className="flex items-center gap-4 flex-1">
-                 <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center font-bold text-secondary-foreground shrink-0">
-                    {user.image ? (
-                        <img src={user.image} alt="" className="h-full w-full rounded-full" />
-                    ) : user.name?.[0]}
-                </div>
+                 <a href={`/admin/employees/${user.id}`} className="hover:opacity-80 transition-opacity" title="Xem chi tiết">
+                     <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center font-bold text-secondary-foreground shrink-0">
+                        {user.image ? (
+                            <img src={user.image} alt="" className="h-full w-full rounded-full" />
+                        ) : user.name?.[0]}
+                    </div>
+                 </a>
                 <div>
                     <div className="font-medium flex items-center gap-2">
                         <input 

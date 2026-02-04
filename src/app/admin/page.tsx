@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import ChangelogPopup from "@/components/admin/ChangelogPopup";
 import { LATEST_VERSION, CHANGELOGS } from "@/lib/changelogs";
+import { calculatePayroll } from "@/lib/payroll";
 
 export const dynamic = 'force-dynamic';
 
@@ -25,12 +26,13 @@ export default async function AdminDashboard() {
         }
     }
 
+    const now = new Date();
     const todayStart = new Date();
     todayStart.setHours(0,0,0,0);
     const todayEnd = new Date();
     todayEnd.setHours(23,59,59,999);
 
-    const [userCount, ipCount, checkinsToday, todayShifts] = await Promise.all([
+    const [userCount, ipCount, checkinsToday, todayShifts, payroll, pendingRequests] = await Promise.all([
         prisma.user.count(),
         prisma.allowedIP.count(),
         prisma.checkIn.findMany({
@@ -44,10 +46,15 @@ export default async function AdminDashboard() {
             },
             include: { user: true },
             orderBy: { start: 'asc' }
-        })
+        }),
+        calculatePayroll(now.getMonth() + 1, now.getFullYear()),
+        prisma.request.count({ where: { status: 'PENDING' } })
     ]);
 
-    const formatTime = (d: Date) => d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const totalPayroll = payroll.reduce((sum: number, p: any) => sum + p.totalSalary, 0);
+    const totalProjected = payroll.reduce((sum: number, p: any) => sum + (p.projectedSalary || p.totalSalary), 0);
+
+    const formatTime = (d: Date) => d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' });
 
     const getShiftStatus = (checkin: any) => {
         const userShifts = todayShifts.filter((s: any) => s.userId === checkin.userId);
@@ -92,28 +99,36 @@ export default async function AdminDashboard() {
                 </Link>
             </div>
             
-            <div className="grid gap-4 md:grid-cols-4">
-                <Card>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="bg-emerald-50 border-emerald-100">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tổng Nhân sự</CardTitle>
-                        <div className="h-4 w-4 text-muted-foreground">👥</div>
+                        <CardTitle className="text-sm font-medium">Lương Tạm Tính T{now.getMonth() + 1}</CardTitle>
+                        <div className="h-4 w-4 text-emerald-600">💰</div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{userCount}</div>
+                        <div className="text-2xl font-bold text-emerald-700">
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(totalPayroll)}
+                        </div>
+                        <p className="text-[10px] text-emerald-600/60 mt-1 font-medium">
+                            Dự kiến cuối tháng: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(totalProjected)}
+                        </p>
                     </CardContent>
                 </Card>
+
+                <Link href="/admin/requests" className="block">
+                    <Card className="hover:bg-orange-100/50 transition-colors border-orange-200 bg-orange-50 h-full">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-orange-800">Yêu cầu cần duyệt</CardTitle>
+                            <div className="h-4 w-4 text-orange-600">📩</div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-orange-700">{pendingRequests}</div>
+                        </CardContent>
+                    </Card>
+                </Link>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">IP Văn phòng</CardTitle>
-                        <div className="h-4 w-4 text-muted-foreground">🌐</div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{ipCount}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Lượt Check-in</CardTitle>
+                        <CardTitle className="text-sm font-medium">Lượt Check-in Hôm nay</CardTitle>
                         <div className="h-4 w-4 text-muted-foreground">🟢</div>
                     </CardHeader>
                     <CardContent>
@@ -122,7 +137,7 @@ export default async function AdminDashboard() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Lượt Check-out</CardTitle>
+                        <CardTitle className="text-sm font-medium">Lượt Check-out Hôm nay</CardTitle>
                         <div className="h-4 w-4 text-muted-foreground">👋</div>
                     </CardHeader>
                     <CardContent>
@@ -150,7 +165,11 @@ export default async function AdminDashboard() {
                                                     {checkin.user.name?.[0] || '?'}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-medium">{checkin.user.name}</p>
+                                                    <p className="text-sm font-medium hover:underline">
+                                                        <Link href={`/admin/employees/${checkin.user.id}`}>
+                                                            {checkin.user.name}
+                                                        </Link>
+                                                    </p>
                                                     <p className={`text-xs ${checkin.type === 'checkin' ? 'text-emerald-600' : 'text-orange-600'}`}>
                                                         {checkin.type === 'checkin' ? '🟢 Vào ca' : '👋 Tan ca'}
                                                     </p>
@@ -189,7 +208,11 @@ export default async function AdminDashboard() {
                                                 <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] text-blue-600 font-bold">
                                                     {shift.user.name?.[0]}
                                                 </div>
-                                                <span className="text-sm font-medium">{shift.user.name}</span>
+                                                <span className="text-sm font-medium hover:underline">
+                                                    <Link href={`/admin/employees/${shift.user.id}`}>
+                                                        {shift.user.name}
+                                                    </Link>
+                                                </span>
                                            </div>
                                            <div className="text-xs font-mono font-medium">
                                                {formatTime(shift.start)} - {formatTime(shift.end)}

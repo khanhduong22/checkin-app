@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 // --- User Management Actions (Delete) ---
 export async function deleteUser(userId: string) {
@@ -194,5 +196,77 @@ export async function updateUserEmploymentType(userId: string, type: 'FULL_TIME'
   } catch (e) {
     console.error(e);
     return { success: false, message: 'Lỗi cập nhật' };
+  }
+}
+
+// --- Manual Check-in ---
+export async function adminManualCheckIn(userId: string, date: string, checkInTime: string, checkOutTime: string) {
+  const session = await getServerSession(authOptions);
+  // @ts-ignore
+  if (process.env.NODE_ENV !== 'development' && (session?.user as any)?.role !== 'ADMIN') {
+    return { success: false, message: "Forbidden" };
+  }
+
+  try {
+    const adminName = session?.user?.name || "Admin";
+    const note = `Admin ${adminName} chấm công hộ`;
+
+    if (checkInTime) {
+      const inDate = new Date(`${date}T${checkInTime}:00`);
+      // Adjust timezone offset if input is local string but server assumes UTC?
+      // Actually `new Date("YYYY-MM-DDTHH:mm:ss")` interprets as Local if no Z, or depending on Env.
+      // Best to ensure we handle it as local then convert or just rely on ISO.
+      // If user inputs "08:00", we want 08:00 Local (VN).
+      // `new Date("2023-01-01T08:00:00")` in local env is correct.
+      // In Vercel? Timezone is UTC.
+      // So "08:00" becomes 08:00 UTC = 15:00 VN. Wrong.
+      // We need to force it to be VN Time (UTC-7 check or library).
+      // Quick fix: Add "-07:00" reverse? No, VN is +7.
+      // So "08:00" VN is "01:00" UTC.
+      // Let's explicitly construct date.
+
+      const inTimeParts = checkInTime.split(':');
+      const d = new Date(date);
+      // d is UTC midnight of date? or Local?
+      // `new Date("2023-01-01")` is UTC midnight.
+
+      // Let's use simple string concat with Offset for VN if possible.
+      // Or just create Date and substract 7 hours if server is UTC.
+      // Assume Server is UTC. Input is VN time.
+      const targetDate = new Date(date);
+      targetDate.setUTCHours(parseInt(inTimeParts[0]) - 7, parseInt(inTimeParts[1]), 0, 0);
+
+      await prisma.checkIn.create({
+        data: {
+          userId,
+          type: 'checkin',
+          timestamp: targetDate, // Store as UTC
+          ipAddress: 'Manual',
+          note
+        }
+      });
+    }
+
+    if (checkOutTime) {
+      const outTimeParts = checkOutTime.split(':');
+      const targetDate = new Date(date);
+      targetDate.setUTCHours(parseInt(outTimeParts[0]) - 7, parseInt(outTimeParts[1]), 0, 0);
+
+      await prisma.checkIn.create({
+        data: {
+          userId,
+          type: 'checkout',
+          timestamp: targetDate,
+          ipAddress: 'Manual',
+          note
+        }
+      });
+    }
+
+    revalidatePath(`/admin/employees/${userId}`);
+    return { success: true, message: "Đã chấm công hộ thành công!" };
+  } catch (e) {
+    console.error(e);
+    return { success: false, message: "Lỗi hệ thống" };
   }
 }

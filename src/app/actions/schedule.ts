@@ -84,8 +84,8 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
     revalidatePath('/schedule');
     revalidatePath('/admin/schedule');
 
-    const requesterName = requester.nickname || requester.name || requester.email;
-    const targetName = targetUser.nickname || targetUser.name || targetUser.email;
+    const requesterName = requester.name || requester.email;
+    const targetName = targetUser.name || targetUser.email;
     const title = `${requesterName} đã gán lịch cho ${targetName}`;
 
     return { success: true, id: newShift.id, title };

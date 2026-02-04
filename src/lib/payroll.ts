@@ -1,76 +1,25 @@
 import { prisma } from "@/lib/prisma";
+import { getUserMonthlyStats } from "@/lib/stats";
 
 export async function calculatePayroll(month: number, year: number) {
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0, 23, 59, 59);
+  // Fetch all users
+  const users = await prisma.user.findMany();
 
-  const users = await prisma.user.findMany({
-    include: {
-      checkins: {
-        where: {
-          timestamp: {
-            gte: startDate,
-            lte: endDate
-          }
-        },
-        orderBy: { timestamp: 'asc' }
-      }
-    }
-  });
+  // Target date (Middle of month to capture logic correctly)
+  const targetDate = new Date(year, month - 1, 15);
 
-  const payrollData = users.map((user: any) => {
-    let totalHours = 0;
-    const checkinsByDay: { [key: string]: any[] } = {};
-
-    // Group checkins by day
-    user.checkins.forEach((c: any) => {
-      const dateKey = c.timestamp.toISOString().split('T')[0];
-      if (!checkinsByDay[dateKey]) checkinsByDay[dateKey] = [];
-      checkinsByDay[dateKey].push(c);
-    });
-
-    // Calculate hours per day
-    Object.keys(checkinsByDay).forEach(date => {
-      const dailyCheckins = checkinsByDay[date];
-      // Sort by time
-      dailyCheckins.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-      // Simple logic: First check-in and Last check-out
-      // If only 1 record (Forgot checkout), assume 0 hours or manual fix needed.
-      if (dailyCheckins.length >= 2) {
-        const first = dailyCheckins[0];
-        const last = dailyCheckins[dailyCheckins.length - 1];
-
-        if (first.type === 'checkin' && last.type === 'checkout') {
-          const diffMs = last.timestamp.getTime() - first.timestamp.getTime();
-          const hours = diffMs / (1000 * 60 * 60);
-          totalHours += hours;
-        }
-      }
-    });
-
-    let calculatedSalary = 0;
-    if (user.employmentType === 'FULL_TIME') {
-      calculatedSalary = user.monthlySalary || 6000000;
-    } else {
-      calculatedSalary = totalHours * (user.hourlyRate || 0);
-    }
-
+  const payrollData = await Promise.all(users.map(async (user: any) => {
+    const stats = await getUserMonthlyStats(user.id, targetDate);
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       image: user.image,
       role: user.role,
-      employmentType: user.employmentType,
-      hourlyRate: user.hourlyRate,
-      monthlySalary: user.monthlySalary,
-      totalHours,
-      totalSalary: calculatedSalary,
-      checkinCount: Object.keys(checkinsByDay).length,
-      daysWorked: Object.keys(checkinsByDay).length
+      // Mapping stats to Payroll format
+      ...stats
     };
-  });
+  }));
 
   return payrollData;
 }

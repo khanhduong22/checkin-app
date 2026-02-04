@@ -1,7 +1,9 @@
 import { getMonthlyReport } from "@/lib/report";
 import { calculatePayroll } from "@/lib/payroll";
+import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,13 +25,33 @@ export default async function ReportsPage({ searchParams }: { searchParams: { mo
         return `${h}:${m.toString().padStart(2, '0')}`;
     }
 
+    const totalPayrollCost = payroll.reduce((sum: number, p: any) => sum + p.totalSalary, 0);
+    const totalHoursAll = payroll.reduce((sum: number, p: any) => sum + p.totalHours, 0);
+    const totalEmployeeCount = payroll.length;
+
     return (
         <div className="space-y-8">
             <div>
-                 <h2 className="text-3xl font-bold tracking-tight">Bảng Thành Tích</h2>
+                 <h2 className="text-3xl font-bold tracking-tight">Bảng Thành Tích & Báo Cáo</h2>
                  <p className="text-muted-foreground">Tháng {month}/{year}</p>
             </div>
 
+             {/* 📊 SUMMARY STATS */}
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-emerald-50 border-emerald-200">
+                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-emerald-600">Tổng Chi Lương (Tạm tính)</CardTitle></CardHeader>
+                     <CardContent><div className="text-2xl font-bold text-emerald-700">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalPayrollCost)}</div></CardContent>
+                </Card>
+                <Card className="bg-blue-50 border-blue-200">
+                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-blue-600">Tổng Giờ Làm</CardTitle></CardHeader>
+                     <CardContent><div className="text-2xl font-bold text-blue-700">{totalHoursAll.toFixed(1)}h</div></CardContent>
+                </Card>
+                 <Card className="bg-purple-50 border-purple-200">
+                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-purple-600">Nhân sự Active</CardTitle></CardHeader>
+                     <CardContent><div className="text-2xl font-bold text-purple-700">{totalEmployeeCount}</div></CardContent>
+                </Card>
+            </div>
+            
             {/* 🏆 HERO SECTION: HALL OF FAME */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-orange-200">
@@ -51,7 +73,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: { mo
                                             {idx + 1}
                                         </div>
                                         <div>
-                                            <div className="font-bold">{u.name}</div>
+                                            <div className="font-bold">
+                                                <Link href={`/admin/employees/${u.id}`} className="hover:underline">
+                                                    {u.name}
+                                                </Link>
+                                            </div>
                                             <div className="text-xs text-muted-foreground">{u.daysWorked} ngày công</div>
                                         </div>
                                     </div>
@@ -77,7 +103,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: { mo
                                         <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold overflow-hidden">
                                            {u.user.image ? <img src={u.user.image} className="w-full h-full object-cover"/> : u.user.name?.[0]}
                                         </div>
-                                        <div className="font-medium">{u.user.name}</div>
+                                        <div className="font-medium">
+                                            <Link href={`/admin/employees/${u.user.id}`} className="hover:underline">
+                                                {u.user.name}
+                                            </Link>
+                                        </div>
                                     </div>
                                      <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                                         {formatTimeVal(u.earliestCheckin)}
@@ -113,7 +143,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: { mo
                                 <tr key={u.user.id} className="hover:bg-red-50/20 transition-colors">
                                     <td className="px-6 py-4 font-medium flex items-center gap-3">
                                         <span className="text-red-500 font-bold">⚠️</span>
-                                        {u.user.name}
+                                        <Link href={`/admin/employees/${u.user.id}`} className="hover:underline">
+                                            {u.user.name}
+                                        </Link>
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <span className="font-bold text-red-600">{u.lateCount}</span>

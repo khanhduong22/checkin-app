@@ -14,6 +14,38 @@ export default function PayrollAdminClient({ data }: { data: any[] }) {
     const [amount, setAmount] = useState('');
     const [reason, setReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredData = data.filter(u => 
+        u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalFilteredSalary = filteredData.reduce((sum, u) => sum + u.stats.totalSalary, 0);
+
+    const handleDownloadCSV = () => {
+        const headers = ['Tên', 'Email', 'Loại HĐ', 'Ngày công', 'Nghỉ phép', 'Giờ làm', 'Lương cứng', 'Thưởng/Phạt', 'Thực lãnh'];
+        const rows = filteredData.map(u => [
+             `"${u.name}"`,
+             u.email,
+             u.stats.employmentType,
+             u.stats.standardDays ? `"${u.stats.daysWorked}/${u.stats.standardDays}"` : u.stats.daysWorked,
+             u.stats.leaveCount || 0,
+             u.stats.totalHours.toFixed(1),
+             u.stats.baseSalary,
+             u.stats.totalAdjustments,
+             u.stats.totalSalary
+        ]);
+        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `bang_luong_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,6 +63,18 @@ export default function PayrollAdminClient({ data }: { data: any[] }) {
 
     return (
         <div className="space-y-6">
+            <div className="flex justify-between gap-4">
+                <Input 
+                    placeholder="Tìm kiếm nhân viên..." 
+                    className="max-w-sm bg-white" 
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                />
+                <Button variant="outline" onClick={handleDownloadCSV} className="text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Xuất Excel
+                </Button>
+            </div>
             <div className="rounded-md border bg-white">
                 <div className="relative w-full overflow-auto">
                     <table className="w-full caption-bottom text-sm text-left">
@@ -38,14 +82,13 @@ export default function PayrollAdminClient({ data }: { data: any[] }) {
                             <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[300px]">Nhân viên</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Giờ công</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Lương cứng</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[200px]">Thưởng / Phạt</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right w-[150px]">Thực lãnh</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right w-[180px]">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
-                            {data.map((user) => (
+                            {filteredData.map((user) => (
                                 <tr key={user.id} className="border-b transition-colors hover:bg-muted/50">
                                     <td className="p-4 align-middle">
                                         <div className="flex items-center gap-3">
@@ -59,10 +102,23 @@ export default function PayrollAdminClient({ data }: { data: any[] }) {
                                         </div>
                                     </td>
                                     <td className="p-4 align-middle font-mono">
-                                        {user.stats.totalHours.toFixed(1)}h
-                                    </td>
-                                    <td className="p-4 align-middle text-muted-foreground">
-                                        {f(user.stats.baseSalary)}
+                                        {user.stats.employmentType === 'FULL_TIME' ? (
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-sm">{user.stats.totalHours.toFixed(1)}h</span>
+                                                    <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground font-sans">
+                                                        {user.stats.daysWorked}/{user.stats.standardDays} công
+                                                    </span>
+                                                </div>
+                                                {user.stats.leaveCount > 0 && (
+                                                    <span className="text-[10px] text-red-600 font-semibold">
+                                                        Nghỉ: {user.stats.leaveCount}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="font-bold text-sm">{user.stats.totalHours.toFixed(1)}h</span>
+                                        )}
                                     </td>
                                     <td className="p-4 align-middle">
                                         <div className="flex flex-col gap-1">
@@ -92,7 +148,7 @@ export default function PayrollAdminClient({ data }: { data: any[] }) {
                                             >
                                                 ±
                                             </Button>
-                                            <Link href={`/admin/payroll/${user.id}`}>
+                                            <Link href={`/admin/employees/${user.id}`}>
                                                 <Button variant="default" size="sm" className="h-8 px-3 text-xs">
                                                     Chi tiết
                                                 </Button>
@@ -102,6 +158,15 @@ export default function PayrollAdminClient({ data }: { data: any[] }) {
                                 </tr>
                             ))}
                         </tbody>
+                        <tfoot className="bg-muted font-bold text-sm">
+                            <tr>
+                                <td colSpan={3} className="p-4 text-right uppercase">Tổng cộng ({filteredData.length} nhân viên):</td>
+                                <td className="p-4 text-emerald-600 font-bold text-lg">
+                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalFilteredSalary)}
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>

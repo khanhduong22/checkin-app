@@ -1,6 +1,30 @@
 
 export const CHANGELOGS = [
   {
+    version: '1.4.0',
+    date: '03/02/2026',
+    title: 'Hồ sơ Nhân viên & Lương Full-time',
+    tags: ['Admin', 'Payroll', 'Profile'],
+    changes: [
+      '👤 **Hồ sơ Nhân viên 360**: Admin có thể xem chi tiết: Bảng công, Lương, Thưởng/Phạt, Lịch sử nghỉ phép của từng nhân sự tại một nơi duy nhất.',
+      '⚙️ **Tự động hóa Lương Full-time**: Hệ thống tự động tính công chuẩn (trừ Chủ nhật) và tự động trừ lương khi có đơn "Xin nghỉ phép" được duyệt.',
+      '🔗 **Liên kết thông minh**: Dễ dàng điều hướng giữa Danh sách nhân sự - Bảng lương - Chi tiết cá nhân.',
+      '🎪 **Fun Update**: Thêm hàng loạt danh hiệu "lầy lội" vào Vòng quay nhân phẩm (Chiến thần Deadline, Đại gia Trà sữa...).'
+    ]
+  },
+  {
+    version: '1.3.0',
+    date: '03/02/2026',
+    title: 'Vòng Quay May Mắn & Thưởng Tự Động',
+    tags: ['Lucky Wheel', 'Money', 'Feature'],
+    changes: [
+      '🎰 **Vòng Quay Nhân Phẩm**: Ra mắt giao diện vòng quay mới cực xịn xò với hiệu ứng Confetti.',
+      '💸 **Tự Động Cộng Thưởng**: Quay trúng ô Tiền mặt -> Tiền tự động bay thẳng vào Bảng lương (hết cảnh chờ Admin ghi sổ tay).',
+      '🏆 **Danh hiệu Độc Quyền**: Săn danh hiệu hiếm từ vòng quay để khoe trên bảng xếp hạng.',
+      '⚡ **Fix Lỗi**: Sửa lỗi hiển thị sai giờ trên Dashboard (giờ đã chuẩn giờ Việt Nam).'
+    ]
+  },
+  {
     version: '1.2.0',
     date: '02/02/2026',
     title: 'Nâng cấp Trải nghiệm Quản lý',

@@ -7,25 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ==============================
-// NextAuth Standard Models
-// ==============================
-
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -46,78 +41,57 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ==============================
-// Business Logic Models
-// ==============================
-
-enum UserRole {
-  USER
-  ADMIN
-}
-
-enum EmploymentType {
-  FULL_TIME
-  PART_TIME
-}
-
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  
-  // Custom fields
-  role          UserRole  @default(USER) // Quyền hạn (ADMIN/USER)
-  employmentType EmploymentType @default(PART_TIME)
-  hourlyRate    Float     @default(0)   // Lương theo giờ
-  monthlySalary Float     @default(6000000) // Lương theo tháng for FULL_TIME
-  
-  accounts      Account[]
-  sessions      Session[]
-  checkins      CheckIn[]
-  shifts        WorkShift[]
-  requests      Request[]
-  stickyNotes   StickyNote[]
-  adjustments   PayrollAdjustment[]
-  achievements  UserAchievement[]
+  id                String              @id @default(cuid())
+  name              String?
+  email             String?             @unique
+  emailVerified     DateTime?
+  image             String?
+  role              UserRole            @default(USER)
+  hourlyRate        Float               @default(0)
+  employmentType    EmploymentType      @default(PART_TIME)
+  monthlySalary     Float               @default(6000000)
+  accounts          Account[]
+  checkins          CheckIn[]
   luckyWheelHistory LuckyWheelHistory[]
+  adjustments       PayrollAdjustment[]
+  requests          Request[]
+  sessions          Session[]
+  stickyNotes       StickyNote[]
+  achievements      UserAchievement[]
+  shifts            WorkShift[]
 }
 
 model WorkShift {
-  id        Int      @id @default(autoincrement())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  start     DateTime // Thay thế date/startTime cũ
-  end       DateTime // Thay thế endTime cũ
-  
-  // Backward compat fields (optional or remove)
-  shiftType String?   // "CUSTOM" mostly
-  
-  status    String   @default("APPROVED") 
-  isOpenForSwap Boolean @default(false)
-  createdAt DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  userId        String
+  start         DateTime
+  end           DateTime
+  shiftType     String?
+  status        String   @default("APPROVED")
+  isOpenForSwap Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Allow multiple shifts per day, so no unique constraint on date
   @@index([userId, start])
 }
 
 model Request {
   id        Int      @id @default(autoincrement())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // "LATE", "EARLY", "MISSING", "OTHER"
-  date      DateTime // Ngày xảy ra sự việc
-  reason    String   // Lý do giải trình
-  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  type      String
+  date      DateTime
+  reason    String
+  status    String   @default("PENDING")
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Announcement {
   id        String   @id @default(cuid())
   title     String
   content   String
-  type      String   @default("INFO") // INFO, WARNING, SUCCESS, FIRE
+  type      String   @default("INFO")
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
@@ -125,54 +99,57 @@ model Announcement {
 model StickyNote {
   id        String   @id @default(cuid())
   content   String
-  color     String   @default("yellow") // yellow, pink, blue, green
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  color     String   @default("yellow")
   userId    String
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PayrollAdjustment {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount    Int      // Positive for Bonus, Negative for Penalty
+  amount    Int
   reason    String
   date      DateTime @default(now())
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model LuckyWheelPrize {
-  id          String   @id @default(cuid())
+  id          String              @id @default(cuid())
   name        String
   description String?
-  image       String?  
-  quantity    Int      @default(0) // Total quantity
-  remaining   Int      @default(0) // Remaining quantity to win
-  probability Float    @default(0) // 0-100%
-  type        String   @default("PHYSICAL") // PHYSICAL, POINT, ONE_MORE_TURN, BETTER_LUCK_NEXT_TIME
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  image       String?
+  quantity    Int                 @default(0)
+  remaining   Int                 @default(0)
+  probability Float               @default(0)
+  type        String              @default("PHYSICAL")
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  value       Float               @default(0)
   history     LuckyWheelHistory[]
 }
 
 model LuckyWheelHistory {
-  id        String   @id @default(cuid())
+  id        String           @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  prizeId   String?  
-  prize     LuckyWheelPrize? @relation(fields: [prizeId], references: [id], onDelete: SetNull)
-  prizeName String  
-  createdAt DateTime @default(now())
+  prizeId   String?
+  prizeName String
+  createdAt DateTime         @default(now())
+  prize     LuckyWheelPrize? @relation(fields: [prizeId], references: [id])
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserAchievement {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  code      String   // EARLY_BIRD, STREAK_MASTER...
-  unlockedAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  code        String
+  title       String?
+  description String?
+  icon        String?
+  unlockedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, code])
 }
@@ -182,32 +159,34 @@ model ShopPet {
   name      String   @default("Mèo Họa Sĩ")
   level     Int      @default(1)
   exp       Int      @default(0)
-  health    Int      @default(100) // Max 100
-  mood      Int      @default(100) // Max 100
+  health    Int      @default(100)
+  mood      Int      @default(100)
   updatedAt DateTime @updatedAt
 }
-
-
-
-
-
-
 
 model CheckIn {
   id        Int      @id @default(autoincrement())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // "checkin" or "checkout"
+  type      String
   timestamp DateTime @default(now())
   ipAddress String
-  
-  // Optional: ghi chú nếu cần
   note      String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model AllowedIP {
   id        Int      @id @default(autoincrement())
   prefix    String   @unique
-  label     String? // Ví dụ: "Văn phòng tầng 1"
+  label     String?
   createdAt DateTime @default(now())
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
 }
