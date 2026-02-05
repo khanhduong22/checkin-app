@@ -29,7 +29,10 @@ export async function spinWheel() {
 
   // Weighted Random Algorithm
   const totalProbability = prizes.reduce((sum, prize) => sum + prize.probability, 0);
-  let random = Math.random() * 100; // 0 - 100
+  // Normalize random range to match Total Probability.
+  // This ensures we always pick a prize (relative to their weights), 
+  // preventing "Miss" if sum < 100, or "Overflow" if sum > 100.
+  let random = Math.random() * totalProbability;
 
   // Adjust random range if total prob is less than 100 (optional, or just treat > total as "Miss")
   // If we want "Miss" to be explicit, ensure there's a "Miss" prize or handle logic here.
