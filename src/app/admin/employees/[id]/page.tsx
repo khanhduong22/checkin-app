@@ -125,8 +125,11 @@ export default async function EmployeeDetailPage({ params }: { params: { id: str
                                                  <td className="p-3 text-muted-foreground text-xs">{day.shift}</td>
                                                  <td className="p-3">
                                                      <div className="flex flex-col gap-1 text-xs">
-                                                         {day.checkIn ? <span className="text-emerald-600">IN: {new Date(day.checkIn).toLocaleTimeString('vi-VN')}</span> : <span className="text-red-400">Thiếu IN</span>}
-                                                         {day.checkOut ? <span className="text-blue-600">OUT: {new Date(day.checkOut).toLocaleTimeString('vi-VN')}</span> : (day.checkIn ? <span className="text-red-400">Thiếu OUT</span> : null)}
+                                                         {day.checkIn ? <span className="text-emerald-600">IN: {new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(day.checkIn))}</span> : <span className="text-red-400">Thiếu IN</span>}
+                                                         {day.checkInNote && <span className="text-[10px] text-gray-500 italic max-w-[200px] truncate" title={day.checkInNote}>{day.checkInNote}</span>}
+
+                                                         {day.checkOut ? <span className="text-blue-600">OUT: {new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(day.checkOut))}</span> : (day.checkIn ? <span className="text-red-400">Thiếu OUT</span> : null)}
+                                                         {day.checkOutNote && day.checkOutNote !== day.checkInNote && <span className="text-[10px] text-gray-500 italic max-w-[200px] truncate" title={day.checkOutNote}>{day.checkOutNote}</span>}
                                                      </div>
                                                  </td>
                                                  <td className="p-3 text-right font-mono font-bold">
