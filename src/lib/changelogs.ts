@@ -72,4 +72,4 @@ export const CHANGELOGS = [
   }
 ];
 
-// No change needed, code is dynamic.
+export const LATEST_VERSION = CHANGELOGS[0].version;

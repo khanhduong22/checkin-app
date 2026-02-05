@@ -211,28 +211,26 @@ export async function adminManualCheckIn(userId: string, date: string, checkInTi
     const adminName = session?.user?.name || "Admin";
     const note = `Admin ${adminName} chấm công hộ`;
 
+    // 1. Calculate Day Range (VN Time -> UTC) to clear existing data
+    const startOfDayVN = new Date(date);
+    startOfDayVN.setUTCHours(-7, 0, 0, 0); // 00:00 VN = 17:00 UTC prev day
+
+    const endOfDayVN = new Date(date);
+    endOfDayVN.setUTCHours(16, 59, 59, 999); // 23:59 VN = 16:59 UTC current day
+
+    // Clear existing records for this day to allow "Override"
+    await prisma.checkIn.deleteMany({
+      where: {
+        userId,
+        timestamp: {
+          gte: startOfDayVN,
+          lte: endOfDayVN
+        }
+      }
+    });
+
     if (checkInTime) {
-      const inDate = new Date(`${date}T${checkInTime}:00`);
-      // Adjust timezone offset if input is local string but server assumes UTC?
-      // Actually `new Date("YYYY-MM-DDTHH:mm:ss")` interprets as Local if no Z, or depending on Env.
-      // Best to ensure we handle it as local then convert or just rely on ISO.
-      // If user inputs "08:00", we want 08:00 Local (VN).
-      // `new Date("2023-01-01T08:00:00")` in local env is correct.
-      // In Vercel? Timezone is UTC.
-      // So "08:00" becomes 08:00 UTC = 15:00 VN. Wrong.
-      // We need to force it to be VN Time (UTC-7 check or library).
-      // Quick fix: Add "-07:00" reverse? No, VN is +7.
-      // So "08:00" VN is "01:00" UTC.
-      // Let's explicitly construct date.
-
       const inTimeParts = checkInTime.split(':');
-      const d = new Date(date);
-      // d is UTC midnight of date? or Local?
-      // `new Date("2023-01-01")` is UTC midnight.
-
-      // Let's use simple string concat with Offset for VN if possible.
-      // Or just create Date and substract 7 hours if server is UTC.
-      // Assume Server is UTC. Input is VN time.
       const targetDate = new Date(date);
       targetDate.setUTCHours(parseInt(inTimeParts[0]) - 7, parseInt(inTimeParts[1]), 0, 0);
 
