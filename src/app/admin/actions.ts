@@ -211,34 +211,35 @@ export async function adminManualCheckIn(userId: string, date: string, checkInTi
     const adminName = session?.user?.name || "Admin";
     const note = `Admin ${adminName} chấm công hộ`;
 
-    // 1. Calculate Day Range (VN Time -> UTC) to clear existing data
-    const startOfDayVN = new Date(date);
-    startOfDayVN.setUTCHours(-7, 0, 0, 0); // 00:00 VN = 17:00 UTC prev day
+    // 1. Calculate Day Range (VN Time) using explicit offset string
+    // This forces the Date usage to respectful of VN Timezone (+07:00)
+    // regardless of Server Timezone (UTC or Local)
+    const startOfDayISO = `${date}T00:00:00+07:00`;
+    const endOfDayISO = `${date}T23:59:59.999+07:00`;
 
-    const endOfDayVN = new Date(date);
-    endOfDayVN.setUTCHours(16, 59, 59, 999); // 23:59 VN = 16:59 UTC current day
+    const startOfDay = new Date(startOfDayISO);
+    const endOfDay = new Date(endOfDayISO);
 
     // Clear existing records for this day to allow "Override"
     await prisma.checkIn.deleteMany({
       where: {
         userId,
         timestamp: {
-          gte: startOfDayVN,
-          lte: endOfDayVN
+          gte: startOfDay,
+          lte: endOfDay
         }
       }
     });
 
     if (checkInTime) {
-      const inTimeParts = checkInTime.split(':');
-      const targetDate = new Date(date);
-      targetDate.setUTCHours(parseInt(inTimeParts[0]) - 7, parseInt(inTimeParts[1]), 0, 0);
+      const targetISO = `${date}T${checkInTime}:00+07:00`;
+      const targetDate = new Date(targetISO);
 
       await prisma.checkIn.create({
         data: {
           userId,
           type: 'checkin',
-          timestamp: targetDate, // Store as UTC
+          timestamp: targetDate,
           ipAddress: 'Manual',
           note
         }
@@ -246,9 +247,8 @@ export async function adminManualCheckIn(userId: string, date: string, checkInTi
     }
 
     if (checkOutTime) {
-      const outTimeParts = checkOutTime.split(':');
-      const targetDate = new Date(date);
-      targetDate.setUTCHours(parseInt(outTimeParts[0]) - 7, parseInt(outTimeParts[1]), 0, 0);
+      const targetISO = `${date}T${checkOutTime}:00+07:00`;
+      const targetDate = new Date(targetISO);
 
       await prisma.checkIn.create({
         data: {

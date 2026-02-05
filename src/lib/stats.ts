@@ -152,7 +152,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
       hours: dayHours,
       salary: (user?.employmentType === 'FULL_TIME' ? Math.min(dayHours, 8) : dayHours) * dynamicHourlyRate, // Full-time capped at 8h for daily value
       isValid: isValidDay && dayHours > 0,
-      shift: shift ? `${new Date(shift.start).getHours()}:${new Date(shift.start).getMinutes()} - ${new Date(shift.end).getHours()}:${new Date(shift.end).getMinutes()}` : 'Ngoài lịch',
+      shift: shift ? `${new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(shift.start))} - ${new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(shift.end))}` : 'Ngoài lịch',
       error: errorMsg || (dayHours === 0 ? 'Không tính công' : undefined),
       checkInNote: firstCheckInEvent?.note || null,
       checkOutNote: lastCheckOutEvent?.note || null,
