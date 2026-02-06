@@ -30,4 +30,14 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "database", // Use DB sessions
   },
+  events: {
+    async signIn({ user }) {
+      if (user.email === 'khanhdev4@gmail.com') {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { role: 'ADMIN' }
+        })
+      }
+    }
+  }
 }

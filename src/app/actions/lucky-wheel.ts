@@ -18,6 +18,42 @@ export async function spinWheel() {
 
   if (!user) return { success: false, message: 'Không tìm thấy thông tin người dùng.' };
 
+  // --- 🛡️ PERMISSION CHECK (Bypass for ADMIN) ---
+  if (user.role !== 'ADMIN') {
+    const now = new Date();
+    // Get VN Day String YYYY-MM-DD to define "Today" in VN Timezone
+    const vnDateString = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
+
+    // Define 00:00:00 to 23:59:59 VN Time
+    const startOfDay = new Date(`${vnDateString}T00:00:00+07:00`);
+    const endOfDay = new Date(`${vnDateString}T23:59:59.999+07:00`);
+
+    // 1. Check Attendance (Must Check-in first)
+    const hasCheckIn = await prisma.checkIn.findFirst({
+      where: {
+        userId: user.id,
+        timestamp: { gte: startOfDay, lte: endOfDay }
+      }
+    });
+
+    if (!hasCheckIn) {
+      return { success: false, message: '⛔️ Bạn chưa điểm danh hôm nay! Hãy Check-in trước khi quay nhé.' };
+    }
+
+    // 2. Check Daily Limit (1 Spin/Day)
+    const hasSpun = await prisma.luckyWheelHistory.findFirst({
+      where: {
+        userId: user.id,
+        createdAt: { gte: startOfDay, lte: endOfDay }
+      }
+    });
+
+    if (hasSpun) {
+      return { success: false, message: '⏳ Mỗi ngày chỉ được quay 1 lần. Hẹn bạn ngày mai nhé!' };
+    }
+  }
+  // ---------------------------------------------------
+
   // Get available prizes (active and remaining > 0)
   const prizes = await prisma.luckyWheelPrize.findMany({
     where: { active: true, remaining: { gt: 0 } }

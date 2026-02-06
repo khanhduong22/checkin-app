@@ -14,32 +14,7 @@ export default async function Home() {
   let user;
 
   // --- DEV MODE: BYPASS LOGIN ---
-  if (!session && process.env.NODE_ENV === 'development') {
-    console.log("⚠️ Dev Mode: Bypassing Login");
-    const devEmail = 'dev@local.host';
-    user = await prisma.user.upsert({
-        where: { email: devEmail },
-        update: {},
-        create: {
-            email: devEmail,
-            name: 'Developer Local',
-            role: 'ADMIN',
-            hourlyRate: 100000
-        },
-        include: {
-            checkins: {
-                where: { timestamp: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
-                orderBy: { timestamp: 'desc' }
-            },
-            achievements: true
-        }
-    });
-
-    session = {
-        user: { name: user.name, email: user.email, image: null, id: user.id, role: user.role },
-        expires: '2099-12-31'
-    } as any;
-  } else if (!session) {
+  if (!session) {
     redirect('/login')
   } else {
     user = await prisma.user.findUnique({
