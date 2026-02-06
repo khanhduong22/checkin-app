@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import CheckInButtons from "@/components/CheckInButtons"
 import { Button } from "@/components/ui/button"
-import GachaButton from "@/components/GachaButton";
+// import GachaButton from "@/components/GachaButton";
 import ShopPetWidget from "@/components/ShopPetWidget";
 
 export const dynamic = 'force-dynamic';
@@ -168,7 +168,7 @@ export default async function Home() {
                 
                 {/* Gacha Game */}
                 <div className="pt-2">
-                    <GachaButton userId={user?.id!} hasCheckedIn={!!hasCheckedInToday} />
+                    {/* <GachaButton userId={user?.id!} hasCheckedIn={!!hasCheckedInToday} isAdmin={user?.role === 'ADMIN'} /> */}
                 </div>
 
                 {/* Sticky Notes Widget */}

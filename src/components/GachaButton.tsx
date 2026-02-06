@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { rollGacha } from "@/app/actions/gacha";
+// import { rollGacha } from "@/app/actions/gacha";
 import { Dices, Sparkles, X } from "lucide-react";
 import {
   Dialog,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "sonner";
 
-export default function GachaButton({ userId, hasCheckedIn }: { userId: string, hasCheckedIn: boolean }) {
+export default function GachaButton({ userId, hasCheckedIn, isAdmin = false }: { userId: string, hasCheckedIn: boolean, isAdmin?: boolean }) {
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [reward, setReward] = useState<any>(null);
@@ -24,7 +24,8 @@ export default function GachaButton({ userId, hasCheckedIn }: { userId: string, 
         // Fake delay for suspense
         await new Promise(r => setTimeout(r, 1500)); 
         
-        const res = await rollGacha(userId);
+        // const res = await rollGacha(userId);
+        const res = { success: false, message: "Debug: Acton Disabled", reward: null }; // Mock
         setLoading(false);
 
         if (res.success) {
@@ -36,7 +37,8 @@ export default function GachaButton({ userId, hasCheckedIn }: { userId: string, 
     };
 
     const handleOpenChange = (open: boolean) => {
-        if (!hasCheckedIn && open) {
+        // Admin bypasses check-in requirement
+        if (!isAdmin && !hasCheckedIn && open) {
             toast.error("Vui lòng Check-in trước khi quay!");
             return;
         }
