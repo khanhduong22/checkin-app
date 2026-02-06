@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import PrizeDialog from "./PrizeDialog";
 import DeletePrizeButton from "./DeletePrizeButton";
+import LuckyWheelHistoryClient from "@/components/admin/LuckyWheelHistoryClient";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export default async function LuckyWheelPage() {
     // @ts-ignore
     const history = await prisma.luckyWheelHistory.findMany({
         orderBy: { createdAt: 'desc' },
-        take: 20,
+        take: 1000,
         include: {
             user: {
                 include: {
@@ -135,47 +136,7 @@ export default async function LuckyWheelPage() {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Lịch sử trúng thưởng (20 gần nhất)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Thời gian</TableHead>
-                                <TableHead>Người trúng</TableHead>
-                                <TableHead>Danh hiệu</TableHead>
-                                <TableHead>Giải thưởng</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {history.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="text-center text-muted-foreground">Chưa có ai trúng thưởng</TableCell>
-                                </TableRow>
-                            ) : (
-                                history.map((record: any) => (
-                                    <TableRow key={record.id}>
-                                        <TableCell>{new Date(record.createdAt).toLocaleString('vi-VN')}</TableCell>
-                                        <TableCell className="font-medium">{record.user.name || record.user.email}</TableCell>
-                                        <TableCell>
-                                            {record.user.achievements?.[0]?.code ? (
-                                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
-                                                    {record.user.achievements[0].code}
-                                                </Badge>
-                                            ) : (
-                                                <span className="text-muted-foreground text-xs">{record.user.role}</span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="font-bold text-primary">{record.prizeName}</TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+            <LuckyWheelHistoryClient initialHistory={history} />
         </div>
     )
 }
