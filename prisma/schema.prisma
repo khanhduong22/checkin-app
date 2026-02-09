@@ -181,6 +181,14 @@ model AllowedIP {
   createdAt DateTime @default(now())
 }
 
+model Holiday {
+  id          String   @id @default(cuid())
+  date        DateTime @unique
+  name        String
+  multiplier  Float    @default(1.0)
+  createdAt   DateTime @default(now())
+}
+
 enum UserRole {
   USER
   ADMIN

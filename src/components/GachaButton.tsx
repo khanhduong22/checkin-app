@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-// import { rollGacha } from "@/app/actions/gacha";
+import { rollGacha } from "@/app/actions/gacha";
 import { Dices, Sparkles, X } from "lucide-react";
 import {
   Dialog,
@@ -24,8 +24,7 @@ export default function GachaButton({ userId, hasCheckedIn, isAdmin = false }: {
         // Fake delay for suspense
         await new Promise(r => setTimeout(r, 1500)); 
         
-        // const res = await rollGacha(userId);
-        const res = { success: false, message: "Debug: Acton Disabled", reward: null }; // Mock
+        const res = await rollGacha(userId);
         setLoading(false);
 
         if (res.success) {

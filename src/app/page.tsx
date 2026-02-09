@@ -4,14 +4,15 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import CheckInButtons from "@/components/CheckInButtons"
 import { Button } from "@/components/ui/button"
-// import GachaButton from "@/components/GachaButton";
+import GachaButton from "@/components/GachaButton";
 import ShopPetWidget from "@/components/ShopPetWidget";
 
 export const dynamic = 'force-dynamic';
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: { viewAsUserId?: string } }) {
   let session = await getServerSession(authOptions)
   let user;
+  let isViewAsMode = false;
 
   // --- DEV MODE: BYPASS LOGIN ---
   if (!session) {
@@ -27,6 +28,25 @@ export default async function Home() {
             achievements: true
         }
     })
+
+    // VIEW AS MODE (Admin Only)
+    if (user?.role === 'ADMIN' && searchParams.viewAsUserId) {
+        const targetUser = await prisma.user.findUnique({
+            where: { id: searchParams.viewAsUserId },
+            include: {
+                checkins: {
+                    where: { timestamp: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
+                    orderBy: { timestamp: 'desc' }
+                },
+                achievements: true
+            }
+        });
+
+        if (targetUser) {
+            user = targetUser;
+            isViewAsMode = true;
+        }
+    }
   }
 
   const { getUserMonthlyStats } = await import("@/lib/stats");
@@ -103,6 +123,19 @@ export default async function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
         
+
+        {isViewAsMode && (
+            <div className="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <span className="text-xl">👀</span>
+                    <span className="font-bold text-sm">Chế độ xem Dashboard của: {user?.name}</span>
+                </div>
+                <a href="/admin/employees">
+                    <Button variant="secondary" size="sm" className="h-7 text-xs">Thoát</Button>
+                </a>
+            </div>
+        )}
+
         {/* Announcements */}
         <AnnouncementBar announcements={announcements} />
 
@@ -141,6 +174,23 @@ export default async function Home() {
             
             <div className="px-6 pb-6 space-y-6">
                 
+                {/* Lateness Reminder */}
+                {/* @ts-ignore */}
+                {stats.lateCount >= 2 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-3 mb-4 animate-in fade-in slide-in-from-top-2">
+                        <div className="bg-red-100 p-2 rounded-full">
+                            <span className="text-xl">⚠️</span>
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-red-800">Cảnh báo đi trễ</h3>
+                            <p className="text-xs text-red-600 mt-1">
+                                Bạn đã đi trễ <span className="font-bold">{/* @ts-ignore */}{stats.lateCount}</span> lần trong tháng này. 
+                                Vui lòng chú ý thời gian làm việc để tránh ảnh hưởng đến thi đua.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Privacy Stats */}
                 <PrivacyStats 
                     totalHours={stats.totalHours} 
@@ -168,7 +218,7 @@ export default async function Home() {
                 
                 {/* Gacha Game */}
                 <div className="pt-2">
-                    {/* <GachaButton userId={user?.id!} hasCheckedIn={!!hasCheckedInToday} isAdmin={user?.role === 'ADMIN'} /> */}
+                    <GachaButton userId={user?.id!} hasCheckedIn={!!hasCheckedInToday} isAdmin={user?.role === 'ADMIN'} />
                 </div>
 
                 {/* Sticky Notes Widget */}

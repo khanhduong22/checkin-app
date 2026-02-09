@@ -46,6 +46,19 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     }
   });
 
+  // 5. Fetch Holidays
+  const holidays = await prisma.holiday.findMany({
+    where: {
+      date: { gte: startDate, lte: endDate }
+    }
+  });
+
+  const holidayMap = new Map();
+  holidays.forEach((h: any) => {
+    const d = h.date.toISOString().split('T')[0];
+    holidayMap.set(d, h.multiplier);
+  });
+
   // --- Processing ---
 
   // 0. Pre-calculate Full-time Metrics
@@ -102,6 +115,11 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     let lastCheckOutEvent: any = null;
     let isValidDay = true;
     let errorMsg = '';
+    let isLate = false;
+    let multiplier = 1;
+    if (holidayMap.has(date)) {
+      multiplier = holidayMap.get(date);
+    }
 
     for (const event of daily) {
       if (event.type === 'checkin') {
@@ -145,12 +163,23 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
 
     if (dayHours > 0) totalHours += dayHours;
 
+    // Lateness Check
+    if (shift && firstCheckIn) {
+      // Simple check: if checkin > shift start
+      // Ensure we compare time part correctly or full date if shift is full date
+      if (firstCheckIn.getTime() > shift.start.getTime()) {
+        isLate = true;
+      }
+    }
+
     dailyDetails.push({
       date: date,
       checkIn: firstCheckIn,
       checkOut: lastCheckOut,
       hours: dayHours,
-      salary: (user?.employmentType === 'FULL_TIME' ? Math.min(dayHours, 8) : dayHours) * dynamicHourlyRate, // Full-time capped at 8h for daily value
+      salary: ((user?.employmentType === 'FULL_TIME' ? Math.min(dayHours, 8) : dayHours) * dynamicHourlyRate) * multiplier, // Full-time capped at 8h for daily value, then applied multiplier
+      isLate,
+      multiplier,
       isValid: isValidDay && dayHours > 0,
       shift: shift ? `${new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(shift.start))} - ${new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(shift.end))}` : 'Ngoài lịch',
       error: errorMsg || (dayHours === 0 ? 'Không tính công' : undefined),
@@ -203,6 +232,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     standardDays,
     dailySalary,
     leaveCount: leaves.length,
-    deduction
+    deduction,
+    lateCount: dailyDetails.filter(d => d.isLate).length
   };
 }

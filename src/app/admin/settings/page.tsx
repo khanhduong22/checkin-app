@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import IPManager from "@/components/admin/IPManager";
+import HolidayManager from "@/components/admin/HolidayManager";
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,7 @@ export default async function SettingsPage() {
             <h2 className="text-2xl font-bold tracking-tight">Cấu hình Hệ thống</h2>
             <div className="grid gap-6">
                 <IPManager ips={ips} />
+                <HolidayManager />
                 
                 <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
                     <div className="flex flex-col space-y-1.5 p-6">

@@ -50,6 +50,9 @@ export default async function EmployeeDetailPage({ params }: { params: { id: str
                      <Link href={`/admin/schedule`}>
                          <Button variant="outline">📅 Xem Lịch</Button>
                      </Link>
+                     <Link href={`/?viewAsUserId=${userId}`} target="_blank">
+                         <Button variant="default" className="bg-purple-600 hover:bg-purple-700">👀 Xem Dashboard</Button>
+                     </Link>
                  </div>
             </div>
 
