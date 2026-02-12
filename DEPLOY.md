@@ -2,15 +2,16 @@
 
 ## 🚀 Overview
 This project uses **Next.js** deployed on **Vercel** with a **Neon (Postgres)** database.
-Legacy VPS deployment scripts have been removed. 
 
 **DO NOT** attempt to deploy this manually to a VPS using PM2 unless explicitly requested for a specific reason.
 
 ## 🔄 Deployment Workflow
 Authentication and deployment are handled automatically via GitHub Integration.
 
-1.  **Develop**: Make changes and test locally (`yarn dev` or `yarn start`).
-2.  **Commit**: Commit your changes.
+1.  **Develop**: Make changes and test locally (`yarn dev`).
+2.  **Build Check**: Run `yarn build` locally and ensure it passes **WITHOUT ERRORS**.
+    > ⚠️ **CRITICAL**: Do NOT push if the build fails. Fix errors first.
+3.  **Commit**: Commit your changes.
 3.  **Push**: Push to the `main` branch.
     ```bash
     git push origin main
