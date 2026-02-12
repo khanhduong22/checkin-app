@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from 'xlsx';
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   // @ts-ignore
   if (session?.user?.role !== 'ADMIN') {
@@ -17,9 +17,25 @@ export async function GET() {
     const filename = `backup_data_${timestamp}.xlsx`;
     const workbook = XLSX.utils.book_new();
 
-    // 1. Users
+    // 0. Parse Date Range
+    const { searchParams } = new URL(request.url);
+    const fromStr = searchParams.get('from');
+    const toStr = searchParams.get('to');
+
+    let dateFilter: any = {};
+    if (fromStr || toStr) {
+      dateFilter = {};
+      if (fromStr) {
+        dateFilter.gte = new Date(fromStr + "T00:00:00.000Z"); // Start of day UTC
+      }
+      if (toStr) {
+        dateFilter.lte = new Date(toStr + "T23:59:59.999Z");   // End of day UTC
+      }
+    }
+
+    // 1. Users (Always dump all users for integrity)
     const users = await prisma.user.findMany({ orderBy: { name: 'asc' } });
-    const userRows = users.map(u => ({
+    const userRows = users.map((u: any) => ({
       ID: u.id,
       Name: u.name,
       Email: u.email,
@@ -30,11 +46,13 @@ export async function GET() {
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(userRows), "Users");
 
     // 2. CheckIns
+    const checkinWhere = Object.keys(dateFilter).length > 0 ? { timestamp: dateFilter } : {};
     const checkins = await prisma.checkIn.findMany({
+      where: checkinWhere,
       include: { user: true },
       orderBy: { timestamp: 'desc' }
     });
-    const checkinRows = checkins.map(c => ({
+    const checkinRows = checkins.map((c: any) => ({
       ID: c.id,
       User: c.user?.name,
       Email: c.user?.email,
@@ -46,11 +64,13 @@ export async function GET() {
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(checkinRows), "CheckIns");
 
     // 3. Shifts
+    const shiftWhere = Object.keys(dateFilter).length > 0 ? { start: dateFilter } : {};
     const shifts = await prisma.workShift.findMany({
+      where: shiftWhere,
       include: { user: true },
       orderBy: { start: 'desc' }
     });
-    const shiftRows = shifts.map(s => ({
+    const shiftRows = shifts.map((s: any) => ({
       ID: s.id,
       User: s.user?.name,
       Email: s.user?.email,
