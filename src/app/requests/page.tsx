@@ -3,6 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import RequestListClient from "@/components/requests/RequestListClient";
+import RequestsTour from "@/components/requests/RequestsTour";
+import TourHelpButton from "@/components/TourHelpButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +30,8 @@ export default async function RequestsPage() {
     return (
         <main className="min-h-screen bg-gray-50/50 p-4 flex justify-center">
             <div className="w-full max-w-3xl">
+                 <RequestsTour />
+                 <TourHelpButton />
                  <RequestListClient requests={serializedRequests} />
             </div>
         </main>

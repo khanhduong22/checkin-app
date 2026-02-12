@@ -1,30 +1,47 @@
-'use client';
+"use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { submitRequest } from "@/app/actions/request";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
 
 const TYPES = [
     { value: 'LATE', label: 'Xin đi muộn' },
     { value: 'EARLY', label: 'Xin về sớm' },
     { value: 'MISSING', label: 'Quên Check-in/out' },
     { value: 'LEAVE', label: 'Xin nghỉ phép' },
+    { value: 'WFH', label: 'Xin làm từ xa (WFH)' },
     { value: 'OTHER', label: 'Khác' }
-];
+] as const;
 
 export default function RequestListClient({ requests }: { requests: any[] }) {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
+    const [openType, setOpenType] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Form
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [type, setType] = useState('LATE');
+    const [type, setType] = useState<string>('LATE');
     const [reason, setReason] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -48,7 +65,7 @@ export default function RequestListClient({ requests }: { requests: any[] }) {
                     <Button variant="outline" size="sm">← Home</Button>
                 </a>
                 <h1 className="text-xl font-bold">Yêu cầu / Giải trình</h1>
-                <Button onClick={() => setIsOpen(true)}>📝 Tạo yêu cầu</Button>
+                <Button id="create-request-btn" onClick={() => setIsOpen(true)}>📝 Tạo yêu cầu</Button>
             </div>
 
             {/* List */}
@@ -90,13 +107,51 @@ export default function RequestListClient({ requests }: { requests: any[] }) {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Loại yêu cầu</Label>
-                                    <select 
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                                        value={type}
-                                        onChange={e => setType(e.target.value)}
-                                    >
-                                        {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                                    </select>
+                                    <Popover open={openType} onOpenChange={setOpenType}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-expanded={openType}
+                                                className="w-full justify-between font-normal"
+                                            >
+                                                {type
+                                                    ? TYPES.find((t) => t.value === type)?.label
+                                                    : "Chọn loại yêu cầu..."}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0" align="start">
+                                            <Command>
+                                                <CommandInput placeholder="Tìm loại yêu cầu..." />
+                                                <CommandList>
+                                                    <CommandEmpty>Không tìm thấy loại yêu cầu.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {TYPES.map((t) => (
+                                                            <CommandItem
+                                                                key={t.value}
+                                                                value={t.label}
+                                                                onSelect={(currentValue) => {
+                                                                    // We use label for filtering but set the value
+                                                                    const selected = TYPES.find(item => item.label === currentValue);
+                                                                    setType(selected ? selected.value : type);
+                                                                    setOpenType(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        type === t.value ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {t.label}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Lý do chi tiết</Label>

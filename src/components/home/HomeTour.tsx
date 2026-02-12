@@ -46,8 +46,18 @@ const TOUR_STEPS: Step[] = [
         placement: "top",
     },
     {
+        target: 'a[href="/schedule"]',
+        content: "Đăng ký lịch làm việc hàng tuần tại đây.",
+        placement: "top",
+    },
+    {
+        target: 'a[href="/requests"]',
+        content: "Tạo các yêu cầu giải trình, xin nghỉ phép, hoặc đi muộn/về sớm.",
+        placement: "top",
+    },
+    {
         target: 'a[href="/tasks"]',
-        content: "🆕 Mới: Nhận các công việc làm thêm tại nhà (WFH) để tăng thu nhập!",
+        content: "🆕 WFH & Task Center: Nhận các công việc làm thêm (Design, Code, Seeding...) để tăng thu nhập!",
         placement: "top",
     }
 ];

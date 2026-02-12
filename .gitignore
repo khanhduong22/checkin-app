@@ -38,3 +38,4 @@ next-env.d.ts
 # Data files (Ignored to prevent conflicts with live data)
 checkins.json
 employees.json
+backups/

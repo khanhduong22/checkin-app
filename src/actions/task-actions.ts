@@ -8,6 +8,8 @@ import { TaskStatus } from "@prisma/client";
 
 // --- Task Definitions (Admin) ---
 
+// --- Task Definitions (Admin) ---
+
 export async function getTaskDefinitions() {
   try {
     const definitions = await prisma.taskDefinition.findMany({
@@ -17,6 +19,74 @@ export async function getTaskDefinitions() {
   } catch (error) {
     console.error("Error fetching task definitions:", error);
     return { success: false, error: "Failed to fetch task definitions" };
+  }
+}
+
+// ... existing Task Definition actions ...
+
+// --- Task Items (Admin) ---
+
+export async function getTaskItems() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
+
+    const items = await prisma.taskItem.findMany({
+      include: { taskDefinition: true, assignee: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: "Failed to fetch task items" };
+  }
+}
+
+export async function createTaskItem(data: { taskDefId: string; title: string; description?: string; deadline?: Date }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
+
+    const item = await prisma.taskItem.create({
+      data: {
+        ...data,
+        status: 'OPEN'
+      }
+    });
+    revalidatePath('/admin/tasks');
+    revalidatePath('/tasks');
+    return { success: true, data: item };
+  } catch (error) {
+    return { success: false, error: "Failed to create task item" };
+  }
+}
+
+export async function closeTaskItem(id: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
+
+    await prisma.taskItem.update({
+      where: { id },
+      data: { status: 'CLOSED' }
+    });
+    revalidatePath('/admin/tasks');
+    revalidatePath('/tasks');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to close task item" };
+  }
+}
+
+export async function deleteTaskItem(id: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
+
+    await prisma.taskItem.delete({ where: { id } });
+    revalidatePath('/admin/tasks');
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: "Failed" };
   }
 }
 
@@ -100,8 +170,11 @@ export async function deleteTaskDefinition(id: string) {
 
 // --- User Actions ---
 
+
 export async function getAvailableTasks() {
   try {
+    // Only return generic tasks if needed, or migrate to Items only.
+    // For now, return generic definitions.
     const tasks = await prisma.taskDefinition.findMany({
       where: { active: true },
       orderBy: { name: 'asc' }
@@ -110,6 +183,19 @@ export async function getAvailableTasks() {
   } catch (error) {
     console.error("Error searching tasks", error);
     return { success: false, error: "Failed to fetch available tasks" };
+  }
+}
+
+export async function getAvailableTaskItems() {
+  try {
+    const items = await prisma.taskItem.findMany({
+      where: { status: 'OPEN' },
+      include: { taskDefinition: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: "Failed to fetch marketplace items" };
   }
 }
 
@@ -130,7 +216,7 @@ export async function getUserTasks(userId?: string) {
 
     const tasks = await prisma.userTask.findMany({
       where: { userId: targetUserId },
-      include: { taskDefinition: true },
+      include: { taskDefinition: true, taskItem: true },
       orderBy: { updatedAt: "desc" },
     });
 
@@ -141,7 +227,8 @@ export async function getUserTasks(userId?: string) {
   }
 }
 
-export async function startTask(taskDefId: string) {
+
+export async function startTask(taskDefId: string, taskItemId?: string) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -161,6 +248,39 @@ export async function startTask(taskDefId: string) {
       return { success: false, error: "Must be checked out from office to start a WFH task." };
     }
 
+    // If starting a specific Task Item
+    if (taskItemId) {
+      // Transaction: Check availability and Assign
+      // Use interactive transaction to ensure no race condition
+      return await prisma.$transaction(async (tx) => {
+        const item = await tx.taskItem.findUnique({ where: { id: taskItemId } });
+        if (!item || item.status !== 'OPEN') {
+          throw new Error("Task item is no longer available.");
+        }
+
+        // Assign
+        await tx.taskItem.update({
+          where: { id: taskItemId },
+          data: { status: 'IN_PROGRESS', assigneeId: session.user.id }
+        });
+
+        // Create UserTask
+        const taskDef = await tx.taskDefinition.findUnique({ where: { id: item.taskDefId } });
+        const userTask = await tx.userTask.create({
+          data: {
+            userId: session.user.id,
+            taskDefId: item.taskDefId,
+            taskItemId: item.id,
+            unitPrice: taskDef?.baseReward || 0,
+            status: "PENDING",
+            note: item.description // Copy desc to user task or keeping ref
+          },
+        });
+        return { success: true, data: userTask };
+      });
+    }
+
+    // Legacy: Starting a Generic Task (if still allowed?)
     const taskDef = await prisma.taskDefinition.findUnique({
       where: { id: taskDefId },
     });
@@ -180,9 +300,9 @@ export async function startTask(taskDefId: string) {
 
     revalidatePath("/tasks");
     return { success: true, data: userTask };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error starting task:", error);
-    return { success: false, error: "Failed to start task" };
+    return { success: false, error: error.message || "Failed to start task" };
   }
 }
 

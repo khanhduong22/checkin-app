@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import GachaButton from "@/components/GachaButton";
 import ShopPetWidget from "@/components/ShopPetWidget";
 import HomeTour from "@/components/home/HomeTour";
+import TourHelpButton from "@/components/TourHelpButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -124,6 +125,7 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
         <HomeTour key="tour-v1.7.0" />
+        <TourHelpButton />
         
 
         {isViewAsMode && (

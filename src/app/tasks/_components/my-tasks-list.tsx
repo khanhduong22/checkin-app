@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserTask, TaskDefinition } from "@prisma/client";
+import { UserTask, TaskDefinition, TaskItem } from "@prisma/client";
 import { submitTask } from "@/actions/task-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardFooter, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import { Upload, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-reac
 
 type UserTaskWithDef = UserTask & {
   taskDefinition: TaskDefinition;
+  taskItem?: TaskItem | null;
 };
 
 interface MyTasksListProps {
@@ -129,7 +130,7 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
                 <Card key={task.id} className="opacity-90">
                     <CardHeader className="pb-2">
                          <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg">{task.taskDefinition.name}</CardTitle>
+                            <CardTitle className="text-lg">{task.taskItem ? task.taskItem.title : task.taskDefinition.name}</CardTitle>
                             <StatusBadge status={task.status} />
                         </div>
                         <p className="text-sm text-muted-foreground">Submitted: {task.submittedAt ? format(new Date(task.submittedAt), "dd/MM HH:mm") : "-"}</p>
@@ -148,7 +149,7 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
                 <Card key={task.id}>
                     <CardHeader className="pb-2">
                          <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg">{task.taskDefinition.name}</CardTitle>
+                            <CardTitle className="text-lg">{task.taskItem ? task.taskItem.title : task.taskDefinition.name}</CardTitle>
                             <StatusBadge status={task.status} />
                         </div>
                          <p className="text-sm text-muted-foreground">Reviewed: {task.reviewedAt ? format(new Date(task.reviewedAt), "dd/MM/yyyy") : "-"}</p>

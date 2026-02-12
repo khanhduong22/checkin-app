@@ -18,7 +18,7 @@ export function AvailableTasksList({ tasks }: AvailableTasksListProps) {
           if (result.success) {
               toast.success("Task started! Check 'My Tasks' to submit work.");
           } else {
-              toast.error(result.error || "Failed to start task");
+              toast.error((result as any).error || "Failed to start task");
           }
       } catch (error) {
           toast.error("An error occurred");

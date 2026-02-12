@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import AdminTour from "@/components/admin/AdminTour";
+import TourHelpButton from "@/components/TourHelpButton";
 
 export default function AdminLayout({
   children,
@@ -13,6 +14,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
        <AdminTour />
+       <TourHelpButton />
        <AdminSidebar />
        <div className="lg:pl-[240px] flex flex-col min-h-screen">
           <header className="flex h-14 items-center gap-4 border-b bg-white dark:bg-gray-950 px-6 lg:h-[60px] sticky top-0 z-10 w-full">

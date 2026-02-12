@@ -61,6 +61,7 @@ model User {
   achievements      UserAchievement[]
   shifts            WorkShift[]
   tasks             UserTask[]
+  assignedTasks     TaskItem[]
 }
 
 model WorkShift {
@@ -217,12 +218,30 @@ model TaskDefinition {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   tasks       UserTask[]
+  taskItems   TaskItem[]
+}
+
+model TaskItem {
+  id          String         @id @default(cuid())
+  taskDefId   String
+  title       String
+  description String?
+  deadline    DateTime?
+  status      String         @default("OPEN") // OPEN, IN_PROGRESS, COMPLETED, CLOSED
+  assigneeId  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  taskDefinition TaskDefinition @relation(fields: [taskDefId], references: [id])
+  assignee       User?          @relation(fields: [assigneeId], references: [id])
+  userTasks      UserTask[]
 }
 
 model UserTask {
   id             String         @id @default(cuid())
   userId         String
   taskDefId      String
+  taskItemId     String?
   unitPrice      Float
   status         TaskStatus     @default(PENDING)
   quantity       Int            @default(1)
@@ -239,4 +258,5 @@ model UserTask {
   updatedAt      DateTime       @updatedAt
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   taskDefinition TaskDefinition @relation(fields: [taskDefId], references: [id])
+  taskItem       TaskItem?      @relation(fields: [taskItemId], references: [id])
 }

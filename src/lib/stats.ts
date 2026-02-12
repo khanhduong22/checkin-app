@@ -37,15 +37,18 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     }
   });
 
-  // 4. Fetch Approved Leaves (For Full-time deduction)
-  const leaves = await prisma.request.findMany({
+  // 4. Fetch Approved Requests (Leave & WFH)
+  const allRequests = await prisma.request.findMany({
     where: {
       userId: userId,
-      type: 'LEAVE', // "Xin nghỉ phép"
+      type: { in: ['LEAVE', 'WFH'] },
       status: 'APPROVED',
       date: { gte: startDate, lte: endDate }
     }
   });
+
+  const leaves = allRequests.filter((r: any) => r.type === 'LEAVE');
+  const wfhRequests = allRequests.filter((r: any) => r.type === 'WFH');
 
   // 5. Fetch Holidays
   const holidays = await prisma.holiday.findMany({
@@ -104,8 +107,18 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     checkinsByDay[dateKey].push(c);
   });
 
-  // Compute Daily Details (Hours Worked) - Common for both
-  Object.keys(checkinsByDay).forEach(date => {
+  const wfhMap = new Map();
+  wfhRequests.forEach((r: any) => {
+    const d = r.date.toISOString().split('T')[0];
+    wfhMap.set(d, r);
+    daysWorked.add(d); // Count WFH as worked day
+  });
+
+  // Compute Daily Details (Hours Worked)
+  // Use Set of all relevant dates (Checkins + WFH)
+  const allDates = new Set([...Object.keys(checkinsByDay), ...Array.from(wfhMap.keys())]);
+
+  Array.from(allDates).forEach(date => {
     const daily = checkinsByDay[date];
     const shift = shiftsByDay[date];
     let dayHours = 0;
@@ -163,6 +176,27 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     }
 
     if (dayHours > 0) totalHours += dayHours;
+
+    // Handle WFH Case (if no physical checkin or supplement)
+    // If WFH approved and dayHours is 0 (or low?), we credit 8h (or shift hours)
+    if (wfhMap.has(date)) {
+      if (dayHours === 0) {
+        // Full WFH day
+        dayHours = 8;
+        totalHours += 8;
+        isValidDay = true;
+        errorMsg = 'Làm việc từ xa (WFH)';
+
+        // For display purposes, maybe show start/end as WFH?
+        // dailyDetails will use checkIn/checkOut null but have hours + valid.
+      } else {
+        // Hybrid? Worked some hours physically + WFH? 
+        // Logic: If they checked in, we use actual hours. 
+        // Or maybe WFH is just an excuse for not checking in?
+        // Let's append note.
+        errorMsg = errorMsg ? `${errorMsg} + WFH` : 'WFH + Check-in';
+      }
+    }
 
     // Lateness Check
     if (shift && firstCheckIn) {

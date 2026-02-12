@@ -47,7 +47,7 @@ const TOUR_STEPS: Record<string, Step[]> = {
     {
       target: "#user-manager-card",
       content: "Danh sách toàn bộ nhân viên. Bạn có thể chỉnh sửa tên, mức lương, hoặc cấp quyền Admin tại đây.",
-      placement: "top-start",
+      placement: "left",
     },
   ],
   "/admin/schedule": [
@@ -187,7 +187,12 @@ const TOUR_STEPS: Record<string, Step[]> = {
     },
     {
         target: '#tab-trigger-definitions',
-        content: "Cấu hình danh sách công việc, đơn giá và mô tả. Chỉ task nào 'Active' mới hiện cho nhân viên nhận.",
+        content: "Cấu hình danh sách công việc chung (Seeding, Review...).",
+        placement: "bottom"
+    },
+    {
+        target: '#tab-trigger-items',
+        content: "🆕 Task Marketplace: Đăng các job cụ thể (Deadline, Mức thưởng riêng) để nhân viên nhận.",
         placement: "bottom"
     }
   ]

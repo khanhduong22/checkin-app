@@ -1,15 +1,18 @@
-import { getTaskDefinitions, getPendingTasks } from "@/actions/task-actions";
+import { getTaskDefinitions, getPendingTasks, getTaskItems } from "@/actions/task-actions";
 import { TaskDefinitionList } from "./_components/task-definition-list";
 import { TaskReviewList } from "./_components/task-review-list";
+import { TaskItemList } from "./_components/task-item-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function AdminTasksPage() {
   const definitionsRes = await getTaskDefinitions();
   const pendingTasksRes = await getPendingTasks();
+  const taskItemsRes = await getTaskItems();
 
   const definitions = definitionsRes.success ? definitionsRes.data || [] : [];
   const pendingTasks = pendingTasksRes.success ? pendingTasksRes.data || [] : [];
+  const taskItems = taskItemsRes.success ? taskItemsRes.data || [] : [];
 
   return (
     <div className="container mx-auto py-8 space-y-8">
@@ -18,9 +21,10 @@ export default async function AdminTasksPage() {
       </div>
 
       <Tabs defaultValue="review">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger id="tab-trigger-review" value="review">Review Pending Tasks ({pendingTasks.length})</TabsTrigger>
           <TabsTrigger id="tab-trigger-definitions" value="definitions">Task Definitions</TabsTrigger>
+          <TabsTrigger id="tab-trigger-items" value="items">Task Items ({taskItems.length})</TabsTrigger>
         </TabsList>
         
         <TabsContent value="review">
@@ -49,6 +53,20 @@ export default async function AdminTasksPage() {
               <TaskDefinitionList initialDefinitions={definitions} />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="items">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Marketplace Items</CardTitle>
+                    <CardDescription>
+                        Post specific one-time jobs for employees to claim.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <TaskItemList initialItems={taskItems as any} definitions={definitions} />
+                </CardContent>
+            </Card>
         </TabsContent>
       </Tabs>
     </div>
