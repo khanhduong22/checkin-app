@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isLate } from "@/lib/utils";
 
 export async function calculateStreak(userId: string) {
   // Get all checkins of user, sorted desc
@@ -35,8 +36,8 @@ export async function calculateStreak(userId: string) {
   let loopDate = new Date(today);
 
   if (todayCheckin) {
-    const hour = todayCheckin.timestamp.getHours() + todayCheckin.timestamp.getMinutes() / 60;
-    if (hour <= 8.5) {
+    // Check if late (8:30 + buffer)
+    if (!isLate(todayCheckin.timestamp, 8.5)) {
       streak++; // Today counts!
     } else {
       return 0; // Today late -> Streak died immediately :(
@@ -66,8 +67,7 @@ export async function calculateStreak(userId: string) {
     const checkin = checkins.find((c: any) => isSameDate(c.timestamp, loopDate));
 
     if (checkin) {
-      const hour = checkin.timestamp.getHours() + checkin.timestamp.getMinutes() / 60;
-      if (hour <= 8.5) {
+      if (!isLate(checkin.timestamp, 8.5)) {
         streak++;
       } else {
         break; // Late! Streak broken.

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isLate as checkIsLate } from "@/lib/utils";
 
 export async function getUserMonthlyStats(userId: string, targetDate: Date = new Date()) {
   const startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
@@ -165,10 +166,8 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
 
     // Lateness Check
     if (shift && firstCheckIn) {
-      // Simple check: if checkin > shift start + 1 minute grace period
-      // Ensure we compare time part correctly or full date if shift is full date
-      // Grace period: 1 minute (60 * 1000 ms)
-      if (firstCheckIn.getTime() > shift.start.getTime() + 60000) {
+      // Simple check: if checkin > shift start + grace period
+      if (checkIsLate(firstCheckIn, shift.start)) {
         isLate = true;
       }
     }

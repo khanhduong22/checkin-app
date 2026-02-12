@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isLate, isEarlyLeave } from "@/lib/utils";
 
 export async function getMonthlyReport(month: number, year: number) {
   const startDate = new Date(year, month - 1, 1);
@@ -68,8 +69,8 @@ export async function getMonthlyReport(month: number, year: number) {
         shouldCheck = true;
       }
 
-      // Check Late (5 mins grace)
-      if (shouldCheck && timeVal > expectedStart + (5 / 60)) {
+      // Check Late
+      if (shouldCheck && isLate(timeVal, expectedStart)) {
         stats.lateCount++;
         const lateMins = Math.floor((timeVal - expectedStart) * 60);
         stats.totalLateMinutes += lateMins;
@@ -92,8 +93,8 @@ export async function getMonthlyReport(month: number, year: number) {
         shouldCheck = true;
       }
 
-      // Check Early Leave (5 mins grace)
-      if (shouldCheck && timeVal < expectedEnd - (5 / 60)) {
+      // Check Early Leave
+      if (shouldCheck && isEarlyLeave(timeVal, expectedEnd)) {
         stats.earlyLeaveCount++;
       }
     }

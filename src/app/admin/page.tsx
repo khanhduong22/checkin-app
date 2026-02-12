@@ -8,6 +8,7 @@ import Link from "next/link";
 import ChangelogPopup from "@/components/admin/ChangelogPopup";
 import { LATEST_VERSION, CHANGELOGS } from "@/lib/changelogs";
 import { calculatePayroll } from "@/lib/payroll";
+import { GRACE_PERIOD_MINUTES } from "@/lib/utils";
 
 export const dynamic = 'force-dynamic';
 
@@ -79,7 +80,8 @@ export default async function AdminDashboard() {
         const diffMs = new Date(checkin.timestamp).getTime() - targetTime;
         const diffMins = Math.round(diffMs / 60000);
 
-        if (Math.abs(diffMins) < 1) return null; // Ignore < 1 min
+        // Ignore if within grace period
+        if (Math.abs(diffMins) <= GRACE_PERIOD_MINUTES) return null;
 
         if (checkin.type === 'checkin') {
             if (diffMins > 0) return <span className="text-red-500 font-bold ml-1">(Trễ {diffMins}p)</span>;
