@@ -16,11 +16,12 @@ export default function AdminNavLinks() {
         { href: "/admin/announcements", label: "📢 Thông báo" },
         { href: "/admin/payroll", label: "💰 Bảng Lương" },
         { href: "/admin/lucky-wheel", label: "🎰 Vòng quay" },
+        { href: "/admin/tasks", label: "📝 Quản lý WFH" },
         { href: "/admin/settings", label: "⚙️ Cấu hình (IP)" },
     ];
 
     return (
-        <nav className="grid items-start px-4 text-sm font-medium gap-1">
+        <nav id="admin-nav-links" className="grid items-start px-4 text-sm font-medium gap-1">
             {links.map((link) => (
                 <Link
                     key={link.href}

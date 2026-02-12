@@ -20,7 +20,7 @@ export default function IPManager({ ips }: { ips: any[] }) {
     };
 
     return (
-        <Card>
+        <Card id="ip-manager-card">
             <CardHeader>
                 <CardTitle>Cấu hình IP Văn Phòng</CardTitle>
                 <CardDescription>Chỉ những IP này mới được phép Check-in</CardDescription>

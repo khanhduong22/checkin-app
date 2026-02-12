@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 moment.locale('vi');
 const localizer = momentLocalizer(moment)
-const DnDCalendar = withDragAndDrop(Calendar)
+const DnDCalendar = withDragAndDrop(Calendar as any) as any
 
 interface CalendarEvent {
     id: number;
@@ -105,7 +105,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
             setTargetUserId(userId); // Reset to current user (self) or keep previous? Reset is safer.
             setModalOpen(true);
         },
-        [events]
+        [userId]
     )
 
     const handleConfirmRegister = async () => {
@@ -232,7 +232,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
     )
 
     return (
-        <div className="h-[750px] bg-white p-4 rounded-xl shadow-sm border flex flex-col">
+        <div id="schedule-calendar-container" className="h-[750px] bg-white p-4 rounded-xl shadow-sm border flex flex-col">
             <div className="flex items-center justify-end space-x-2 mb-2 px-2 pb-2 border-b">
                 <Switch 
                     id="hide-full-time" 

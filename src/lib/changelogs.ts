@@ -1,6 +1,17 @@
 
 export const CHANGELOGS = [
   {
+    version: '1.7.0',
+    date: '12/02/2026',
+    title: 'Work From Home & Task Management',
+    tags: ['WFH', 'Feature', 'Income'],
+    changes: [
+      '🏠 **Work From Home**: Tính năng nhận việc làm thêm tại nhà (WFH) chính thức ra mắt. Anh em có thể nhận task và kiếm thêm thu nhập ngoài giờ hành chính.',
+      '📝 **Task Management**: Hệ thống quản lý đầu việc, nộp báo cáo và duyệt tự động. Có cơ chế thưởng/phạt rõ ràng.',
+      '⚠️ **Quy định Chặt chẽ**: Chỉ được Start task khi đã Check-out khỏi văn phòng. Quá hạn 1 tuần sẽ bị penalty 50%.'
+    ]
+  },
+  {
     version: '1.5.0',
     date: '04/02/2026',
     title: 'Tối ưu Dashboard & Chấm công',
@@ -10,6 +21,16 @@ export const CHANGELOGS = [
       '💰 **Dự phóng Lương**: Hiển thị tổng lương tạm tính kèm con số "Dự kiến cuối tháng" để Sếp dễ cân đối ngân sách.',
       '🛠️ **Chấm công hộ v2.0**: Admin chấm hộ sẽ hiện rõ Note trong bảng công. Fix lỗi tính "Đi muộn" cho nhân viên Part-time (đã trừ 5p đi đường).',
       '🔔 **UI/UX**: Thay thế các cảnh báo (Alert) cũ kỹ bằng Popup thông báo (Toast) hiện đại, mượt mà.'
+    ]
+  },
+  {
+    version: '1.6.0',
+    date: '12/02/2026',
+    title: 'Hướng dẫn sử dụng & Trải nghiệm mới',
+    tags: ['Tour', 'UX', 'Admin'],
+    changes: [
+      '🧭 **Guided Tour**: Hệ thống hướng dẫn sử dụng tương tác (Interactive Tour) cho toàn bộ trang Admin. Giúp người quản lý mới làm quen hệ thống chỉ trong 1 nốt nhạc.',
+      '✨ **Trải nghiệm mượt mà**: Tối ưu UI/UX, thêm các chỉ dẫn trực quan tại các khu vực quan trọng (Bảng lương, Cấu hình, Duyệt đơn...).'
     ]
   },
   {
@@ -72,4 +93,4 @@ export const CHANGELOGS = [
   }
 ];
 
-export const LATEST_VERSION = CHANGELOGS[0].version;
+export const LATEST_VERSION = '1.7.0';

@@ -3,3 +3,4 @@ IMPORTANT:
 1. NEVER run `prisma db push` with `--force-reset` or `--accept-data-loss` without explicit user permission.
 2. If a schema change requires a reset, STOP and ask the user.
 3. Always favor safe migrations (`prisma migrate dev`) or careful adjustments (optional fields) over destructive actions.
+4. When implementing a new feature, you must create or update the guided tour (using react-joyride) and add an entry to the changelog.

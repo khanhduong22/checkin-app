@@ -100,7 +100,7 @@ export default async function AdminDashboard() {
             </div>
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="bg-emerald-50 border-emerald-100">
+                <Card id="dashboard-salary-card" className="bg-emerald-50 border-emerald-100">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Lương Tạm Tính T{now.getMonth() + 1}</CardTitle>
                         <div className="h-4 w-4 text-emerald-600">💰</div>
@@ -116,7 +116,7 @@ export default async function AdminDashboard() {
                 </Card>
 
                 <Link href="/admin/requests" className="block">
-                    <Card className="hover:bg-orange-100/50 transition-colors border-orange-200 bg-orange-50 h-full">
+                    <Card id="dashboard-requests-card" className="hover:bg-orange-100/50 transition-colors border-orange-200 bg-orange-50 h-full">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-orange-800">Yêu cầu cần duyệt</CardTitle>
                             <div className="h-4 w-4 text-orange-600">📩</div>
@@ -148,7 +148,7 @@ export default async function AdminDashboard() {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 {/* Check-in Activity */}
-                <Card className="col-span-4">
+                <Card id="dashboard-checkin-activity" className="col-span-4">
                     <CardHeader>
                         <CardTitle>Hoạt động chấm công</CardTitle>
                     </CardHeader>
@@ -192,7 +192,7 @@ export default async function AdminDashboard() {
                 </Card>
 
                 {/* Today's Schedule */}
-                <Card className="col-span-3">
+                <Card id="dashboard-today-schedule" className="col-span-3">
                     <CardHeader>
                         <CardTitle>Lịch làm việc hôm nay</CardTitle>
                     </CardHeader>

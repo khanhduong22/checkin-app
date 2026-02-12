@@ -38,7 +38,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: { mo
 
              {/* 📊 SUMMARY STATS */}
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-emerald-50 border-emerald-200">
+                <Card id="report-summary-stats" className="bg-emerald-50 border-emerald-200">
                      <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-emerald-600">Tổng Chi Lương (Tạm tính)</CardTitle></CardHeader>
                      <CardContent><div className="text-2xl font-bold text-emerald-700">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalPayrollCost)}</div></CardContent>
                 </Card>
@@ -54,7 +54,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: { mo
             
             {/* 🏆 HERO SECTION: HALL OF FAME */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-orange-200">
+                <Card id="report-top-hardworking" className="bg-gradient-to-br from-yellow-50 to-orange-50 border-orange-200">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-orange-700">
                             🐝 Top Chăm Chỉ (Giờ làm)
@@ -121,7 +121,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: { mo
             </div>
 
             {/* 🔥 SHAME SECTION: VIOLATIONS */}
-            <Card className="border-red-100 shadow-md">
+            <Card id="report-violations" className="border-red-100 shadow-md">
                  <CardHeader className="border-b bg-red-50/30">
                     <CardTitle className="text-red-700 flex items-center gap-2">
                         🚨 Báo cáo Vi Phạm (Đi muộn / Về sớm)

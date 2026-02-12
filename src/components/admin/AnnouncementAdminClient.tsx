@@ -48,9 +48,9 @@ export default function AnnouncementAdminClient({ announcements }: { announcemen
 
     return (
         <div className="space-y-6">
-            <Button onClick={() => setIsOpen(true)}>📢 Đăng thông báo mới</Button>
+            <Button id="announcement-new-btn" onClick={() => setIsOpen(true)}>📢 Đăng thông báo mới</Button>
 
-            <div className="space-y-4">
+            <div id="announcement-list" className="space-y-4">
                 {announcements.map((a) => (
                     <Card key={a.id} className={a.active ? "border-l-4 border-l-blue-500" : "opacity-60 bg-gray-50"}>
                         <CardContent className="p-4 flex items-center justify-between">

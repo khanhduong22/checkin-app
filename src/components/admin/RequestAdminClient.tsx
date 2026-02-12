@@ -22,7 +22,7 @@ export default function RequestAdminClient({ requests }: { requests: any[] }) {
     };
 
     return (
-        <div className="space-y-4">
+        <div id="request-admin-list" className="space-y-4">
             {requests.length === 0 ? (
                 <div className="text-center italic text-muted-foreground">Không có yêu cầu nào.</div>
             ) : requests.map((r: any) => (

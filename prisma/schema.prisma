@@ -60,6 +60,7 @@ model User {
   stickyNotes       StickyNote[]
   achievements      UserAchievement[]
   shifts            WorkShift[]
+  tasks             UserTask[]
 }
 
 model WorkShift {
@@ -197,4 +198,45 @@ enum UserRole {
 enum EmploymentType {
   FULL_TIME
   PART_TIME
+}
+
+enum TaskStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model TaskDefinition {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  baseReward  Float      @default(0)
+  unit        String
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tasks       UserTask[]
+}
+
+model UserTask {
+  id             String         @id @default(cuid())
+  userId         String
+  taskDefId      String
+  unitPrice      Float
+  status         TaskStatus     @default(PENDING)
+  quantity       Int            @default(1)
+  evidenceLink   String?
+  note           String?
+  startedAt      DateTime       @default(now())
+  submittedAt    DateTime?
+  reviewedAt     DateTime?
+  reviewedBy     String?
+  finalAmount    Float?
+  adminNote      String?
+  bonusPenalty   Float          @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskDefinition TaskDefinition @relation(fields: [taskDefId], references: [id])
 }

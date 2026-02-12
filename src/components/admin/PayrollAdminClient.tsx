@@ -65,17 +65,18 @@ export default function PayrollAdminClient({ data }: { data: any[] }) {
         <div className="space-y-6">
             <div className="flex justify-between gap-4">
                 <Input 
+                    id="payroll-search-input"
                     placeholder="Tìm kiếm nhân viên..." 
                     className="max-w-sm bg-white" 
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                 />
-                <Button variant="outline" onClick={handleDownloadCSV} className="text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100">
+                <Button id="payroll-export-btn" variant="outline" onClick={handleDownloadCSV} className="text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100">
                     <FileText className="h-4 w-4 mr-2" />
                     Xuất Excel
                 </Button>
             </div>
-            <div className="rounded-md border bg-white">
+            <div id="payroll-table-container" className="rounded-md border bg-white">
                 <div className="relative w-full overflow-auto">
                     <table className="w-full caption-bottom text-sm text-left">
                         <thead className="[&_tr]:border-b">

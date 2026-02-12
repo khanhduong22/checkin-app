@@ -193,7 +193,7 @@ function UserItem({ user }: { user: any }) {
 
 export default function UserManager({ users }: { users: any[] }) {
     return (
-        <Card>
+        <Card id="user-manager-card">
             <CardHeader>
                 <CardTitle>Danh sách nhân viên</CardTitle>
                 <CardDescription>Quản lý quyền hạn và mức lương</CardDescription>

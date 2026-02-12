@@ -3,6 +3,7 @@ import AdminNavLinks from "@/components/admin/AdminNavLinks";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import AdminTour from "@/components/admin/AdminTour";
 
 export default function AdminLayout({
   children,
@@ -11,6 +12,7 @@ export default function AdminLayout({
 }) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+       <AdminTour />
        <AdminSidebar />
        <div className="lg:pl-[240px] flex flex-col min-h-screen">
           <header className="flex h-14 items-center gap-4 border-b bg-white dark:bg-gray-950 px-6 lg:h-[60px] sticky top-0 z-10 w-full">
@@ -30,7 +32,7 @@ export default function AdminLayout({
                       </div>
                   </SheetContent>
                </Sheet>
-               <h1 className="font-semibold text-lg">Quản lý chấm công</h1>
+               <h1 id="admin-header-title" className="font-semibold text-lg">Quản lý chấm công</h1>
           </header>
           <main className="flex-1 p-6">
               {children}

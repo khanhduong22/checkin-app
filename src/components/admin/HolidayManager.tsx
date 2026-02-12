@@ -93,7 +93,7 @@ export default function HolidayManager() {
     };
 
     return (
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
+        <div id="holiday-manager-card" className="rounded-xl border bg-card text-card-foreground shadow-sm">
             <div className="flex flex-col space-y-1.5 p-6 border-b">
                 <h3 className="text-xl font-semibold leading-none tracking-tight flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-emerald-600" />

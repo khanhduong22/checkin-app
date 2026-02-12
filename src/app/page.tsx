@@ -6,6 +6,7 @@ import CheckInButtons from "@/components/CheckInButtons"
 import { Button } from "@/components/ui/button"
 import GachaButton from "@/components/GachaButton";
 import ShopPetWidget from "@/components/ShopPetWidget";
+import HomeTour from "@/components/home/HomeTour";
 
 export const dynamic = 'force-dynamic';
 
@@ -122,6 +123,7 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
+        <HomeTour key="tour-v1.7.0" />
         
 
         {isViewAsMode && (
@@ -137,7 +139,9 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
         )}
 
         {/* Announcements */}
-        <AnnouncementBar announcements={announcements} />
+        <div id="home-announcement">
+            <AnnouncementBar announcements={announcements} />
+        </div>
 
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm relative overflow-hidden">
             {/* Streak Badge */}
@@ -157,7 +161,7 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
             <div className={`p-6 pb-4 flex items-center justify-between ${streak > 0 || swapCount > 0 ? 'mt-6' : ''}`}>
                 <div>
                      <h1 className="text-xl font-bold tracking-tight">Chấm Công</h1>
-                     <p className="text-sm text-muted-foreground flex items-center gap-1">
+                     <p id="home-user-info" className="text-sm text-muted-foreground flex items-center gap-1">
                          Xin chào, {user?.name}
                          {user?.achievements?.map((a: any) => {
                              if(a.code === 'LUCKY_STAR') return <span key={a.id} title="Ngôi Sao May Mắn">🌟</span>;
@@ -192,13 +196,15 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
                 )}
 
                 {/* Privacy Stats */}
-                <PrivacyStats 
-                    totalHours={stats.totalHours} 
-                    totalSalary={stats.totalSalary} 
-                    daysWorked={stats.daysWorked} 
-                    baseSalary={stats.baseSalary}
-                    totalAdjustments={stats.totalAdjustments}
-                />
+                <div id="home-privacy-stats">
+                    <PrivacyStats 
+                        totalHours={stats.totalHours} 
+                        totalSalary={stats.totalSalary} 
+                        daysWorked={stats.daysWorked} 
+                        baseSalary={stats.baseSalary}
+                        totalAdjustments={stats.totalAdjustments}
+                    />
+                </div>
 
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -206,27 +212,30 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
                     </div>
                 </div>
 
-                <CheckInButtons 
-                    userId={user?.id!} 
-                    todayCheckins={user?.checkins || []} 
-                    todayShift={todayShift ? {
-                        ...todayShift,
-                        start: todayShift.start.toISOString(),
-                        end: todayShift.end.toISOString()
-                    } : null}
-                />
+                <div id="home-checkin-buttons">
+                    <CheckInButtons 
+                        userId={user?.id!} 
+                        todayCheckins={user?.checkins || []} 
+                        todayShift={todayShift ? {
+                            ...todayShift,
+                            start: todayShift.start.toISOString(),
+                            end: todayShift.end.toISOString()
+                        } : null}
+                    />
+                </div>
                 
                 {/* Gacha Game */}
-                <div className="pt-2">
+                <div id="home-gacha" className="pt-2">
                     <GachaButton userId={user?.id!} hasCheckedIn={!!hasCheckedInToday} isAdmin={user?.role === 'ADMIN'} />
                 </div>
 
                 {/* Sticky Notes Widget */}
-                <div className="pt-2">
+                <div id="home-sticky" className="pt-2">
                     <StickyBoard notes={serializedNotes} currentUser={session?.user} />
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div id="home-nav">
+                    <div className="flex gap-3 pt-2">
                      <a href="/history" className="flex-1">
                         <Button variant="outline" className="w-full text-xs">
                             📜 Lịch sử
@@ -250,6 +259,12 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
                             📝 Xin giải trình
                         </Button>
                     </a>
+                    <a href="/tasks" className="block w-full col-span-2">
+                        <Button variant="default" className="w-full text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
+                            💼 Nhận Job WFH
+                        </Button>
+                    </a>
+                    </div>
                 </div>
                 
                 {/* Admin Link... */}

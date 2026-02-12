@@ -46,7 +46,7 @@ export default async function LuckyWheelPage() {
             {/* 🎁 REWARD AUDIT SECTION */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  {/* Available Loot */}
-                 <Card className="md:col-span-2 border-emerald-200 bg-emerald-50/30">
+                 <Card id="lucky-wheel-available" className="md:col-span-2 border-emerald-200 bg-emerald-50/30">
                     <CardHeader>
                         <CardTitle className="text-emerald-700 flex items-center gap-2">🎁 Kho Quà Đang Có Sẵn</CardTitle>
                         {/* <CardDescription>Các phần quà và danh hiệu chưa có chủ</CardDescription> */}
@@ -68,7 +68,7 @@ export default async function LuckyWheelPage() {
                  </Card>
 
                  {/* Out of stock / Claimed */}
-                 <Card className="border-gray-200 bg-gray-50/50">
+                 <Card id="lucky-wheel-out-of-stock" className="border-gray-200 bg-gray-50/50">
                     <CardHeader>
                         <CardTitle className="text-gray-600 flex items-center gap-2">🚫 Đã Hết / Đã Trao</CardTitle>
                         {/* <CardDescription>Các phần quà đã được nhận hết</CardDescription> */}
@@ -89,7 +89,7 @@ export default async function LuckyWheelPage() {
                  </Card>
             </div>
 
-            <Card>
+            <Card id="lucky-wheel-prizes-list">
                 <CardHeader>
                     <CardTitle>Danh sách giải thưởng</CardTitle>
                 </CardHeader>
