@@ -268,3 +268,20 @@ export async function adminManualCheckIn(userId: string, date: string, checkInTi
     return { success: false, message: "Lỗi hệ thống" };
   }
 }
+
+export async function updateUserDates(userId: string, birthday: Date | null, startDate: Date | null) {
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        birthday,
+        startDate
+      }
+    });
+    revalidatePath('/admin');
+    revalidatePath('/');
+    return { success: true, message: 'Đã cập nhật ngày đặc biệt' };
+  } catch (e) {
+    return { success: false, message: 'Lỗi cập nhật' };
+  }
+}

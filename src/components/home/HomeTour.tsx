@@ -11,6 +11,11 @@ const TOUR_STEPS: Step[] = [
         content: <div className="text-center font-bold">👋 Chào mừng bạn đến với Check-in System!</div>,
     },
     {
+        target: "#home-special-days",
+        content: "🎉 Special Days: Nơi hiển thị lời chúc Sinh nhật & Kỷ niệm làm việc. Confetti sẽ bung lụa vào ngày đặc biệt của bạn!",
+        placement: "bottom",
+    },
+    {
         target: "#home-announcement",
         content: "Cập nhật các thông báo mới nhất từ công ty. Đừng bỏ lỡ nhé!",
         placement: "bottom",
@@ -66,14 +71,14 @@ export default function HomeTour() {
     const [run, setRun] = useState(false);
 
     useEffect(() => {
-        const hasSeen = localStorage.getItem("tour_seen:/home:v1.7.0");
+        const hasSeen = localStorage.getItem("tour_seen:/home:v1.8.0");
         if (!hasSeen) {
             setRun(true);
         }
     }, []);
 
     const handleFinish = () => {
-        localStorage.setItem("tour_seen:/home:v1.7.0", "true");
+        localStorage.setItem("tour_seen:/home:v1.8.0", "true");
         setRun(false);
     };
 

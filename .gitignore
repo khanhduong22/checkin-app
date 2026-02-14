@@ -39,3 +39,6 @@ next-env.d.ts
 checkins.json
 employees.json
 backups/
+
+# Antigravity Agent
+.agent

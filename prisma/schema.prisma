@@ -51,6 +51,8 @@ model User {
   hourlyRate        Float               @default(0)
   employmentType    EmploymentType      @default(PART_TIME)
   monthlySalary     Float               @default(6000000)
+  birthday          DateTime?
+  startDate         DateTime?
   accounts          Account[]
   checkins          CheckIn[]
   luckyWheelHistory LuckyWheelHistory[]
@@ -62,6 +64,7 @@ model User {
   shifts            WorkShift[]
   tasks             UserTask[]
   assignedTasks     TaskItem[]
+  payslips          Payslip[]
 }
 
 model WorkShift {
@@ -259,4 +262,32 @@ model UserTask {
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   taskDefinition TaskDefinition @relation(fields: [taskDefId], references: [id])
   taskItem       TaskItem?      @relation(fields: [taskItemId], references: [id])
+}
+
+model PayrollPeriod {
+  id           String   @id @default(cuid())
+  month        Int
+  year         Int
+  status       String   @default("OPEN") // OPEN, CLOSED, LOCKED
+  bonusPercent Float            @default(0) // Global bonus for the month
+  bonusTargets EmploymentType[] @default([PART_TIME])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([month, year])
+}
+
+model Payslip {
+  id             String   @id @default(cuid())
+  userId         String
+  month          Int
+  year           Int
+  content        Json     // Snapshot of all stats (hours, rate, calculations)
+  netSalary      Float    // Final amount for easy querying
+  status         String   @default("PENDING") // PAID, PENDING
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  user           User     @relation(fields: [userId], references: [id])
+  @@unique([userId, month, year])
 }

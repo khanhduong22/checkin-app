@@ -110,6 +110,65 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
     }
   }
 
+  // --- Early Leave Logic ---
+  let extraMessage = "";
+  if (type === 'checkout') {
+    // 1. Find Shift for today
+    // distinct shift for user on this day?
+    // We need to be careful with timezone. "today" in VN time.
+    // But simplifying: compare with shift that encompasses "now" or is "today".
+
+    const now = new Date();
+    // Simple lookup: Shift that starts today
+    // We can use the same logic as in stats? 
+    // Or just look for a shift where start <= now <= end? Or start and end are same day.
+    // Let's look for shift starting within last 24h?
+
+    // Best approach: Find shift where start matches today's date in VN time.
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const todayShift = await prisma.workShift.findFirst({
+      where: {
+        userId,
+        start: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
+
+    if (todayShift) {
+      const shiftEnd = new Date(todayShift.end);
+      // Use a threshold? e.g. 15 mins.
+      // If checkout is earlier than shiftEnd - 15 mins
+      const threshold = 15 * 60 * 1000;
+      if (now.getTime() < shiftEnd.getTime() - threshold) {
+        // It is Early Leave
+        if (note && note.trim().length > 0) {
+          // Create Request
+          await prisma.request.create({
+            data: {
+              userId,
+              type: 'EARLY_LEAVE',
+              date: now,
+              reason: note,
+              status: 'PENDING'
+            }
+          });
+          extraMessage = " (Đã tạo yêu cầu về sớm, chờ duyệt)";
+        } else {
+          // Warn user? Or just let them proceed?
+          // Current flow allows proceeding, but stats will count it as not fully paid (if we implement stats change).
+          // We just add a message.
+          extraMessage = " (Về sớm không lý do)";
+        }
+      }
+    }
+  }
+
   try {
     await prisma.checkIn.create({
       data: {
@@ -141,7 +200,7 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
       success: true,
       message: type === 'checkin'
         ? `✅ Check-in thành công lúc ${timeStr}`
-        : `👋 Check-out thành công lúc ${timeStr}`
+        : `👋 Check-out thành công lúc ${timeStr}${extraMessage}`
     };
   } catch (e) {
     console.error(e);

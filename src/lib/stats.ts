@@ -41,7 +41,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   const allRequests = await prisma.request.findMany({
     where: {
       userId: userId,
-      type: { in: ['LEAVE', 'WFH'] },
+      type: { in: ['LEAVE', 'WFH', 'EARLY_LEAVE'] },
       status: 'APPROVED',
       date: { gte: startDate, lte: endDate }
     }
@@ -49,6 +49,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
 
   const leaves = allRequests.filter((r: any) => r.type === 'LEAVE');
   const wfhRequests = allRequests.filter((r: any) => r.type === 'WFH');
+  const earlyLeaveRequests = allRequests.filter((r: any) => r.type === 'EARLY_LEAVE');
 
   // 5. Fetch Holidays
   const holidays = await prisma.holiday.findMany({
@@ -114,6 +115,12 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     daysWorked.add(d); // Count WFH as worked day
   });
 
+  const earlyLeaveMap = new Set();
+  earlyLeaveRequests.forEach((r: any) => {
+    const d = r.date.toISOString().split('T')[0];
+    earlyLeaveMap.add(d);
+  });
+
   // Compute Daily Details (Hours Worked)
   // Use Set of all relevant dates (Checkins + WFH)
   const allDates = new Set([...Object.keys(checkinsByDay), ...Array.from(wfhMap.keys())]);
@@ -154,7 +161,12 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
             // Logic: Cut off early/late based on shift
             if (startCalc < shiftStart) startCalc = shiftStart;
             if (endCalc < shiftEnd) {
-              if (event.note && event.note.trim().length > 0) endCalc = shiftEnd;
+              const currentDateStr = event.timestamp.toISOString().split('T')[0];
+              // OLD: if (event.note && event.note.trim().length > 0) endCalc = shiftEnd;
+              // NEW: Check if approved EARLY_LEAVE exists
+              if (earlyLeaveMap.has(currentDateStr)) {
+                endCalc = shiftEnd;
+              }
             }
           }
 

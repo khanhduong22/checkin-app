@@ -65,6 +65,10 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
   const AnnouncementBar = (await import("@/components/AnnouncementBar")).default;
   const StickyBoard = (await import("@/components/StickyBoard")).default;
   const PrivacyStats = (await import("@/components/PrivacyStats")).default;
+  const SpecialDaysWidget = (await import("@/components/home/SpecialDaysWidget")).default;
+
+  const { getSpecialDayUsers } = await import("@/lib/special-days");
+  const specialUsers = await getSpecialDayUsers();
 
   const notes = await prisma.stickyNote.findMany({
       orderBy: { createdAt: 'desc' },
@@ -124,7 +128,7 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
       <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
-        <HomeTour key="tour-v1.7.0" />
+        <HomeTour key="tour-v1.8.0" />
         <TourHelpButton />
         
 
@@ -139,6 +143,9 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
                 </a>
             </div>
         )}
+
+        {/* Special Days Widget */}
+        <SpecialDaysWidget specialUsers={specialUsers} currentUserId={user?.id} enableCalendar={false} />
 
         {/* Announcements */}
         <div id="home-announcement">

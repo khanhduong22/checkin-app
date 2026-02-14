@@ -13,10 +13,13 @@ function UserItem({ user }: { user: any }) {
     const [rate, setRate] = useState(user.hourlyRate.toString());
     const [monthlySalary, setMonthlySalary] = useState(user.monthlySalary?.toString() || '6000000');
     const [name, setName] = useState(user.name || '');
+    const [birthday, setBirthday] = useState(user.birthday ? new Date(user.birthday).toISOString().split('T')[0] : '');
+    const [startDate, setStartDate] = useState(user.startDate ? new Date(user.startDate).toISOString().split('T')[0] : '');
     const [loading, setLoading] = useState(false);
     
-    // Delete Confirmation State
+    // Dialog States
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showEditDatesDialog, setShowEditDatesDialog] = useState(false);
     const [deleteEmailInput, setDeleteEmailInput] = useState('');
 
     const handleUpdateRate = async () => {
@@ -61,6 +64,21 @@ function UserItem({ user }: { user: any }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleUpdateDates = async () => {
+        setLoading(true);
+        // @ts-ignore
+        const { updateUserDates } = await import('@/app/admin/actions');
+        
+        await updateUserDates(
+            user.id, 
+            birthday ? new Date(birthday) : null,
+            startDate ? new Date(startDate) : null
+        );
+        
+        setLoading(false);
+        setShowEditDatesDialog(false);
     };
 
     const handleDeleteUser = async () => {
@@ -146,6 +164,15 @@ function UserItem({ user }: { user: any }) {
                 
                 <Button 
                     variant="ghost" 
+                    size="icon"
+                    title="Chỉnh sửa ngày đặc biệt"
+                    onClick={() => setShowEditDatesDialog(true)}
+                >
+                    <span className="text-xl">📅</span>
+                </Button>
+                
+                <Button 
+                    variant="ghost" 
                     size="icon" 
                     className="text-red-500 hover:text-red-700 hover:bg-red-50"
                     onClick={() => setShowDeleteDialog(true)}
@@ -154,6 +181,49 @@ function UserItem({ user }: { user: any }) {
                 </Button>
             </div>
             </div>
+
+            <Dialog open={showEditDatesDialog} onOpenChange={setShowEditDatesDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cập nhật ngày đặc biệt</DialogTitle>
+                        <DialogDescription>
+                            Chỉnh sửa ngày sinh và ngày bắt đầu làm việc của <b>{user.name}</b>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="dob" className="text-right">
+                                Ngày sinh
+                            </Label>
+                            <Input
+                                id="dob"
+                                type="date"
+                                className="col-span-3"
+                                value={birthday}
+                                onChange={(e) => setBirthday(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="start-date" className="text-right">
+                                Ngày vào làm
+                            </Label>
+                            <Input
+                                id="start-date"
+                                type="date"
+                                className="col-span-3"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowEditDatesDialog(false)}>Hủy</Button>
+                        <Button onClick={handleUpdateDates} disabled={loading}>
+                            {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>

@@ -47,7 +47,7 @@ const TOUR_STEPS: Record<string, Step[]> = {
     {
       target: "#user-manager-card",
       content: "Danh sách toàn bộ nhân viên. Bạn có thể chỉnh sửa tên, mức lương, hoặc cấp quyền Admin tại đây.",
-      placement: "left",
+      placement: "top-start",
     },
   ],
   "/admin/schedule": [
@@ -122,6 +122,16 @@ const TOUR_STEPS: Record<string, Step[]> = {
       {
           target: "#payroll-search-input",
           content: "Tìm kiếm nhân viên để xem lương chi tiết.",
+          placement: "bottom"
+      },
+      {
+          target: ".w-[180px]", // Select trigger wrapper
+          content: "Chọn tháng để xem lịch sử lương hoặc chốt lương cho tháng hiện tại.",
+          placement: "bottom"
+      },
+      {
+          target: ".w-[150px]", // Bonus input wrapper
+          content: "Nhập % thưởng thêm và chọn đối tượng áp dụng (Part-time/Full-time).",
           placement: "bottom"
       },
       {

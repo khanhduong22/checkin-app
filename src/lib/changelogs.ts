@@ -1,6 +1,18 @@
 
 export const CHANGELOGS = [
   {
+    version: '1.8.0',
+    date: '14/02/2026',
+    title: 'Special Day Reminders & UI Update',
+    tags: ['Feature', 'Celebration', 'UI'],
+    changes: [
+      '🎂 **Happy Birthday**: Tự động nhận diện và chúc mừng sinh nhật nhân viên ngay trên Dashboard với hiệu ứng pháo hoa rực rỡ.',
+      '🏆 **Work Anniversary**: Kỷ niệm ngày làm việc (Work Anniversary) để tri ân sự đóng góp của nhân viên lâu năm.',
+      '📅 **Quản lý Ngày đặc biệt**: Admin có thể cập nhật Ngày sinh và Ngày bắt đầu làm việc trong hồ sơ nhân viên một cách dễ dàng.',
+      '✨ **Confetti Effect**: Hiệu ứng tung hoa chúc mừng sinh động, mang lại niềm vui bất ngờ cho nhân viên.'
+    ]
+  },
+  {
     version: '1.7.0',
     date: '12/02/2026',
     title: 'Work From Home & Task Management',
@@ -93,4 +105,4 @@ export const CHANGELOGS = [
   }
 ];
 
-export const LATEST_VERSION = '1.7.0';
+export const LATEST_VERSION = '1.8.0';

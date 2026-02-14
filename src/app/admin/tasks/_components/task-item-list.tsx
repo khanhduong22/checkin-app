@@ -24,18 +24,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { HeadlessCombobox } from "@/components/ui/headless-combobox";
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner";
 import { Plus, Trash2, XCircle, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 
 type TaskItemWithRelations = TaskItem & {
   taskDefinition: TaskDefinition;
@@ -136,7 +132,7 @@ export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Post New Task</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Post a Task Item</DialogTitle>
               <DialogDescription>Create a specific job for users to claim.</DialogDescription>
@@ -145,16 +141,22 @@ export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Task Type</Label>
                 <div className="col-span-3">
-                    <Select value={formData.taskDefId} onValueChange={(v) => setFormData({...formData, taskDefId: v})}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a task type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {definitions.map(d => (
-                                <SelectItem key={d.id} value={d.id}>{d.name} ({d.baseReward.toLocaleString()}đ)</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <HeadlessCombobox
+                        items={definitions}
+                        value={formData.taskDefId}
+                        onChange={(val) => setFormData({...formData, taskDefId: val})}
+                        valueKey="id"
+                        displayKey="name"
+                        placeholder="Select a task type"
+                        renderOption={(item) => (
+                            <span className="flex justify-between w-full">
+                                <span>{item.name}</span>
+                                <span className="text-muted-foreground text-xs ml-2">
+                                    {item.baseReward.toLocaleString()}đ
+                                </span>
+                            </span>
+                        )}
+                    />
                 </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">

@@ -9,6 +9,8 @@ import ChangelogPopup from "@/components/admin/ChangelogPopup";
 import { LATEST_VERSION, CHANGELOGS } from "@/lib/changelogs";
 import { calculatePayroll } from "@/lib/payroll";
 import { GRACE_PERIOD_MINUTES } from "@/lib/utils";
+import SpecialDaysWidget from "@/components/home/SpecialDaysWidget";
+import { getSpecialDayUsers } from "@/lib/special-days";
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +35,7 @@ export default async function AdminDashboard() {
     const todayEnd = new Date();
     todayEnd.setHours(23,59,59,999);
 
-    const [userCount, ipCount, checkinsToday, todayShifts, payroll, pendingRequests] = await Promise.all([
+    const [userCount, ipCount, checkinsToday, todayShifts, payroll, pendingRequests, specialUsers] = await Promise.all([
         prisma.user.count(),
         prisma.allowedIP.count(),
         prisma.checkIn.findMany({
@@ -49,7 +51,8 @@ export default async function AdminDashboard() {
             orderBy: { start: 'asc' }
         }),
         calculatePayroll(now.getMonth() + 1, now.getFullYear()),
-        prisma.request.count({ where: { status: 'PENDING' } })
+        prisma.request.count({ where: { status: 'PENDING' } }),
+        getSpecialDayUsers()
     ]);
 
     const totalPayroll = payroll.reduce((sum: number, p: any) => sum + p.totalSalary, 0);
@@ -99,6 +102,15 @@ export default async function AdminDashboard() {
                 <Link href="/admin/changelog">
                     <Button variant="outline" size="sm">📜 Lịch sử cập nhật</Button>
                 </Link>
+            </div>
+
+            {/* Special Days Widget */}
+            <div className="mb-6">
+                <SpecialDaysWidget 
+                    specialUsers={specialUsers} 
+                    enableCalendar={true} 
+                    currentUserId={session?.user?.email ? await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } }).then(u => u?.id) : undefined}
+                />
             </div>
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -8,21 +8,7 @@ import { Label } from "@/components/ui/label";
 import { submitRequest } from "@/app/actions/request";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
+import { HeadlessCombobox } from "@/components/ui/headless-combobox";
 
 const TYPES = [
     { value: 'LATE', label: 'Xin đi muộn' },
@@ -31,12 +17,11 @@ const TYPES = [
     { value: 'LEAVE', label: 'Xin nghỉ phép' },
     { value: 'WFH', label: 'Xin làm từ xa (WFH)' },
     { value: 'OTHER', label: 'Khác' }
-] as const;
+];
 
 export default function RequestListClient({ requests }: { requests: any[] }) {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
-    const [openType, setOpenType] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Form
@@ -107,51 +92,14 @@ export default function RequestListClient({ requests }: { requests: any[] }) {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Loại yêu cầu</Label>
-                                    <Popover open={openType} onOpenChange={setOpenType}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openType}
-                                                className="w-full justify-between font-normal"
-                                            >
-                                                {type
-                                                    ? TYPES.find((t) => t.value === type)?.label
-                                                    : "Chọn loại yêu cầu..."}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0" align="start">
-                                            <Command>
-                                                <CommandInput placeholder="Tìm loại yêu cầu..." />
-                                                <CommandList>
-                                                    <CommandEmpty>Không tìm thấy loại yêu cầu.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {TYPES.map((t) => (
-                                                            <CommandItem
-                                                                key={t.value}
-                                                                value={t.label}
-                                                                onSelect={(currentValue) => {
-                                                                    // We use label for filtering but set the value
-                                                                    const selected = TYPES.find(item => item.label === currentValue);
-                                                                    setType(selected ? selected.value : type);
-                                                                    setOpenType(false);
-                                                                }}
-                                                            >
-                                                                <Check
-                                                                    className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        type === t.value ? "opacity-100" : "opacity-0"
-                                                                    )}
-                                                                />
-                                                                {t.label}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
+                                    <HeadlessCombobox
+                                        items={TYPES}
+                                        value={type}
+                                        onChange={setType}
+                                        valueKey="value"
+                                        displayKey="label"
+                                        placeholder="Chọn loại yêu cầu..."
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Lý do chi tiết</Label>
