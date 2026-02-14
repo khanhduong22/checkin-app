@@ -34,7 +34,7 @@ export default async function LuckyWheelUserPage() {
                         VÒNG QUAY NHÂN PHẨM
                     </CardTitle>
                     <CardDescription className="text-lg mt-2">
-                        Thử vận may - Rinh quà "khủng" - Thay đổi danh hiệu
+                        Thử vận may - Rinh quà &quot;khủng&quot; - Thay đổi danh hiệu
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

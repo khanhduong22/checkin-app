@@ -43,8 +43,10 @@ export default function PayrollExplanationModal() {
                         <h4 className="font-semibold text-slate-900 border-b pb-2 pt-2">2. Quy tắc Check-out (Tan ca)</h4>
                          <ul className="list-disc pl-5 space-y-2 text-slate-700">
                             <li>
-                                <strong>Về sớm (Có lý do):</strong> Nếu bạn về sớm hơn giờ đăng ký nhưng đã nhập lý do hợp lệ, hệ thống vẫn tính 
-                                <span className="font-mono bg-emerald-100 text-emerald-800 px-1 rounded ml-1">Full Giờ (Như làm hết ca)</span>.
+                                <strong>Về sớm (Có lý do):</strong> Nếu bạn về sớm hơn giờ đăng ký và nhập lý do, hệ thống sẽ 
+                                <span className="font-mono bg-yellow-100 text-yellow-800 px-1 rounded ml-1">Tạo yêu cầu duyệt</span>. 
+                                Khi Admin duyệt, bạn sẽ được tính <span className="font-mono bg-emerald-100 text-emerald-800 px-1 rounded ml-1">Full Giờ</span>. 
+                                Nếu chưa duyệt, tính theo giờ thực tế.
                             </li>
                              <li>
                                 <strong>Về trễ (Overtime):</strong> Nếu bạn làm quá giờ đăng ký, hệ thống tính đến 

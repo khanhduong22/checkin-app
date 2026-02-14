@@ -42,14 +42,15 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     where: {
       userId: userId,
       type: { in: ['LEAVE', 'WFH', 'EARLY_LEAVE'] },
-      status: 'APPROVED',
+      // status: 'APPROVED', // We need to check PENDING for Early Leave
       date: { gte: startDate, lte: endDate }
     }
   });
 
-  const leaves = allRequests.filter((r: any) => r.type === 'LEAVE');
-  const wfhRequests = allRequests.filter((r: any) => r.type === 'WFH');
-  const earlyLeaveRequests = allRequests.filter((r: any) => r.type === 'EARLY_LEAVE');
+  const leaves = allRequests.filter((r: any) => r.type === 'LEAVE' && r.status === 'APPROVED');
+  const wfhRequests = allRequests.filter((r: any) => r.type === 'WFH' && r.status === 'APPROVED');
+  const earlyLeaveApprovedRequests = allRequests.filter((r: any) => r.type === 'EARLY_LEAVE' && r.status === 'APPROVED');
+  const earlyLeavePendingRequests = allRequests.filter((r: any) => r.type === 'EARLY_LEAVE' && r.status === 'PENDING');
 
   // 5. Fetch Holidays
   const holidays = await prisma.holiday.findMany({
@@ -115,10 +116,16 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     daysWorked.add(d); // Count WFH as worked day
   });
 
-  const earlyLeaveMap = new Set();
-  earlyLeaveRequests.forEach((r: any) => {
+  const earlyLeaveApprovedMap = new Set();
+  earlyLeaveApprovedRequests.forEach((r: any) => {
     const d = r.date.toISOString().split('T')[0];
-    earlyLeaveMap.add(d);
+    earlyLeaveApprovedMap.add(d);
+  });
+
+  const earlyLeavePendingMap = new Set();
+  earlyLeavePendingRequests.forEach((r: any) => {
+    const d = r.date.toISOString().split('T')[0];
+    earlyLeavePendingMap.add(d);
   });
 
   // Compute Daily Details (Hours Worked)
@@ -164,8 +171,12 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
               const currentDateStr = event.timestamp.toISOString().split('T')[0];
               // OLD: if (event.note && event.note.trim().length > 0) endCalc = shiftEnd;
               // NEW: Check if approved EARLY_LEAVE exists
-              if (earlyLeaveMap.has(currentDateStr)) {
+              if (earlyLeaveApprovedMap.has(currentDateStr)) {
                 endCalc = shiftEnd;
+              } else if (earlyLeavePendingMap.has(currentDateStr)) {
+                // Early Leave Pending: Calculation stays as actual time (cut short)
+                // But we add a note to errorMsg
+                errorMsg = errorMsg ? `${errorMsg}, Xin về sớm (Đang chờ duyệt)` : 'Xin về sớm (Đang chờ duyệt)';
               }
             }
           }

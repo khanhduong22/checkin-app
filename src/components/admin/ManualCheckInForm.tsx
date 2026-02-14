@@ -71,7 +71,7 @@ export default function ManualCheckInForm({ userId }: { userId: string }) {
                 </Button>
             </form>
             <p className="text-[10px] text-muted-foreground mt-2 italic">
-                * Lưu ý: Hệ thống sẽ ghi nhận "Admin chấm công hộ" vào ghi chú.
+                * Lưu ý: Hệ thống sẽ ghi nhận &quot;Admin chấm công hộ&quot; vào ghi chú.
             </p>
         </div>
     );

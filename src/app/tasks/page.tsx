@@ -6,6 +6,8 @@ import TasksTour from "./TasksTour";
 import TourHelpButton from "@/components/TourHelpButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+export const dynamic = 'force-dynamic';
+
 export default async function TasksPage() {
   const availableTasksRes = await getAvailableTasks();
   const availableItemsRes = await getAvailableTaskItems();

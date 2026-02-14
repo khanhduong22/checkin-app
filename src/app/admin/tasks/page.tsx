@@ -5,6 +5,8 @@ import { TaskItemList } from "./_components/task-item-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminTasksPage() {
   const definitionsRes = await getTaskDefinitions();
   const pendingTasksRes = await getPendingTasks();

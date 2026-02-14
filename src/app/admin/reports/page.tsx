@@ -101,7 +101,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: { mo
                                 <div key={u.user.id} className="flex items-center justify-between bg-white/60 p-3 rounded-lg shadow-sm">
                                     <div className="flex items-center gap-3">
                                         <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold overflow-hidden">
-                                           {u.user.image ? <img src={u.user.image} className="w-full h-full object-cover"/> : u.user.name?.[0]}
+                                           {u.user.image ? <img src={u.user.image} alt={u.user.name || 'User avatar'} className="w-full h-full object-cover"/> : u.user.name?.[0]}
                                         </div>
                                         <div className="font-medium">
                                             <Link href={`/admin/employees/${u.user.id}`} className="hover:underline">

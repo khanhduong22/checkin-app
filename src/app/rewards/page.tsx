@@ -97,7 +97,7 @@ export default function RewardsPage() {
                          </div>
                          
                          <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-muted-foreground italic border">
-                            * Lưu ý: Nếu có lý do chính đáng, vui lòng gửi Yêu cầu giải trình trong mục "Xin giải trình/Nghỉ phép" để được Admin xem xét xóa lỗi.
+                            * Lưu ý: Nếu có lý do chính đáng, vui lòng gửi Yêu cầu giải trình trong mục &quot;Xin giải trình/Nghỉ phép&quot; để được Admin xem xét xóa lỗi.
                          </div>
                     </CardContent>
                 </Card>

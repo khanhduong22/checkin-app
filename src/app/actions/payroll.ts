@@ -36,9 +36,8 @@ export async function closePayrollMonth(month: number, year: number, bonusPercen
     const stats = await getUserMonthlyStats(u.id, targetDate);
 
     // Calculate Final Net with Bonus
-    // Only apply if user's employmentType is in targets
     const shouldApplyBonus = targets.includes(u.employmentType);
-    const bonusAmount = shouldApplyBonus ? stats.totalSalary * (bonusPercent / 100) : 0;
+    const bonusAmount = shouldApplyBonus ? stats.baseSalary * (bonusPercent / 100) : 0;
     const finalNet = stats.totalSalary + bonusAmount;
 
     return {

@@ -43,7 +43,7 @@ export default function RequestAdminClient({ requests }: { requests: any[] }) {
                                     </span>
                                 </div>
                                 <div className="text-sm">
-                                    Lý do: <span className="italic">"{r.reason}"</span>
+                                    Lý do: <span className="italic">&quot;{r.reason}&quot;</span>
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                     Gửi lúc: {new Date(r.createdAt).toLocaleString('vi-VN')}

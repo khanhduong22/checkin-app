@@ -55,13 +55,18 @@ export default function PayrollAdminClient({
         ? filteredData.reduce((sum, u) => sum + (u.stats.finalNet || u.stats.totalSalary), 0)
         : filteredData.reduce((sum, u) => {
             const shouldApply = bonusTargets.includes(u.stats.employmentType);
-            return sum + (u.stats.totalSalary * (1 + (shouldApply ? bonusPercent : 0) / 100));
+            const bonus = shouldApply ? (u.stats.baseSalary * bonusPercent / 100) : 0;
+            return sum + u.stats.totalSalary + bonus;
         }, 0);
 
     const handleDownloadCSV = () => {
-        const headers = ['Tên', 'Email', 'Loại HĐ', 'Ngày công', 'Nghỉ phép', 'Giờ làm', 'Lương cứng', 'Thưởng/Phạt', 'Thực lãnh'];
+        const headers = ['Tên', 'Email', 'Loại HĐ', 'Ngày công', 'Nghỉ phép', 'Giờ làm', 'Lương cứng', 'Thưởng %', 'Thưởng/Phạt', 'Thực lãnh'];
         const rows = filteredData.map(u => {
-            const shouldApply = isClosed ? false : bonusTargets.includes(u.stats.employmentType); // For closed, logic is inside finalNet
+            const shouldApply = isClosed ? false : bonusTargets.includes(u.stats.employmentType);
+            const bonusAmount = isClosed 
+                ? (u.stats.bonusAmount || 0) 
+                : (shouldApply ? (u.stats.baseSalary * bonusPercent / 100) : 0);
+            
             return [
              `"${u.name}"`,
              u.email,
@@ -70,8 +75,9 @@ export default function PayrollAdminClient({
              u.stats.leaveCount || 0,
              u.stats.totalHours.toFixed(1),
              u.stats.baseSalary,
+             bonusAmount,
              u.stats.totalAdjustments,
-             isClosed ? (u.stats.finalNet || u.stats.totalSalary) : (u.stats.totalSalary * (1 + (shouldApply ? bonusPercent : 0)/100))
+             isClosed ? (u.stats.finalNet || u.stats.totalSalary) : (u.stats.totalSalary + bonusAmount)
         ]});
         const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
         const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -256,19 +262,25 @@ export default function PayrollAdminClient({
                     <table className="w-full caption-bottom text-sm text-left">
                         <thead className="[&_tr]:border-b">
                             <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[300px]">Nhân viên</th>
+                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[250px]">Nhân viên</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Giờ công</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[200px]">Thưởng / Phạt</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right w-[150px]">Lương + {bonusPercent}%</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right w-[180px]">Thao tác</th>
+                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right">Lương</th>
+                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right">Thưởng {bonusPercent}%</th>
+                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[150px]">Thưởng / Phạt</th>
+                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right w-[150px]">Tổng cộng</th>
+                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right w-[140px]">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
                             {filteredData.map((user) => {
                                 const shouldApply = !isClosed && bonusTargets.includes(user.stats.employmentType);
+                                const bonusAmount = isClosed
+                                    ? (user.stats.bonusAmount || 0)
+                                    : (shouldApply ? (user.stats.baseSalary * bonusPercent / 100) : 0);
+
                                 const finalSalary = isClosed 
                                     ? (user.stats.finalNet ?? user.stats.totalSalary)
-                                    : (user.stats.totalSalary * (1 + (shouldApply ? bonusPercent : 0)/100));
+                                    : (user.stats.totalSalary + bonusAmount);
 
                                 return (
                                 <tr key={user.id} className="border-b transition-colors hover:bg-muted/50">
@@ -301,6 +313,12 @@ export default function PayrollAdminClient({
                                         ) : (
                                             <span className="font-bold text-sm">{user.stats.totalHours.toFixed(1)}h</span>
                                         )}
+                                    </td>
+                                    <td className="p-4 align-middle text-right font-medium text-gray-700">
+                                        {f(user.stats.baseSalary)}
+                                    </td>
+                                    <td className="p-4 align-middle text-right font-medium text-blue-600">
+                                        {bonusAmount > 0 ? "+" : ""}{f(bonusAmount)}
                                     </td>
                                     <td className="p-4 align-middle">
                                         <div className="flex flex-col gap-1">
@@ -343,8 +361,8 @@ export default function PayrollAdminClient({
                         </tbody>
                         <tfoot className="bg-muted font-bold text-sm">
                             <tr>
-                                <td colSpan={3} className="p-4 text-right uppercase">Tổng cộng ({filteredData.length} nhân viên):</td>
-                                <td className="p-4 text-emerald-600 font-bold text-lg">
+                                <td colSpan={5} className="p-4 text-right uppercase">Tổng cộng ({filteredData.length} nhân viên):</td>
+                                <td className="p-4 text-emerald-600 font-bold text-lg text-right">
                                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalWithBonus)}
                                 </td>
                                 <td></td>
