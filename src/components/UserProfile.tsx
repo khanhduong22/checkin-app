@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { signOut } from "next-auth/react"
+import Image from "next/image";
 
 export default function UserProfile({ user, role }: { user: any, role?: string }) {
   return (
@@ -9,7 +10,13 @@ export default function UserProfile({ user, role }: { user: any, role?: string }
       <div className="flex items-center gap-4">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
            {user.image ? (
-                <img src={user.image} alt={user.name} className="h-full w-full rounded-full object-cover" />
+                <Image
+        src={user?.image || "/default-avatar.png"}
+        alt={user?.name || "User"}
+        width={32}
+        height={32}
+        className="h-8 w-8 rounded-full border"
+      />
             ) : (
                 user.name?.charAt(0).toUpperCase()
             )}

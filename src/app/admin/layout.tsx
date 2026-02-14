@@ -5,12 +5,22 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import AdminTour from "@/components/admin/AdminTour";
 import TourHelpButton from "@/components/TourHelpButton";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await getServerSession(authOptions);
+  
+  // @ts-ignore
+  if (!session || session.user?.role !== 'ADMIN') {
+    redirect('/');
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
        <AdminTour />

@@ -1,6 +1,8 @@
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma"
 import CheckInButtons from "@/components/CheckInButtons"
 import { Button } from "@/components/ui/button"
@@ -181,7 +183,13 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
                 </div>
                  {/* LOGO REPLACEMENT */}
                  <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-yellow-50 overflow-hidden shadow-sm border border-yellow-100">
-                    <img src="/logo.png" alt="LimArt" className="h-full w-full object-cover" />
+                 <Image 
+                    src="/logo.png" 
+                    alt="LimArt" 
+                    width={48} 
+                    height={48} 
+                    className="h-full w-full object-cover" 
+                 />
                 </div>
             </div>
             
@@ -275,8 +283,13 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
                     </a>
                     </div>
                 </div>
-                
-                {/* Admin Link... */}
+                <Image 
+                  src={session.user?.image || "/default-avatar.png"} 
+                  alt="Avatar" 
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 rounded-full border-2 border-primary/20" 
+                />        {/* Admin Link... */}
                 {user?.role === 'ADMIN' && (
                      <div className="pt-2 text-center border-t border-dashed mt-4">
                         <a href="/admin" className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 mt-4">

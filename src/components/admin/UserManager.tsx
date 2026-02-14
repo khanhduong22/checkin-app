@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Trash2 } from "lucide-react";
-import { useState } from 'react';
+import { useState, useEffect } from "react";
+import Image from "next/image";
 
 function UserItem({ user }: { user: any }) {
     const [rate, setRate] = useState(user.hourlyRate.toString());
@@ -101,7 +102,13 @@ function UserItem({ user }: { user: any }) {
                  <a href={`/admin/employees/${user.id}`} className="hover:opacity-80 transition-opacity" title="Xem chi tiết">
                      <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center font-bold text-secondary-foreground shrink-0">
                         {user.image ? (
-                            <img src={user.image} alt="" className="h-full w-full rounded-full" />
+                            <Image 
+                                src={user.image} 
+                                alt="" 
+                                width={40}
+                                height={40}
+                                className="h-full w-full rounded-full object-cover" 
+                            />
                         ) : user.name?.[0]}
                     </div>
                  </a>

@@ -1,6 +1,7 @@
 'use client';
 
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 const COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
@@ -134,7 +135,13 @@ export default function SpecialDaysWidget({
                     <div className="flex items-center gap-4 relative z-10">
                         <div className="h-14 w-14 rounded-full border-2 border-yellow-400 p-0.5 bg-white shadow-sm shrink-0">
                             {event.image ? (
-                                <img src={event.image} alt={event.name} className="w-full h-full rounded-full object-cover" />
+                                <Image 
+                                    src={event.image} 
+                                    alt={event.name} 
+                                    width={56}
+                                    height={56}
+                                    className="w-full h-full rounded-full object-cover" 
+                                />
                             ) : (
                                 <div className="w-full h-full rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold text-xl">
                                     {event.name?.[0]}

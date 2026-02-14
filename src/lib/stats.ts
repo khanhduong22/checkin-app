@@ -1,17 +1,51 @@
 import { prisma } from "@/lib/prisma";
 import { isLate as checkIsLate } from "@/lib/utils";
+import { User, EmploymentType, Request, WorkShift, CheckIn, Holiday, PayrollAdjustment } from "@prisma/client";
 
-export async function getUserMonthlyStats(userId: string, targetDate: Date = new Date()) {
-  const startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-  const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
+// --- Interfaces ---
 
-  // 1. Fetch User Info (Rate + Type)
-  const user = await prisma.user.findUnique({
+interface DailyDetail {
+  date: string;
+  checkIn: Date | null;
+  checkOut: Date | null;
+  hours: number;
+  salary: number;
+  isLate: boolean;
+  multiplier: number;
+  isValid: boolean;
+  shift: string;
+  error?: string;
+  checkInNote: string | null;
+  checkOutNote: string | null;
+}
+
+export interface MonthlyStats {
+  totalHours: number;
+  daysWorked: number;
+  checkinCount: number;
+  baseSalary: number;
+  totalAdjustments: number;
+  totalSalary: number;
+  projectedSalary: number;
+  dailyDetails: DailyDetail[];
+  adjustments: PayrollAdjustment[];
+  hourlyRate: number;
+  dynamicHourlyRate: number;
+  employmentType?: EmploymentType;
+  monthlySalary?: number;
+  standardDays: number;
+  dailySalary: number;
+  leaveCount: number;
+  deduction: number;
+  lateCount: number;
+}
+
+// --- Data Fetching Helpers ---
+
+async function fetchUserData(userId: string, startDate: Date, endDate: Date) {
+  return await prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      hourlyRate: true,
-      employmentType: true,
-      monthlySalary: true,
+    include: {
       adjustments: {
         where: {
           date: { gte: startDate, lte: endDate }
@@ -19,137 +53,137 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
       }
     }
   });
+}
 
-  // 2. Fetch Checkins
-  const checkins = await prisma.checkIn.findMany({
-    where: {
-      userId: userId,
-      timestamp: { gte: startDate, lte: endDate }
-    },
-    orderBy: { timestamp: 'asc' }
-  });
+async function fetchPeriodData(userId: string, startDate: Date, endDate: Date) {
+  const [checkins, shifts, allRequests, holidays] = await Promise.all([
+    prisma.checkIn.findMany({
+      where: {
+        userId: userId,
+        timestamp: { gte: startDate, lte: endDate }
+      },
+      orderBy: { timestamp: 'asc' }
+    }),
+    prisma.workShift.findMany({
+      where: {
+        userId: userId,
+        start: { gte: startDate, lte: endDate }
+      }
+    }),
+    prisma.request.findMany({
+      where: {
+        userId: userId,
+        type: { in: ['LEAVE', 'WFH', 'EARLY_LEAVE'] },
+        date: { gte: startDate, lte: endDate }
+      }
+    }),
+    prisma.holiday.findMany({
+      where: {
+        date: { gte: startDate, lte: endDate }
+      }
+    })
+  ]);
 
-  // 3. Fetch Shifts
-  const shifts = await prisma.workShift.findMany({
-    where: {
-      userId: userId,
-      start: { gte: startDate, lte: endDate }
-    }
-  });
+  return { checkins, shifts, allRequests, holidays };
+}
 
-  // 4. Fetch Approved Requests (Leave & WFH)
-  const allRequests = await prisma.request.findMany({
-    where: {
-      userId: userId,
-      type: { in: ['LEAVE', 'WFH', 'EARLY_LEAVE'] },
-      // status: 'APPROVED', // We need to check PENDING for Early Leave
-      date: { gte: startDate, lte: endDate }
-    }
-  });
+// --- Calculation Helpers ---
 
-  const leaves = allRequests.filter((r: any) => r.type === 'LEAVE' && r.status === 'APPROVED');
-  const wfhRequests = allRequests.filter((r: any) => r.type === 'WFH' && r.status === 'APPROVED');
-  const earlyLeaveApprovedRequests = allRequests.filter((r: any) => r.type === 'EARLY_LEAVE' && r.status === 'APPROVED');
-  const earlyLeavePendingRequests = allRequests.filter((r: any) => r.type === 'EARLY_LEAVE' && r.status === 'PENDING');
-
-  // 5. Fetch Holidays
-  const holidays = await prisma.holiday.findMany({
-    where: {
-      date: { gte: startDate, lte: endDate }
-    }
-  });
-
-  const holidayMap = new Map();
-  holidays.forEach((h: any) => {
-    const d = h.date.toISOString().split('T')[0];
-    holidayMap.set(d, h.multiplier);
-  });
-
-  // --- Processing ---
-
-  // 0. Pre-calculate Full-time Metrics
-  let standardDays = 0;
-  let dailySalary = 0;
-  let dynamicHourlyRate = user?.hourlyRate || 0;
-  let deduction = 0;
-
-  if (user?.employmentType === 'FULL_TIME') {
-    let sundays = 0;
-    const daysInMonth = endDate.getDate();
-    for (let d = 1; d <= daysInMonth; d++) {
-      const current = new Date(targetDate.getFullYear(), targetDate.getMonth(), d);
-      if (current.getDay() === 0) sundays++;
-    }
-    standardDays = daysInMonth - sundays;
-    dailySalary = (user.monthlySalary || 0) / (standardDays || 1);
-    // Dynamic Hourly = Daily / 8 hours
-    dynamicHourlyRate = dailySalary / 8;
-
-    // Deduction for Full Time (Leaves)
-    deduction = leaves.length * dailySalary;
+function calculateFullTimeMetrics(user: User, endDate: Date, targetDate: Date, leaveCount: number) {
+  if (user.employmentType !== 'FULL_TIME') {
+    return { standardDays: 0, dailySalary: 0, dynamicHourlyRate: user.hourlyRate, deduction: 0 };
   }
 
-  // Map shifts
-  const shiftsByDay: { [key: string]: any } = {};
-  shifts.forEach((s: any) => {
-    const d = s.start.toISOString().split('T')[0];
-    if (!shiftsByDay[d]) shiftsByDay[d] = s;
+  let sundays = 0;
+  const daysInMonth = endDate.getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const current = new Date(targetDate.getFullYear(), targetDate.getMonth(), d);
+    if (current.getDay() === 0) sundays++;
+  }
+  const standardDays = daysInMonth - sundays;
+  const dailySalary = (user.monthlySalary || 0) / (standardDays || 1);
+  const dynamicHourlyRate = dailySalary / 8;
+  const deduction = leaveCount * dailySalary;
+
+  return { standardDays, dailySalary, dynamicHourlyRate, deduction };
+}
+
+// --- Main Function ---
+
+export async function getUserMonthlyStats(userId: string, targetDate: Date = new Date()): Promise<MonthlyStats> {
+  const startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+  const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
+
+  // 1. Fetch Data
+  const user = await fetchUserData(userId, startDate, endDate);
+  if (!user) throw new Error("User not found");
+
+  const { checkins, shifts, allRequests, holidays } = await fetchPeriodData(userId, startDate, endDate);
+
+  // 2. Process Requests & Maps
+  const leaves = allRequests.filter(r => r.type === 'LEAVE' && r.status === 'APPROVED');
+  const wfhRequests = allRequests.filter(r => r.type === 'WFH' && r.status === 'APPROVED');
+  const earlyLeaveApprovedRequests = allRequests.filter(r => r.type === 'EARLY_LEAVE' && r.status === 'APPROVED');
+  const earlyLeavePendingRequests = allRequests.filter(r => r.type === 'EARLY_LEAVE' && r.status === 'PENDING');
+
+  const holidayMap = new Map<string, number>();
+  holidays.forEach(h => {
+    holidayMap.set(h.date.toISOString().split('T')[0], h.multiplier);
   });
 
-  // Process Daily Work (Hours)
-  let totalHours = 0;
-  const daysWorked = new Set();
-  const checkinsByDay: { [key: string]: any[] } = {};
-  const dailyDetails: any[] = [];
+  const wfhMap = new Map<string, Request>();
+  wfhRequests.forEach(r => wfhMap.set(r.date.toISOString().split('T')[0], r));
 
-  checkins.forEach((c: any) => {
+  const earlyLeaveApprovedMap = new Set(earlyLeaveApprovedRequests.map(r => r.date.toISOString().split('T')[0]));
+  const earlyLeavePendingMap = new Set(earlyLeavePendingRequests.map(r => r.date.toISOString().split('T')[0]));
+
+  const shiftsByDay: Record<string, WorkShift> = {};
+  shifts.forEach(s => {
+    shiftsByDay[s.start.toISOString().split('T')[0]] = s;
+  });
+
+  const checkinsByDay: Record<string, CheckIn[]> = {};
+  const daysWorked = new Set<string>();
+
+  checkins.forEach(c => {
     const dateKey = c.timestamp.toISOString().split('T')[0];
     daysWorked.add(dateKey);
     if (!checkinsByDay[dateKey]) checkinsByDay[dateKey] = [];
     checkinsByDay[dateKey].push(c);
   });
 
-  const wfhMap = new Map();
-  wfhRequests.forEach((r: any) => {
+  wfhRequests.forEach(r => {
     const d = r.date.toISOString().split('T')[0];
-    wfhMap.set(d, r);
-    daysWorked.add(d); // Count WFH as worked day
+    daysWorked.add(d);
   });
 
-  const earlyLeaveApprovedMap = new Set();
-  earlyLeaveApprovedRequests.forEach((r: any) => {
-    const d = r.date.toISOString().split('T')[0];
-    earlyLeaveApprovedMap.add(d);
-  });
+  // 3. Calculate Metrics
+  const { standardDays, dailySalary, dynamicHourlyRate, deduction } = calculateFullTimeMetrics(user, endDate, targetDate, leaves.length);
 
-  const earlyLeavePendingMap = new Set();
-  earlyLeavePendingRequests.forEach((r: any) => {
-    const d = r.date.toISOString().split('T')[0];
-    earlyLeavePendingMap.add(d);
-  });
-
-  // Compute Daily Details (Hours Worked)
-  // Use Set of all relevant dates (Checkins + WFH)
+  // 4. Daily Loop
+  let totalHours = 0;
+  const dailyDetails: DailyDetail[] = [];
   const allDates = new Set([...Object.keys(checkinsByDay), ...Array.from(wfhMap.keys())]);
 
   Array.from(allDates).forEach(date => {
-    const daily = checkinsByDay[date];
+    const dailyCheckins = checkinsByDay[date] || [];
     const shift = shiftsByDay[date];
     let dayHours = 0;
-    let lastCheckIn: any = null;
-    let firstCheckIn = null;
-    let firstCheckInEvent: any = null;
-    let lastCheckOut = null;
-    let lastCheckOutEvent: any = null;
+
+    // Check-in Processing
+    let lastCheckIn: CheckIn | null = null;
+    let firstCheckIn: Date | null = null;
+    let firstCheckInEvent: CheckIn | null = null;
+    let lastCheckOut: Date | null = null;
+    let lastCheckOutEvent: CheckIn | null = null;
+
     let isValidDay = true;
     let errorMsg = '';
     let isLate = false;
-    let multiplier = 1;
-    if (holidayMap.has(date)) {
-      multiplier = holidayMap.get(date);
-    }
+    let multiplier = holidayMap.get(date) || 1;
 
-    for (const event of daily) {
+    // Process check-in pairs
+    for (const event of dailyCheckins) {
       if (event.type === 'checkin') {
         lastCheckIn = event;
         if (!firstCheckIn) {
@@ -165,17 +199,15 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
             const shiftStart = shift.start.getTime();
             const shiftEnd = shift.end.getTime();
 
-            // Logic: Cut off early/late based on shift
+            // Shift Logic
             if (startCalc < shiftStart) startCalc = shiftStart;
+
+            // Early Leave Logic
             if (endCalc < shiftEnd) {
               const currentDateStr = event.timestamp.toISOString().split('T')[0];
-              // OLD: if (event.note && event.note.trim().length > 0) endCalc = shiftEnd;
-              // NEW: Check if approved EARLY_LEAVE exists
               if (earlyLeaveApprovedMap.has(currentDateStr)) {
                 endCalc = shiftEnd;
               } else if (earlyLeavePendingMap.has(currentDateStr)) {
-                // Early Leave Pending: Calculation stays as actual time (cut short)
-                // But we add a note to errorMsg
                 errorMsg = errorMsg ? `${errorMsg}, Xin về sớm (Đang chờ duyệt)` : 'Xin về sớm (Đang chờ duyệt)';
               }
             }
@@ -200,45 +232,39 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
 
     if (dayHours > 0) totalHours += dayHours;
 
-    // Handle WFH Case (if no physical checkin or supplement)
-    // If WFH approved and dayHours is 0 (or low?), we credit 8h (or shift hours)
+    // WFH Logic
     if (wfhMap.has(date)) {
       if (dayHours === 0) {
-        // Full WFH day
         dayHours = 8;
         totalHours += 8;
         isValidDay = true;
         errorMsg = 'Làm việc từ xa (WFH)';
-
-        // For display purposes, maybe show start/end as WFH?
-        // dailyDetails will use checkIn/checkOut null but have hours + valid.
       } else {
-        // Hybrid? Worked some hours physically + WFH? 
-        // Logic: If they checked in, we use actual hours. 
-        // Or maybe WFH is just an excuse for not checking in?
-        // Let's append note.
         errorMsg = errorMsg ? `${errorMsg} + WFH` : 'WFH + Check-in';
       }
     }
 
-    // Lateness Check
+    // Lateness Logic
     if (shift && firstCheckIn) {
-      // Simple check: if checkin > shift start + grace period
       if (checkIsLate(firstCheckIn, shift.start)) {
         isLate = true;
       }
     }
+
+    // Daily Salary Calculation
+    const effectiveHours = user.employmentType === 'FULL_TIME' ? Math.min(dayHours, 8) : dayHours;
+    const dailySalaryCalc = (effectiveHours * dynamicHourlyRate) * multiplier;
 
     dailyDetails.push({
       date: date,
       checkIn: firstCheckIn,
       checkOut: lastCheckOut,
       hours: dayHours,
-      salary: ((user?.employmentType === 'FULL_TIME' ? Math.min(dayHours, 8) : dayHours) * dynamicHourlyRate) * multiplier, // Full-time capped at 8h for daily value, then applied multiplier
+      salary: dailySalaryCalc,
       isLate,
       multiplier,
       isValid: isValidDay && dayHours > 0,
-      shift: shift ? `${new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(shift.start))} - ${new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(shift.end))}` : 'Ngoài lịch',
+      shift: shift ? `${formatTime(shift.start)} - ${formatTime(shift.end)}` : 'Ngoài lịch',
       error: errorMsg || (dayHours === 0 ? 'Không tính công' : undefined),
       checkInNote: firstCheckInEvent?.note || null,
       checkOutNote: lastCheckOutEvent?.note || null,
@@ -247,27 +273,19 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
 
   dailyDetails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  // --- FINAL SALARY CALCULATION ---
+  // 5. Final Totals
   let baseSalary = 0;
-
-  if (user?.employmentType === 'FULL_TIME') {
-    // For Full Time, Base is calculated from actual daily earnings.
-    // The deduction calculated earlier is for informational purposes.
-    // Base Salary = Sum of Daily Earnings (Accumulated)
-    // dailyDetails.salary involves the 8h cap logic we added.
+  if (user.employmentType === 'FULL_TIME') {
     baseSalary = dailyDetails.reduce((sum, day) => sum + (day.salary || 0), 0);
   } else {
-    // PART TIME LOGIC
-    baseSalary = totalHours * (user?.hourlyRate || 0);
+    baseSalary = totalHours * (user.hourlyRate || 0);
   }
 
-  const totalAdjustments = user?.adjustments.reduce((sum: number, adj: any) => sum + adj.amount, 0) || 0;
+  const totalAdjustments = user.adjustments.reduce((sum, adj) => sum + adj.amount, 0);
+  const totalSalary = baseSalary + totalAdjustments;
 
-  // Projection
   let projectedSalary = baseSalary + totalAdjustments;
-  if (user?.employmentType === 'FULL_TIME') {
-    // Projected = Monthly Fixed + Adjustments (ignoring current earned progress)
-    // This assumes no future leaves/deductions
+  if (user.employmentType === 'FULL_TIME') {
     projectedSalary = (user.monthlySalary || 0) + totalAdjustments;
   }
 
@@ -277,19 +295,27 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     checkinCount: checkins.length,
     baseSalary,
     totalAdjustments,
-    totalSalary: baseSalary + totalAdjustments,
+    totalSalary,
     projectedSalary,
     dailyDetails,
-    adjustments: user?.adjustments || [],
-    hourlyRate: user?.hourlyRate || 0,
+    adjustments: user.adjustments,
+    hourlyRate: user.hourlyRate,
     dynamicHourlyRate,
-    // Extensions for Full Time
-    employmentType: user?.employmentType,
-    monthlySalary: user?.monthlySalary,
+    employmentType: user.employmentType,
+    monthlySalary: user.monthlySalary,
     standardDays,
     dailySalary,
     leaveCount: leaves.length,
     deduction,
     lateCount: dailyDetails.filter(d => d.isLate).length
   };
+}
+
+function formatTime(date: Date) {
+  return new Intl.DateTimeFormat('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Ho_Chi_Minh'
+  }).format(new Date(date));
 }

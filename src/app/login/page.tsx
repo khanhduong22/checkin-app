@@ -1,6 +1,7 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
+import { signIn } from "next-auth/react";
+import Image from "next/image";
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
@@ -18,7 +19,7 @@ function LoginForm() {
             <div className="card w-full max-w-[400px] p-8 text-center">
                 <div className="mb-6 flex justify-center">
                     <div className="h-20 w-20 overflow-hidden rounded-xl bg-yellow-400 shadow-md border-2 border-yellow-500 p-1 flex items-center justify-center">
-                         <img src="/logo.png" alt="LimArt" className="h-[90%] w-[90%] object-contain rounded-lg" />
+                         <Image src="/logo.png" alt="Logo" width={96} height={96} className="h-[90%] w-[90%] object-contain rounded-lg" />
                     </div>
                 </div>
                 
