@@ -283,13 +283,7 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
                     </a>
                     </div>
                 </div>
-                <Image 
-                  src={session.user?.image || "/default-avatar.png"} 
-                  alt="Avatar" 
-                  width={64}
-                  height={64}
-                  className="w-16 h-16 rounded-full border-2 border-primary/20" 
-                />        {/* Admin Link... */}
+                {/* Admin Link... */}
                 {user?.role === 'ADMIN' && (
                      <div className="pt-2 text-center border-t border-dashed mt-4">
                         <a href="/admin" className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 mt-4">
