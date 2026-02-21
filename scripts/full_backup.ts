@@ -42,7 +42,6 @@ async function main() {
   await dump('LuckyWheelPrize', prisma.luckyWheelPrize);
   await dump('LuckyWheelHistory', prisma.luckyWheelHistory);
   await dump('UserAchievement', prisma.userAchievement);
-  await dump('ShopPet', prisma.shopPet);
   await dump('CheckIn', prisma.checkIn);
   await dump('AllowedIP', prisma.allowedIP);
   await dump('Holiday', prisma.holiday);

@@ -179,20 +179,6 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
       }
     });
 
-    // --- Pet Logic Interface ---
-    if (type === 'checkin') {
-      const { feedPet, punishPet } = await import("./actions/pet");
-      const currentHour = new Date().getHours();
-
-      // Late if > 9 (meaning 9:01+)
-      if (currentHour < 9) {
-        await feedPet();
-      } else if (currentHour >= 9) {
-        await punishPet();
-      }
-    }
-    // ---------------------------
-
     revalidatePath('/'); // Refresh UI
 
     const timeStr = new Date().toLocaleTimeString('vi-VN');
