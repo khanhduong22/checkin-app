@@ -89,15 +89,23 @@ async function fetchPeriodData(userId: string, startDate: Date, endDate: Date) {
 
 // --- Calculation Helpers ---
 
-function calculateFullTimeMetrics(user: User, endDate: Date, targetDate: Date, leaveCount: number) {
+// Convert any UTC Date to a YYYY-MM-DD string in Vietnam timezone (UTC+7)
+function toVNDateKey(date: Date): string {
+  const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const vnMs = date.getTime() + VN_OFFSET_MS;
+  return new Date(vnMs).toISOString().split('T')[0];
+}
+
+function calculateFullTimeMetrics(user: User, vnYear: number, vnMonth: number, leaveCount: number) {
   if (user.employmentType !== 'FULL_TIME') {
     return { standardDays: 0, dailySalary: 0, dynamicHourlyRate: user.hourlyRate, deduction: 0 };
   }
 
+  // daysInMonth in VN calendar for the target month
+  const daysInMonth = new Date(vnYear, vnMonth + 1, 0).getDate();
   let sundays = 0;
-  const daysInMonth = endDate.getDate();
   for (let d = 1; d <= daysInMonth; d++) {
-    const current = new Date(targetDate.getFullYear(), targetDate.getMonth(), d);
+    const current = new Date(vnYear, vnMonth, d);
     if (current.getDay() === 0) sundays++;
   }
   const standardDays = daysInMonth - sundays;
@@ -111,8 +119,17 @@ function calculateFullTimeMetrics(user: User, endDate: Date, targetDate: Date, l
 // --- Main Function ---
 
 export async function getUserMonthlyStats(userId: string, targetDate: Date = new Date()): Promise<MonthlyStats> {
-  const startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-  const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
+  // Use Vietnam timezone (UTC+7) for month boundaries
+  // Convert targetDate to VN local time to get correct year/month
+  const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const vnDate = new Date(targetDate.getTime() + VN_OFFSET_MS);
+  const vnYear = vnDate.getUTCFullYear();
+  const vnMonth = vnDate.getUTCMonth();
+
+  // Start = midnight VN time on the 1st = UTC - 7h
+  const startDate = new Date(Date.UTC(vnYear, vnMonth, 1) - VN_OFFSET_MS);
+  // End = 23:59:59.999 VN time on the last day = UTC - 7h + 23:59:59.999
+  const endDate = new Date(Date.UTC(vnYear, vnMonth + 1, 0, 23, 59, 59, 999) - VN_OFFSET_MS);
 
   // 1. Fetch Data
   const user = await fetchUserData(userId, startDate, endDate);
@@ -128,37 +145,37 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
 
   const holidayMap = new Map<string, number>();
   holidays.forEach(h => {
-    holidayMap.set(h.date.toISOString().split('T')[0], h.multiplier);
+    holidayMap.set(toVNDateKey(h.date), h.multiplier);
   });
 
   const wfhMap = new Map<string, Request>();
-  wfhRequests.forEach(r => wfhMap.set(r.date.toISOString().split('T')[0], r));
+  wfhRequests.forEach(r => wfhMap.set(toVNDateKey(r.date), r));
 
-  const earlyLeaveApprovedMap = new Set(earlyLeaveApprovedRequests.map(r => r.date.toISOString().split('T')[0]));
-  const earlyLeavePendingMap = new Set(earlyLeavePendingRequests.map(r => r.date.toISOString().split('T')[0]));
+  const earlyLeaveApprovedMap = new Set(earlyLeaveApprovedRequests.map(r => toVNDateKey(r.date)));
+  const earlyLeavePendingMap = new Set(earlyLeavePendingRequests.map(r => toVNDateKey(r.date)));
 
   const shiftsByDay: Record<string, WorkShift> = {};
   shifts.forEach(s => {
-    shiftsByDay[s.start.toISOString().split('T')[0]] = s;
+    shiftsByDay[toVNDateKey(s.start)] = s;
   });
 
   const checkinsByDay: Record<string, CheckIn[]> = {};
   const daysWorked = new Set<string>();
 
   checkins.forEach(c => {
-    const dateKey = c.timestamp.toISOString().split('T')[0];
+    const dateKey = toVNDateKey(c.timestamp);
     daysWorked.add(dateKey);
     if (!checkinsByDay[dateKey]) checkinsByDay[dateKey] = [];
     checkinsByDay[dateKey].push(c);
   });
 
   wfhRequests.forEach(r => {
-    const d = r.date.toISOString().split('T')[0];
+    const d = toVNDateKey(r.date);
     daysWorked.add(d);
   });
 
   // 3. Calculate Metrics
-  const { standardDays, dailySalary, dynamicHourlyRate, deduction } = calculateFullTimeMetrics(user, endDate, targetDate, leaves.length);
+  const { standardDays, dailySalary, dynamicHourlyRate, deduction } = calculateFullTimeMetrics(user, vnYear, vnMonth, leaves.length);
 
   // 4. Daily Loop
   let totalHours = 0;
@@ -204,7 +221,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
 
             // Early Leave Logic
             if (endCalc < shiftEnd) {
-              const currentDateStr = event.timestamp.toISOString().split('T')[0];
+              const currentDateStr = toVNDateKey(event.timestamp);
               if (earlyLeaveApprovedMap.has(currentDateStr)) {
                 endCalc = shiftEnd;
               } else if (earlyLeavePendingMap.has(currentDateStr)) {
@@ -274,12 +291,8 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   dailyDetails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // 5. Final Totals
-  let baseSalary = 0;
-  if (user.employmentType === 'FULL_TIME') {
-    baseSalary = dailyDetails.reduce((sum, day) => sum + (day.salary || 0), 0);
-  } else {
-    baseSalary = totalHours * (user.hourlyRate || 0);
-  }
+  // Both FULL_TIME and PART_TIME sum daily salaries so holiday multipliers are included.
+  let baseSalary = dailyDetails.reduce((sum, day) => sum + (day.salary || 0), 0);
 
   const totalAdjustments = user.adjustments.reduce((sum, adj) => sum + adj.amount, 0);
   const totalSalary = baseSalary + totalAdjustments;
