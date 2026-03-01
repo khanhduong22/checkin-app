@@ -191,16 +191,47 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
                         {/* Lateness Reminder */}
                         {/* @ts-ignore */}
                         {stats.lateCount >= 2 && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-3 mb-4 animate-in fade-in slide-in-from-top-2">
-                                <div className="bg-red-100 p-2 rounded-full">
-                                    <span className="text-xl">⚠️</span>
+                            <div className={`border rounded-lg p-3 flex items-start gap-3 mb-4 animate-in fade-in slide-in-from-top-2 ${
+                                // @ts-ignore
+                                stats.lateCount >= 4
+                                    ? 'bg-red-100 border-red-400'
+                                    : 'bg-red-50 border-red-200'
+                                }`}>
+                                <div className={`p-2 rounded-full ${/* @ts-ignore */ stats.lateCount >= 4 ? 'bg-red-200' : 'bg-red-100'}`}>
+                                    {/* @ts-ignore */}
+                                    <span className="text-xl">{stats.lateCount >= 4 ? '🚨' : '⚠️'}</span>
                                 </div>
-                                <div>
-                                    <h3 className="text-sm font-bold text-red-800">Cảnh báo đi trễ</h3>
-                                    <p className="text-xs text-red-600 mt-1">
+                                <div className="flex-1">
+                                    <h3 className="text-sm font-bold text-red-800">
+                                        {/* @ts-ignore */}
+                                        {stats.lateCount >= 4 ? '⛔ Bị trừ lương do đi trễ' : 'Cảnh báo đi trễ'}
+                                    </h3>
+                                    <p className="text-xs text-red-700 mt-1">
                                         Bạn đã đi trễ <span className="font-bold">{/* @ts-ignore */}{stats.lateCount}</span> lần trong tháng này.
-                                        Vui lòng chú ý thời gian làm việc để tránh ảnh hưởng đến thi đua.
                                     </p>
+                                    {/* @ts-ignore */}
+                                    {stats.latePenaltyHours > 0 && (
+                                        <div className="mt-2 bg-red-200/60 rounded-md px-2 py-1.5 text-xs text-red-900 space-y-0.5">
+                                            <div className="flex justify-between">
+                                                <span>⏱ Số giờ bị trừ:</span>
+                                                <span className="font-bold">{/* @ts-ignore */}{stats.latePenaltyHours} giờ</span>
+                                            </div>
+                                            <div className="flex justify-between border-t border-red-300/60 pt-0.5">
+                                                <span>💸 Tiền bị trừ:</span>
+                                                <span className="font-bold text-red-700">
+                                                    {/* @ts-ignore */}
+                                                    − {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats.latePenaltyAmount)}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-red-600 pt-0.5 border-t border-red-300/60">
+                                                Từ lần trễ thứ 4, mỗi lần trễ thêm sẽ bị trừ thêm 1 giờ lương.
+                                            </p>
+                                        </div>
+                                    )}
+                                    {/* @ts-ignore */}
+                                    {stats.lateCount < 4 && (
+                                        <p className="text-xs text-red-600 mt-0.5">Vui lòng chú ý thời gian làm việc. Từ lần thứ 4 sẽ bị trừ lương.</p>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -213,6 +244,8 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
                                 daysWorked={stats.daysWorked}
                                 baseSalary={stats.baseSalary}
                                 totalAdjustments={stats.totalAdjustments}
+                                latePenaltyHours={(stats as any).latePenaltyHours}
+                                latePenaltyAmount={(stats as any).latePenaltyAmount}
                             />
                         </div>
 

@@ -38,6 +38,20 @@ export interface MonthlyStats {
   leaveCount: number;
   deduction: number;
   lateCount: number;
+  latePenaltyHours: number;
+  latePenaltyAmount: number;
+}
+
+// --- Late Penalty Helper ---
+
+/**
+ * Calculate late penalty hours:
+ * - 1st–3rd late: no penalty
+ * - 4th late: -1h, 5th: -2h, 6th: -3h, ... nth: -(n-3)h
+ */
+export function calculateLatePenalty(lateCount: number): number {
+  if (lateCount < 4) return 0;
+  return lateCount - 3;
 }
 
 // --- Data Fetching Helpers ---
@@ -295,11 +309,17 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   let baseSalary = dailyDetails.reduce((sum, day) => sum + (day.salary || 0), 0);
 
   const totalAdjustments = user.adjustments.reduce((sum, adj) => sum + adj.amount, 0);
-  const totalSalary = baseSalary + totalAdjustments;
 
-  let projectedSalary = baseSalary + totalAdjustments;
+  // Late penalty: deduct (lateCount - 3) hours of salary starting from the 4th late occurrence
+  const lateCount = dailyDetails.filter(d => d.isLate).length;
+  const latePenaltyHours = calculateLatePenalty(lateCount);
+  const latePenaltyAmount = latePenaltyHours * dynamicHourlyRate;
+
+  const totalSalary = baseSalary + totalAdjustments - latePenaltyAmount;
+
+  let projectedSalary = baseSalary + totalAdjustments - latePenaltyAmount;
   if (user.employmentType === 'FULL_TIME') {
-    projectedSalary = (user.monthlySalary || 0) + totalAdjustments;
+    projectedSalary = (user.monthlySalary || 0) + totalAdjustments - latePenaltyAmount;
   }
 
   return {
@@ -320,7 +340,9 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     dailySalary,
     leaveCount: leaves.length,
     deduction,
-    lateCount: dailyDetails.filter(d => d.isLate).length
+    lateCount,
+    latePenaltyHours,
+    latePenaltyAmount
   };
 }
 
