@@ -5,7 +5,38 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-// --- User Management Actions (Delete) ---
+// --- User Management Actions ---
+
+export async function createUser(data: {
+  name: string;
+  email: string;
+  employmentType: 'FULL_TIME' | 'PART_TIME';
+  hourlyRate: number;
+  monthlySalary: number;
+}) {
+  try {
+    const existing = await prisma.user.findUnique({ where: { email: data.email } });
+    if (existing) {
+      return { success: false, message: 'Email này đã tồn tại trong hệ thống' };
+    }
+    await prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        employmentType: data.employmentType,
+        hourlyRate: data.hourlyRate,
+        monthlySalary: data.monthlySalary,
+        role: 'USER',
+      }
+    });
+    revalidatePath('/admin/employees');
+    return { success: true, message: 'Đã thêm nhân viên mới' };
+  } catch (e) {
+    console.error(e);
+    return { success: false, message: 'Lỗi khi tạo nhân viên' };
+  }
+}
+
 export async function deleteUser(userId: string) {
   try {
     await prisma.user.delete({ where: { id: userId } });
