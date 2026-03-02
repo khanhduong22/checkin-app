@@ -107,12 +107,16 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
             <Card key={task.id}>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">{task.taskDefinition.name}</CardTitle>
+                  <CardTitle className="text-lg">{task.taskItem?.title || task.taskDefinition.name}</CardTitle>
                   <StatusBadge status={task.status} />
                 </div>
+                {task.taskItem?.description && (
+                  <p className="text-sm text-muted-foreground mt-1">{task.taskItem.description}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Started: {format(new Date(task.startedAt), "dd/MM/yyyy HH:mm")}</p>
               </CardHeader>
               <CardContent className="pb-2">
+                <p className="text-xs text-muted-foreground mb-1">{task.taskDefinition.name}</p>
                 <p className="font-medium text-emerald-600">Reward: {task.unitPrice.toLocaleString()} đ / {task.taskDefinition.unit}</p>
               </CardContent>
               <CardFooter>
