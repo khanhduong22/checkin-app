@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Upload, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { Upload, CheckCircle2, XCircle, Clock, Eye, Coins } from "lucide-react";
 
 type UserTaskWithDef = UserTask & {
   taskDefinition: TaskDefinition;
@@ -34,6 +34,7 @@ interface MyTasksListProps {
 export function MyTasksList({ initialTasks }: MyTasksListProps) {
   const [tasks, setTasks] = useState(initialTasks);
   const [submittingTask, setSubmittingTask] = useState<UserTaskWithDef | null>(null);
+  const [viewingTask, setViewingTask] = useState<UserTaskWithDef | null>(null);
 
   // Submission Form
   const [quantity, setQuantity] = useState(1);
@@ -104,23 +105,33 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
         <TabsContent value="active" className="mt-4 grid gap-4 grid-cols-1 md:grid-cols-2">
           {activeTasks.length === 0 && <p className="text-muted-foreground col-span-2 text-center py-4">No active tasks.</p>}
           {activeTasks.map(task => (
-            <Card key={task.id}>
+            <Card key={task.id} className="flex flex-col">
               <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">{task.taskItem?.title || task.taskDefinition.name}</CardTitle>
+                <div className="flex justify-between items-start gap-2">
+                  <button
+                    className="text-left font-semibold text-lg hover:underline hover:text-primary flex items-start gap-1 group"
+                    onClick={() => setViewingTask(task)}
+                    title="Xem chi tiết task"
+                  >
+                    {task.taskItem?.title || task.taskDefinition.name}
+                    <Eye className="h-4 w-4 mt-1 opacity-0 group-hover:opacity-60 flex-shrink-0" />
+                  </button>
                   <StatusBadge status={task.status} />
                 </div>
-                {task.taskItem?.description && (
-                  <p className="text-sm text-muted-foreground mt-1">{task.taskItem.description}</p>
-                )}
+                <p className="text-xs text-muted-foreground">{task.taskDefinition.name}</p>
                 <p className="text-sm text-muted-foreground">Started: {format(new Date(task.startedAt), "dd/MM/yyyy HH:mm")}</p>
               </CardHeader>
-              <CardContent className="pb-2">
-                <p className="text-xs text-muted-foreground mb-1">{task.taskDefinition.name}</p>
-                <p className="font-medium text-emerald-600">Reward: {task.unitPrice.toLocaleString()} đ / {task.taskDefinition.unit}</p>
+              <CardContent className="pb-2 flex-1">
+                <p className="font-medium text-emerald-600 flex items-center gap-1">
+                  <Coins className="h-4 w-4" />
+                  {task.unitPrice.toLocaleString()} đ / {task.taskDefinition.unit}
+                </p>
               </CardContent>
-              <CardFooter>
-                <Button onClick={() => openSubmit(task)} className="w-full">
+              <CardFooter className="gap-2">
+                <Button variant="outline" size="sm" onClick={() => setViewingTask(task)}>
+                  <Eye className="mr-1 h-4 w-4" /> Chi tiết
+                </Button>
+                <Button onClick={() => openSubmit(task)} className="flex-1">
                   <Upload className="mr-2 h-4 w-4" /> Submit Work
                 </Button>
               </CardFooter>
@@ -230,6 +241,43 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
           </div>
           <DialogFooter>
             <Button onClick={handleSubmit}>Submit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Detail Dialog */}
+      <Dialog open={!!viewingTask} onOpenChange={(open) => !open && setViewingTask(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl leading-snug">
+              {viewingTask?.taskItem?.title || viewingTask?.taskDefinition.name}
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-1 pt-1">
+                <span className="inline-flex items-center gap-1 text-xs bg-secondary rounded px-2 py-0.5">
+                  {viewingTask?.taskDefinition.name}
+                </span>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {viewingTask?.taskItem?.description ? (
+              <div className="bg-muted/50 rounded-lg p-4 text-sm whitespace-pre-wrap leading-relaxed">
+                {viewingTask.taskItem.description}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Không có mô tả chi tiết.</p>
+            )}
+            <div className="flex items-center gap-2 text-emerald-600 font-semibold">
+              <Coins className="h-4 w-4" />
+              {viewingTask?.unitPrice.toLocaleString()} đ / {viewingTask?.taskDefinition.unit}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingTask(null)}>Đóng</Button>
+            <Button onClick={() => { setViewingTask(null); if (viewingTask) openSubmit(viewingTask); }}>
+              <Upload className="mr-2 h-4 w-4" /> Submit Work
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
