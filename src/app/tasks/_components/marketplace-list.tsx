@@ -28,13 +28,15 @@ export function MarketplaceList({ items }: MarketplaceListProps) {
   const handleClaim = async (item: TaskItemWithDef) => {
     try {
       setLoadingId(item.id);
-      
+
       // Call startTask with both taskDefId and taskItemId
       const result = await startTask(item.taskDefId, item.id);
 
       if (result.success) {
-        toast.success(`Đã nhận task "${item.title}" thành công!`);
-        router.refresh(); // Refresh to update lists
+        toast.success(`Đã nhận task "${item.title}" thành công! Xem trong tab "My History"`);
+        // Navigate to the my-tasks tab so the user sees their new task right away
+        router.push('/tasks?tab=my-tasks');
+        router.refresh();
       } else {
         toast.error((result as any).error || "Không thể nhận task");
       }
@@ -59,12 +61,12 @@ export function MarketplaceList({ items }: MarketplaceListProps) {
         <Card key={item.id} className="flex flex-col">
           <CardHeader>
             <div className="flex justify-between items-start">
-                <Badge variant="outline">{item.taskDefinition.name}</Badge>
-                {item.deadline && (
-                    <Badge variant="secondary" className="text-xs">
-                        Hết hạn {formatDistanceToNow(new Date(item.deadline), { addSuffix: true, locale: vi })}
-                    </Badge>
-                )}
+              <Badge variant="outline">{item.taskDefinition.name}</Badge>
+              {item.deadline && (
+                <Badge variant="secondary" className="text-xs">
+                  Hết hạn {formatDistanceToNow(new Date(item.deadline), { addSuffix: true, locale: vi })}
+                </Badge>
+              )}
             </div>
             <CardTitle className="mt-2 text-lg line-clamp-2" title={item.title}>
               {item.title}
@@ -75,22 +77,22 @@ export function MarketplaceList({ items }: MarketplaceListProps) {
           </CardHeader>
           <CardContent className="flex-grow">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                <Coins className="w-4 h-4 text-yellow-500" />
-                <span className="font-semibold text-foreground">
-                    {item.taskDefinition.baseReward.toLocaleString()} đ
-                </span>
-                <span>/ {item.taskDefinition.unit}</span>
+              <Coins className="w-4 h-4 text-yellow-500" />
+              <span className="font-semibold text-foreground">
+                {item.taskDefinition.baseReward.toLocaleString()} đ
+              </span>
+              <span>/ {item.taskDefinition.unit}</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Clock className="w-3 h-3" />
-                <span>Đăng {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: vi })}</span>
+              <Clock className="w-3 h-3" />
+              <span>Đăng {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: vi })}</span>
             </div>
           </CardContent>
           <CardFooter>
-            <Button 
-                className="w-full" 
-                onClick={() => handleClaim(item)}
-                disabled={!!loadingId}
+            <Button
+              className="w-full"
+              onClick={() => handleClaim(item)}
+              disabled={!!loadingId}
             >
               {loadingId === item.id ? (
                 <>

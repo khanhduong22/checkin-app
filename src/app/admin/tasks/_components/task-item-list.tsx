@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { TaskItem, TaskDefinition, User } from "@prisma/client";
-import { createTaskItem, closeTaskItem, deleteTaskItem } from "@/actions/task-actions";
+import { createTaskItem, closeTaskItem, deleteTaskItem, resetTaskItem } from "@/actions/task-actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { HeadlessCombobox } from "@/components/ui/headless-combobox";
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner";
-import { Plus, Trash2, XCircle, CheckCircle } from "lucide-react";
+import { Plus, Trash2, XCircle, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 
 type TaskItemWithRelations = TaskItem & {
@@ -46,7 +46,7 @@ interface TaskItemListProps {
 export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
   const [items, setItems] = useState<TaskItemWithRelations[]>(initialItems);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     taskDefId: "",
     title: "",
@@ -56,16 +56,16 @@ export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
 
   const handleCreate = async () => {
     if (!formData.taskDefId || !formData.title) {
-        toast.error("Please fill in required fields");
-        return;
+      toast.error("Please fill in required fields");
+      return;
     }
 
     try {
       const result = await createTaskItem({
-          taskDefId: formData.taskDefId,
-          title: formData.title,
-          description: formData.description,
-          deadline: formData.deadline ? new Date(formData.deadline) : undefined
+        taskDefId: formData.taskDefId,
+        title: formData.title,
+        description: formData.description,
+        deadline: formData.deadline ? new Date(formData.deadline) : undefined
       });
 
       if (result.success && result.data) {
@@ -79,11 +79,11 @@ export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
         // Since we are in client component, router.refresh() is better but let's try to fake it for instant feedback
         // assuming we can find the definition.
         const def = definitions.find(d => d.id === formData.taskDefId);
-        if(def) {
-            const newItem: any = { ...result.data, taskDefinition: def, assignee: null };
-            setItems([newItem, ...items]);
+        if (def) {
+          const newItem: any = { ...result.data, taskDefinition: def, assignee: null };
+          setItems([newItem, ...items]);
         }
-        
+
         setIsCreateOpen(false);
         setFormData({ taskDefId: "", title: "", description: "", deadline: "" });
         toast.success("Task item created");
@@ -95,33 +95,47 @@ export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
     }
   };
 
-  const handleClose = async (id: string) => {
-      try {
-          const result = await closeTaskItem(id);
-          if (result.success) {
-              setItems(items.map(i => i.id === id ? { ...i, status: 'CLOSED' } : i));
-              toast.success("Task closed");
-          } else {
-              toast.error(result.error || "Failed");
-          }
-      } catch (e) {
-          toast.error("Error");
+  const handleReset = async (id: string) => {
+    try {
+      const result = await resetTaskItem(id);
+      if (result.success) {
+        setItems(items.map(i => i.id === id ? { ...i, status: 'OPEN', assigneeId: null, assignee: null } : i));
+        toast.success("Task reset về OPEN — nhân viên có thể nhận lại");
+      } else {
+        toast.error(result.error || "Failed");
       }
+    } catch (e) {
+      toast.error("Error");
+    }
+  }
+
+  const handleClose = async (id: string) => {
+    try {
+      const result = await closeTaskItem(id);
+      if (result.success) {
+        setItems(items.map(i => i.id === id ? { ...i, status: 'CLOSED' } : i));
+        toast.success("Task closed");
+      } else {
+        toast.error(result.error || "Failed");
+      }
+    } catch (e) {
+      toast.error("Error");
+    }
   }
 
   const handleDelete = async (id: string) => {
-      if(!confirm("Delete this task item?")) return;
-      try {
-          const result = await deleteTaskItem(id);
-          if (result.success) {
-              setItems(items.filter(i => i.id !== id));
-              toast.success("Task deleted");
-          } else {
-            toast.error(result.error);
-          }
-      } catch (e) {
-          toast.error("Error");
+    if (!confirm("Delete this task item?")) return;
+    try {
+      const result = await deleteTaskItem(id);
+      if (result.success) {
+        setItems(items.filter(i => i.id !== id));
+        toast.success("Task deleted");
+      } else {
+        toast.error(result.error);
       }
+    } catch (e) {
+      toast.error("Error");
+    }
   }
 
   return (
@@ -141,22 +155,22 @@ export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Task Type</Label>
                 <div className="col-span-3">
-                    <HeadlessCombobox
-                        items={definitions}
-                        value={formData.taskDefId}
-                        onChange={(val) => setFormData({...formData, taskDefId: val})}
-                        valueKey="id"
-                        displayKey="name"
-                        placeholder="Select a task type"
-                        renderOption={(item) => (
-                            <span className="flex justify-between w-full">
-                                <span>{item.name}</span>
-                                <span className="text-muted-foreground text-xs ml-2">
-                                    {item.baseReward.toLocaleString()}đ
-                                </span>
-                            </span>
-                        )}
-                    />
+                  <HeadlessCombobox
+                    items={definitions}
+                    value={formData.taskDefId}
+                    onChange={(val) => setFormData({ ...formData, taskDefId: val })}
+                    valueKey="id"
+                    displayKey="name"
+                    placeholder="Select a task type"
+                    renderOption={(item) => (
+                      <span className="flex justify-between w-full">
+                        <span>{item.name}</span>
+                        <span className="text-muted-foreground text-xs ml-2">
+                          {item.baseReward.toLocaleString()}đ
+                        </span>
+                      </span>
+                    )}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -213,32 +227,37 @@ export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
           {items.map((item) => (
             <TableRow key={item.id}>
               <TableCell className="font-medium">
-                  <div>{item.title}</div>
-                  {item.description && <div className="text-xs text-muted-foreground truncate max-w-[200px]">{item.description}</div>}
+                <div>{item.title}</div>
+                {item.description && <div className="text-xs text-muted-foreground truncate max-w-[200px]">{item.description}</div>}
               </TableCell>
               <TableCell>{item.taskDefinition.name}</TableCell>
               <TableCell>{item.taskDefinition.baseReward.toLocaleString()} đ</TableCell>
               <TableCell>
-                  {item.assignee ? (
-                      <div className="flex items-center gap-2">
-                           {/* Avatar could go here */}
-                           <span>{item.assignee.name}</span>
-                      </div>
-                  ) : <span className="text-muted-foreground">-</span>}
+                {item.assignee ? (
+                  <div className="flex items-center gap-2">
+                    {/* Avatar could go here */}
+                    <span>{item.assignee.name}</span>
+                  </div>
+                ) : <span className="text-muted-foreground">-</span>}
               </TableCell>
               <TableCell>
-                  <Badge variant={item.status === 'OPEN' ? 'default' : item.status === 'IN_PROGRESS' ? 'secondary' : 'outline'}>
-                      {item.status}
-                  </Badge>
+                <Badge variant={item.status === 'OPEN' ? 'default' : item.status === 'IN_PROGRESS' ? 'secondary' : 'outline'}>
+                  {item.status}
+                </Badge>
               </TableCell>
               <TableCell>
-                  {item.deadline ? format(new Date(item.deadline), 'dd/MM/yyyy HH:mm') : '-'}
+                {item.deadline ? format(new Date(item.deadline), 'dd/MM/yyyy HH:mm') : '-'}
               </TableCell>
               <TableCell className="text-right space-x-2">
                 {item.status === 'OPEN' && (
-                    <Button variant="ghost" size="icon" onClick={() => handleClose(item.id)} title="Close Task">
-                        <XCircle className="h-4 w-4 text-orange-500" />
-                    </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleClose(item.id)} title="Close Task">
+                    <XCircle className="h-4 w-4 text-orange-500" />
+                  </Button>
+                )}
+                {item.status === 'IN_PROGRESS' && (
+                  <Button variant="ghost" size="icon" onClick={() => handleReset(item.id)} title="Reset về OPEN (cho nhận lại)">
+                    <RotateCcw className="h-4 w-4 text-blue-500" />
+                  </Button>
                 )}
                 <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)} title="Delete">
                   <Trash2 className="h-4 w-4 text-red-500" />

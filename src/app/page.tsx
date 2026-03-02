@@ -71,6 +71,10 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
     const { getSpecialDayUsers } = await import("@/lib/special-days");
     const specialUsers = await getSpecialDayUsers();
 
+    // Auto-run birthday bonus (safe: duplicate-checked per day)
+    const { runBirthdayBonus } = await import("@/lib/birthday-bonus");
+    await runBirthdayBonus();
+
     const notes = await prisma.stickyNote.findMany({
         orderBy: { createdAt: 'desc' },
         take: 6,

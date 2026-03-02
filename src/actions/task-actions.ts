@@ -77,6 +77,23 @@ export async function closeTaskItem(id: string) {
   }
 }
 
+export async function resetTaskItem(id: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
+
+    await prisma.taskItem.update({
+      where: { id },
+      data: { status: 'OPEN', assigneeId: null }
+    });
+    revalidatePath('/admin/tasks');
+    revalidatePath('/tasks');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to reset task item" };
+  }
+}
+
 export async function deleteTaskItem(id: string) {
   try {
     const session = await getServerSession(authOptions);
@@ -235,24 +252,12 @@ export async function startTask(taskDefId: string, taskItemId?: string) {
       return { success: false, error: "Unauthorized" };
     }
 
-    // Check if user is checked in (Must be checked out to start WFH task)
-    // We assume if the last check-in has no check-out, they are checked in.
-    // Or we can check the 'type' of the last check-in.
-    // Assuming simple logic: If last CheckIn was "IN", they are at work.
-    const lastCheckIn = await prisma.checkIn.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { timestamp: 'desc' }
-    });
-
-    if (lastCheckIn && lastCheckIn.type === "IN") {
-      return { success: false, error: "Must be checked out from office to start a WFH task." };
-    }
-
-    // If starting a specific Task Item
+    // If starting a specific Marketplace Task Item — no check-in restriction needed
+    // (marketplace tasks can be done anytime, not just WFH)
     if (taskItemId) {
       // Transaction: Check availability and Assign
       // Use interactive transaction to ensure no race condition
-      return await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx) => {
         const item = await tx.taskItem.findUnique({ where: { id: taskItemId } });
         if (!item || item.status !== 'OPEN') {
           throw new Error("Task item is no longer available.");
@@ -273,11 +278,24 @@ export async function startTask(taskDefId: string, taskItemId?: string) {
             taskItemId: item.id,
             unitPrice: taskDef?.baseReward || 0,
             status: "PENDING",
-            note: item.description // Copy desc to user task or keeping ref
+            note: item.description,
           },
         });
         return { success: true, data: userTask };
       });
+      revalidatePath('/tasks');
+      revalidatePath('/admin/tasks');
+      return result;
+    }
+
+    // General Task (WFH): must be checked out from office first
+    const lastCheckIn = await prisma.checkIn.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { timestamp: 'desc' }
+    });
+
+    if (lastCheckIn && lastCheckIn.type === "IN") {
+      return { success: false, error: "Must be checked out from office to start a WFH task." };
     }
 
     // Legacy: Starting a Generic Task (if still allowed?)
