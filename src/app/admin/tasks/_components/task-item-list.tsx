@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { HeadlessCombobox } from "@/components/ui/headless-combobox";
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner";
-import { Plus, Trash2, XCircle, RotateCcw } from "lucide-react";
+import { Plus, Trash2, XCircle, RotateCcw, Eye } from "lucide-react";
 import { format } from "date-fns";
 
 type TaskItemWithRelations = TaskItem & {
@@ -46,6 +46,7 @@ interface TaskItemListProps {
 export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
   const [items, setItems] = useState<TaskItemWithRelations[]>(initialItems);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [viewingItem, setViewingItem] = useState<TaskItemWithRelations | null>(null);
 
   const [formData, setFormData] = useState({
     taskDefId: "",
@@ -227,8 +228,16 @@ export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
           {items.map((item) => (
             <TableRow key={item.id}>
               <TableCell className="font-medium">
-                <div>{item.title}</div>
-                {item.description && <div className="text-xs text-muted-foreground truncate max-w-[200px]">{item.description}</div>}
+                <button
+                  className="text-left hover:underline hover:text-primary flex flex-col items-start group"
+                  onClick={() => setViewingItem(item)}
+                >
+                  <span className="flex items-center gap-1">
+                    {item.title}
+                    <Eye className="h-3 w-3 opacity-0 group-hover:opacity-50" />
+                  </span>
+                  {item.description && <span className="text-xs text-muted-foreground truncate max-w-[200px]">{item.description}</span>}
+                </button>
               </TableCell>
               <TableCell>{item.taskDefinition.name}</TableCell>
               <TableCell>{item.taskDefinition.baseReward.toLocaleString()} đ</TableCell>
@@ -267,6 +276,38 @@ export function TaskItemList({ initialItems, definitions }: TaskItemListProps) {
           ))}
         </TableBody>
       </Table>
+
+      {/* Task Item Detail Dialog */}
+      <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl leading-snug">{viewingItem?.title}</DialogTitle>
+            <DialogDescription asChild>
+              <span className="inline-flex items-center gap-1 text-xs bg-secondary rounded px-2 py-0.5 mt-1">
+                {viewingItem?.taskDefinition.name}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {viewingItem?.description ? (
+              <div className="bg-muted/50 rounded-lg p-4 text-sm whitespace-pre-wrap leading-relaxed">
+                {viewingItem.description}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Không có mô tả chi tiết.</p>
+            )}
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div><span className="text-muted-foreground">Reward:</span> <span className="font-semibold text-emerald-600">{viewingItem?.taskDefinition.baseReward.toLocaleString()} đ</span></div>
+              <div><span className="text-muted-foreground">Assignee:</span> <span className="font-semibold">{viewingItem?.assignee?.name || "—"}</span></div>
+              <div><span className="text-muted-foreground">Status:</span> <Badge variant={viewingItem?.status === 'OPEN' ? 'default' : viewingItem?.status === 'IN_PROGRESS' ? 'secondary' : 'outline'}>{viewingItem?.status}</Badge></div>
+              <div><span className="text-muted-foreground">Deadline:</span> <span>{viewingItem?.deadline ? format(new Date(viewingItem.deadline), 'dd/MM/yyyy HH:mm') : "—"}</span></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingItem(null)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
