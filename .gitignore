@@ -10,6 +10,8 @@ node_modules
 # Playwright (local evidence only — video/screenshots)
 test-results/
 playwright-report/
+# Auth state (contains session cookies — never commit)
+tests/.auth/
 
 # Next.js
 .next/
