@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Send, FileText, Bot, Loader2 } from "lucide-react";
+import { Send, FileText, Bot, Loader2, Volume2, VolumeX, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,10 @@ export default function HelpCenterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<any | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,7 +54,6 @@ export default function HelpCenterPage() {
     setInput("");
     setIsLoading(true);
 
-    // Add placeholder AI message
     const aiMessageId = (Date.now() + 1).toString();
     setMessages((prev) => [...prev, { id: aiMessageId, role: "assistant", content: "" }]);
 
@@ -75,9 +78,7 @@ export default function HelpCenterPage() {
           if (done) break;
           accumulated += decoder.decode(value, { stream: true });
           setMessages((prev) =>
-            prev.map((m) =>
-              m.id === aiMessageId ? { ...m, content: accumulated } : m
-            )
+            prev.map((m) => m.id === aiMessageId ? { ...m, content: accumulated } : m)
           );
         }
       }
@@ -91,6 +92,66 @@ export default function HelpCenterPage() {
       );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMic = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Trình duyệt không hỗ trợ nhận giọng nói. Hãy dùng Chrome hoặc Edge.");
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = "vi-VN";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognitionRef.current = recognition;
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((r: any) => r[0].transcript)
+        .join("");
+      setInput(transcript);
+    };
+    recognition.start();
+  };
+
+  const handleTTS = async (messageId: string, text: string) => {
+    // Stop any playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (playingId === messageId) {
+      setPlayingId(null);
+      return;
+    }
+
+    setPlayingId(messageId);
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error("TTS failed");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => { setPlayingId(null); URL.revokeObjectURL(url); };
+      audio.onerror = () => { setPlayingId(null); };
+      audio.play();
+    } catch {
+      setPlayingId(null);
     }
   };
 
@@ -135,8 +196,22 @@ export default function HelpCenterPage() {
                     {messages.map((m) => (
                       <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[80%] rounded-lg p-4 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                          <div className="font-semibold mb-1 text-sm opacity-70">
-                            {m.role === "user" ? "Bạn" : "AI Assistant"}
+                          <div className="flex items-center justify-between mb-1 gap-2">
+                            <span className="font-semibold text-sm opacity-70">
+                              {m.role === "user" ? "Bạn" : "AI Assistant"}
+                            </span>
+                            {m.role === "assistant" && m.content && (
+                              <button
+                                onClick={() => handleTTS(m.id, m.content)}
+                                className="opacity-50 hover:opacity-100 transition-opacity"
+                                title={playingId === m.id ? "Dừng đọc" : "Nghe AI đọc"}
+                              >
+                                {playingId === m.id
+                                  ? <VolumeX className="w-4 h-4 text-indigo-500" />
+                                  : <Volume2 className="w-4 h-4" />
+                                }
+                              </button>
+                            )}
                           </div>
                           <div className="prose prose-sm dark:prose-invert max-w-none">
                             {m.role === "user" ? (
@@ -160,10 +235,20 @@ export default function HelpCenterPage() {
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ví dụ: Làm sao để xuất bảng lương hàng tháng?"
+                    placeholder={isListening ? "🎙️ Đang nghe..." : "Ví dụ: Làm sao để xuất bảng lương hàng tháng?"}
                     className="flex-1"
                     disabled={isLoading}
                   />
+                  <Button
+                    type="button"
+                    variant={isListening ? "destructive" : "outline"}
+                    onClick={handleMic}
+                    disabled={isLoading}
+                    title={isListening ? "Dừng nghe" : "Nói câu hỏi"}
+                    className={isListening ? "animate-pulse" : ""}
+                  >
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </Button>
                   <Button type="submit" disabled={isLoading || !input.trim()}>
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     <span className="ml-2">Gửi</span>
@@ -176,7 +261,6 @@ export default function HelpCenterPage() {
 
         <TabsContent value="docs" className="h-[calc(100vh-220px)]">
           <Card className="h-full flex overflow-hidden">
-            {/* Sidebar */}
             <div className="w-64 border-r bg-muted/30 shrink-0 flex flex-col">
               <div className="p-4 border-b font-medium text-sm">Danh mục tài liệu</div>
               <ScrollArea className="flex-1">
@@ -185,22 +269,17 @@ export default function HelpCenterPage() {
                     <button
                       key={doc.id}
                       onClick={() => setSelectedDoc(doc)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                        selectedDoc?.id === doc.id
-                          ? "bg-primary text-primary-foreground font-medium"
-                          : "hover:bg-muted"
-                      }`}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedDoc?.id === doc.id ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"}`}
                     >
                       {doc.title}
                     </button>
                   ))}
                   {documents.length === 0 && (
-                    <p className="text-sm text-muted-foreground p-3">Chưa có tài liệu nào. Hãy chạy script đồng bộ.</p>
+                    <p className="text-sm text-muted-foreground p-3">Chưa có tài liệu nào.</p>
                   )}
                 </div>
               </ScrollArea>
             </div>
-            {/* Main content */}
             <div className="flex-1 flex flex-col overflow-hidden">
               {selectedDoc ? (
                 <ScrollArea className="flex-1 p-8">
