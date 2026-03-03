@@ -1,31 +1,10 @@
 'use server';
 
 import { prisma } from "@/lib/prisma";
+import { normalizeIP, isIPMatch } from "@/lib/ip-utils";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-// Helper to normalize IP
-function normalizeIP(ip: string) {
-  if (!ip) return '';
-  if (ip.startsWith('::ffff:')) return ip.substring(7);
-  // if (ip === '::1') return '127.0.0.1'; // Don't convert localhost IPv6 to IPv4 prevents matching if DB has ::1
-  return ip;
-}
-
-function isIPMatch(clientIP: string, allowedPrefixes: string[]) {
-  // if (process.env.NODE_ENV === 'development') return true; // Disabled for strict testing
-
-  const normalizedClient = normalizeIP(clientIP);
-  for (const prefix of allowedPrefixes) {
-    let checkPrefix = prefix;
-    if (checkPrefix.startsWith('::ffff:') && !checkPrefix.includes(':')) {
-      checkPrefix = checkPrefix.substring(7);
-    }
-    // Simple verification
-    if (normalizedClient === checkPrefix || normalizedClient.startsWith(checkPrefix)) return true;
-  }
-  return false;
-}
 
 export async function getIPStatus() {
   const headersList = await headers();
