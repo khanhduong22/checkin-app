@@ -6,17 +6,38 @@ This project uses **Next.js** deployed on **Vercel** with a **Neon (Postgres)** 
 **DO NOT** attempt to deploy this manually to a VPS using PM2 unless explicitly requested for a specific reason.
 
 ## 🔄 Deployment Workflow
-Authentication and deployment are handled automatically via GitHub Integration.
 
-1.  **Develop**: Make changes and test locally (`yarn dev`).
-2.  **Build Check**: Run `yarn build` locally and ensure it passes **WITHOUT ERRORS**.
-    > ⚠️ **CRITICAL**: Do NOT push if the build fails. Fix errors first.
-3.  **Commit**: Commit your changes.
-3.  **Push**: Push to the `main` branch.
-    ```bash
-    git push origin main
-    ```
-4.  **Auto-Deploy**: Vercel will automatically trigger a new build and deployment.
+> [!IMPORTANT]
+> **"Deploy" = TẤT CẢ 5 bước dưới đây, theo đúng thứ tự. Không được bỏ bước nào.**
+
+1. **E2E Tests**: Chạy test suite — phải **100% pass** trước khi tiếp.
+   ```bash
+   npm run test:e2e
+   ```
+
+2. **Build Check**: Build local — phải **0 errors**.
+   ```bash
+   npm run build
+   ```
+   > ⚠️ **CRITICAL**: Do NOT push if the build fails. Fix errors first.
+
+3. **Commit**: Commit các thay đổi với conventional commit.
+   ```bash
+   git add -A
+   git commit -m "feat|fix|chore|test: <mô tả>"
+   ```
+
+4. **Git Push**: Push lên `main`.
+   ```bash
+   git push origin main
+   ```
+
+5. **Vercel Deploy**: Deploy production qua CLI.
+   ```bash
+   vercel --prod
+   ```
+   Confirm URL live sau khi hoàn tất. Cả GitHub lẫn Vercel đều phải reflect commit mới nhất.
+
 
 ## 🛠 Project Configuration
 ### Environment Variables (Vercel)
