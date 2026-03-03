@@ -5,18 +5,18 @@ description: Deploy the application — always runs E2E tests, build check, git 
 # Deploy Workflow
 
 > [!IMPORTANT]
-> "Deploy" ALWAYS means ALL 4 steps below: **test → build → git → vercel**. Never skip any step.
+> **"Deploy" = TẤT CẢ 5 bước dưới đây, theo đúng thứ tự. Không được bỏ bước nào.**
+> Canonical reference: [`DEPLOY.md`](../../DEPLOY.md) tại project root.
 
 // turbo-all
 
-## Step 1: Run E2E Tests
+## Step 1: E2E Tests
 
 ```bash
 npm run test:e2e
 ```
 
-- Must pass **100%** before proceeding.
-- If any test fails, stop and fix before deploying.
+Phải **100% pass** trước khi tiếp. Nếu fail → dừng lại, fix trước.
 
 ## Step 2: Build Check
 
@@ -24,26 +24,25 @@ npm run test:e2e
 npm run build
 ```
 
-- Must compile with **0 errors** (TypeScript + Next.js build).
-- If build fails, stop and fix before deploying.
+Phải compile **0 errors**. Nếu build fail → dừng lại, fix trước.
 
-## Step 3: Git Commit & Push
+## Step 3: Commit
 
 ```bash
 git add -A
-git commit -m "<type>: <description>"
+git commit -m "feat|fix|chore|test|docs: <mô tả>"
+```
+
+## Step 4: Git Push
+
+```bash
 git push origin main
 ```
 
-- Use conventional commit format: `feat:`, `fix:`, `chore:`, `test:`, `docs:`
-- Push to `main` branch (Vercel listens to this branch).
-
-## Step 4: Vercel Production Deploy
+## Step 5: Vercel Deploy
 
 ```bash
 vercel --prod
 ```
 
-- Deploys to production. Vercel CLI must be installed globally (`npm install -g vercel`).
-- Confirm the deployment URL is live after the command completes.
-- Both GitHub and Vercel must show the latest commit deployed.
+Confirm URL live sau khi hoàn tất. Cả GitHub lẫn Vercel đều phải reflect commit mới nhất.
