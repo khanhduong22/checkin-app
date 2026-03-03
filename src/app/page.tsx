@@ -12,10 +12,11 @@ import TourHelpButton from "@/components/TourHelpButton";
 
 export const dynamic = 'force-dynamic';
 
-export default async function Home({ searchParams }: { searchParams: { viewAsUserId?: string } }) {
+export default async function Home({ searchParams }: { searchParams: Promise<{ viewAsUserId?: string }> }) {
     let session = await getServerSession(authOptions)
     let user;
     let isViewAsMode = false;
+    const resolvedSearchParams = await searchParams;
 
     // --- DEV MODE: BYPASS LOGIN ---
     if (!session) {
@@ -33,9 +34,9 @@ export default async function Home({ searchParams }: { searchParams: { viewAsUse
         })
 
         // VIEW AS MODE (Admin Only)
-        if (user?.role === 'ADMIN' && searchParams.viewAsUserId) {
+        if (user?.role === 'ADMIN' && resolvedSearchParams.viewAsUserId) {
             const targetUser = await prisma.user.findUnique({
-                where: { id: searchParams.viewAsUserId },
+                where: { id: resolvedSearchParams.viewAsUserId },
                 include: {
                     checkins: {
                         where: { timestamp: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },

@@ -10,8 +10,8 @@ import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
 
-export default async function EmployeeDetailPage({ params }: { params: { id: string } }) {
-    const userId = params.id;
+export default async function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id: userId } = await params;
 
     const user = await prisma.user.findUnique({
         where: { id: userId },

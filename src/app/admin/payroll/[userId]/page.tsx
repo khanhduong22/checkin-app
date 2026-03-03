@@ -13,8 +13,8 @@ export default async function AdminEmployeePayrollPage({
     params,
     searchParams
 }: {
-    params: { userId: string },
-    searchParams: { month?: string, year?: string }
+    params: Promise<{ userId: string }>,
+    searchParams: Promise<{ month?: string, year?: string }>
 }) {
     let session = await getServerSession(authOptions);
 
@@ -32,13 +32,14 @@ export default async function AdminEmployeePayrollPage({
 
     if (!session || (session.user as any).role !== 'ADMIN') redirect('/');
 
-    const userId = params.userId;
+    const { userId } = await params;
+    const resolvedSearch = await searchParams;
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    const selectedYear = searchParams.year ? parseInt(searchParams.year) : currentYear;
-    const selectedMonth = searchParams.month ? parseInt(searchParams.month) : currentMonth;
+    const selectedYear = resolvedSearch.year ? parseInt(resolvedSearch.year) : currentYear;
+    const selectedMonth = resolvedSearch.month ? parseInt(resolvedSearch.month) : currentMonth;
 
     const targetDate = new Date(selectedYear, selectedMonth - 1, 15);
 
