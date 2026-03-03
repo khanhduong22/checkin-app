@@ -281,3 +281,23 @@ model Payslip {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([userId, month, year])
 }
+
+model Document {
+  id        String          @id @default(cuid())
+  path      String          @unique
+  title     String
+  content   String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  chunks    DocumentChunk[]
+}
+
+model DocumentChunk {
+  id         String                 @id @default(cuid())
+  documentId String
+  content    String
+  embedding  Unsupported("vector")? // pgvector extension
+  createdAt  DateTime               @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}

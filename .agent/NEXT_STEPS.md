@@ -1,30 +1,32 @@
-# Project Status: Transition to PWA + Auth + Push
+# Project Status: Maintenance & Minor Fixes
 
-## Completed in Previous Session
-- [x] **Frontend**:
-    - Installed `vite-plugin-pwa` and configured `vite.config.js`.
-    - Installed `@supabase/supabase-js` and configured `src/lib/supabase.js`.
-    - Created `AuthPage.jsx` and `/auth` route.
-    - Generated VAPID Keys (`frontend/src/lib/pushConfig.js`).
-- [x] **Backend**:
-    - Installed `web-push`.
-    - Fixed `package.json` dependencies (both root and frontend).
-- [x] **Database**:
-    - Created Schema file `sql/auth_and_push_schema.sql` (BUT NOT EXECUTED YET).
+> Dự án đã hoàn thành các tính năng chính. Giai đoạn hiện tại tập trung vào bảo trì, sửa lỗi nhỏ, và cải thiện trải nghiệm.
 
-## Next Steps (For New Thread)
-1.  **Database**:
-    - Execute `sql/auth_and_push_schema.sql` on Supabase SQL Editor to create `push_subscriptions` table.
-2.  **Backend Implementation**:
-    - Create `/api/subscribe` endpoint in `api/index.js` to store subscriptions.
-    - Update `scripts/vps-worker.js` to use `web-push` for sending notifications.
-    - Add private VAPID key to `.env`.
-3.  **Frontend Integration**:
-    - Wire "Enable Notifications" button in `PriceCard.jsx` to call `/api/subscribe`.
-    - Add "Sync Portfolio" logic after Login.
+## Completed Features ✅
+- **Check-in/Check-out**: IP-based geofencing, shift-aware
+- **Admin Dashboard**: Overview, real-time stats, financial forecasting
+- **Payroll**: Role-based salary, audit trails, timezone normalization
+- **Employee Management**: CRUD, role assignment
+- **Schedule/Shifts**: Calendar scheduling, shift configuration
+- **Task Management**: Admin task assignment & tracking
+- **Lucky Wheel (Gacha)**: Gamification with role-based access
+- **Request Management**: Leave/absence requests
+- **Reports**: Attendance & payroll reports
+- **Announcements & Changelog**: Internal comms
+- **Settings**: Holiday config, system settings
+- **Login/Auth**: Supabase-based authentication
 
-## Environment Variables Needed
-- `VITE_SUPABASE_URL` (Frontend)
-- `VITE_SUPABASE_ANON_KEY` (Frontend)
-- `VAPID_PRIVATE_KEY` (Backend)
-- `VAPID_PUBLIC_KEY` (Frontend/Backend)
+## Known Issues to Fix 🔧
+- [ ] `src/lib/stats.ts`: Import lỗi — `isLate` / `checkIsLate` và `GRACE_PERIOD_MINUTES` không tồn tại trong `@/lib/utils`. Cần kiểm tra và export lại đúng hàm.
+- [ ] `src/app/admin/help/page.tsx`: Module not found `ai/react` (hoặc `@ai-sdk/react`) và `@/components/ui/scroll-area`. Tính năng RAG Help Center chưa hoàn thiện — cần cài đúng thư viện hoặc tạm disable trang này.
+
+## Next Steps 🚀
+1. **Upgrade Next.js lên 16.1** (từ 14.1.0) — bao gồm React 19, async API changes, config migration
+2. Fix các lỗi build/runtime ở Known Issues để `yarn dev` chạy sạch
+3. Code cleanup & remove unused imports/files
+4. Cải thiện UX nhỏ khi có feedback
+
+## Notes
+- **Tech Stack**: Next.js 14.1.0, React 18, Supabase, Vercel
+- **Dev server**: `yarn dev` (port 5000)
+- **Alias**: `fedev` = `yarn dev`
