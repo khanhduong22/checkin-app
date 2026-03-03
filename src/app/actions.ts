@@ -28,7 +28,7 @@ function isIPMatch(clientIP: string, allowedPrefixes: string[]) {
 }
 
 export async function getIPStatus() {
-  const headersList = headers();
+  const headersList = await headers();
   const forwardedFor = headersList.get("x-forwarded-for");
   const realIp = forwardedFor ? forwardedFor.split(',')[0].trim() : "127.0.0.1";
 
@@ -48,7 +48,7 @@ export async function getIPStatus() {
 }
 
 export async function performCheckIn(userId: string, type: 'checkin' | 'checkout', note?: string) {
-  const headersList = headers();
+  const headersList = await headers();
   // Vercel / Next.js agnostic IP retrieval
   const forwardedFor = headersList.get("x-forwarded-for");
   const realIp = forwardedFor ? forwardedFor.split(',')[0].trim() : "127.0.0.1";
