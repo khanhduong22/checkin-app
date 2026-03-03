@@ -7,6 +7,9 @@ node_modules
 .coverage
 .env.test.local
 .env.test
+# Playwright (local evidence only — video/screenshots)
+test-results/
+playwright-report/
 
 # Next.js
 .next/
