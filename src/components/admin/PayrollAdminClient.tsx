@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { addAdjustment } from "@/app/actions/payroll";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MoreHorizontal, Plus, FileText, Banknote } from "lucide-react"; 
+import { FileText, Banknote, Download } from "lucide-react"; 
 import PayrollMonthSelector from "@/components/PayrollMonthSelector";
+import { exportFullPayrollXLSX, exportSingleEmployeeXLSX, type PayrollExportUser } from "@/lib/payrollExport";
 export default function PayrollAdminClient({ 
     data, 
     month, 
@@ -59,35 +60,26 @@ export default function PayrollAdminClient({
             return sum + u.stats.totalSalary + bonus;
         }, 0);
 
-    const handleDownloadCSV = () => {
-        const headers = ['Tên', 'Email', 'Loại HĐ', 'Ngày công', 'Nghỉ phép', 'Giờ làm', 'Lương cứng', 'Thưởng %', 'Thưởng/Phạt', 'Thực lãnh'];
-        const rows = filteredData.map(u => {
-            const shouldApply = isClosed ? false : bonusTargets.includes(u.stats.employmentType);
-            const bonusAmount = isClosed 
-                ? (u.stats.bonusAmount || 0) 
-                : (shouldApply ? (u.stats.baseSalary * bonusPercent / 100) : 0);
-            
-            return [
-             `"${u.name}"`,
-             u.email,
-             u.stats.employmentType,
-             u.stats.standardDays ? `"${u.stats.daysWorked}/${u.stats.standardDays}"` : u.stats.daysWorked,
-             u.stats.leaveCount || 0,
-             u.stats.totalHours.toFixed(1),
-             u.stats.baseSalary,
-             bonusAmount,
-             u.stats.totalAdjustments,
-             isClosed ? (u.stats.finalNet || u.stats.totalSalary) : (u.stats.totalSalary + bonusAmount)
-        ]});
-        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `bang_luong_${month}_${year}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleDownloadXLSX = () => {
+        exportFullPayrollXLSX(
+            filteredData as PayrollExportUser[],
+            month,
+            year,
+            isClosed,
+            bonusPercent,
+            bonusTargets
+        );
+    };
+
+    const handleDownloadSingleXLSX = (user: any) => {
+        exportSingleEmployeeXLSX(
+            user as PayrollExportUser,
+            month,
+            year,
+            isClosed,
+            bonusPercent,
+            bonusTargets
+        );
     };
 
     const handleAdd = async (e: React.FormEvent) => {
@@ -128,7 +120,7 @@ export default function PayrollAdminClient({
         router.refresh();
     };
 
-    const f = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+    const f = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Math.round(n));
     
     // Generate options for Month Selector (e.g., last 12 months)
     const monthOptions = [];
@@ -229,9 +221,9 @@ export default function PayrollAdminClient({
                 </div>
 
                 <div className="flex items-end gap-2">
-                    <Button id="payroll-export-btn" variant="outline" onClick={handleDownloadCSV} className="text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100">
+                    <Button id="payroll-export-btn" variant="outline" onClick={handleDownloadXLSX} className="text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100">
                         <FileText className="h-4 w-4 mr-2" />
-                        Xuất Excel
+                        Xuất Excel (tất cả)
                     </Button>
                     
                     {isClosed ? (
@@ -348,6 +340,15 @@ export default function PayrollAdminClient({
                                                 disabled={isClosed}
                                             >
                                                 ±
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 px-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                                                onClick={() => handleDownloadSingleXLSX(user)}
+                                                title="Xuất phiếu lương"
+                                            >
+                                                <Download className="h-3.5 w-3.5" />
                                             </Button>
                                             <Link href={`/admin/employees/${user.id}`}>
                                                 <Button variant="default" size="sm" className="h-8 px-3 text-xs">

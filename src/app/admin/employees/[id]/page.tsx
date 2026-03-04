@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Clock, Calendar, Banknote, Star, AlertTriangle } from "lucide-react";
 import ManualCheckInForm from "@/components/admin/ManualCheckInForm";
+import EmployeePayrollExportButton from "@/components/admin/EmployeePayrollExportButton";
 import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
@@ -44,16 +45,21 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                      <p className="text-muted-foreground">{user.email}</p>
                  </div>
                  <div className="flex gap-2">
-                     <Link href={`/admin/payroll`}>
-                         <Button variant="outline">💰 Xem Lương</Button>
-                     </Link>
-                     <Link href={`/admin/schedule`}>
-                         <Button variant="outline">📅 Xem Lịch</Button>
-                     </Link>
-                     <Link href={`/?viewAsUserId=${userId}`} target="_blank">
-                         <Button variant="default" className="bg-purple-600 hover:bg-purple-700">👀 Xem Dashboard</Button>
-                     </Link>
-                 </div>
+                      <EmployeePayrollExportButton
+                          user={{ name: user.name || '', email: user.email || '', stats: { ...stats, employmentType: stats.employmentType as string || '', adjustments: user.adjustments.map((a: any) => ({ ...a, date: a.date.toISOString() })) } }}
+                          month={new Date().getMonth() + 1}
+                          year={new Date().getFullYear()}
+                      />
+                      <Link href={`/admin/payroll`}>
+                          <Button variant="outline">💰 Xem Lương</Button>
+                      </Link>
+                      <Link href={`/admin/schedule`}>
+                          <Button variant="outline">📅 Xem Lịch</Button>
+                      </Link>
+                      <Link href={`/?viewAsUserId=${userId}`} target="_blank">
+                          <Button variant="default" className="bg-purple-600 hover:bg-purple-700">👀 Xem Dashboard</Button>
+                      </Link>
+                  </div>
             </div>
 
             {/* Quick Stats Cards */}

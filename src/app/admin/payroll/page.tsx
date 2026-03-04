@@ -4,10 +4,11 @@ import PayrollExplanationModal from "@/components/PayrollExplanationModal";
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminPayrollPage({ searchParams }: { searchParams: { month?: string, year?: string } }) {
+export default async function AdminPayrollPage({ searchParams }: { searchParams: Promise<{ month?: string, year?: string }> }) {
+    const params = await searchParams;
     const today = new Date();
-    const month = searchParams.month ? parseInt(searchParams.month) : today.getMonth() + 1;
-    const year = searchParams.year ? parseInt(searchParams.year) : today.getFullYear();
+    const month = params.month ? parseInt(params.month) : today.getMonth() + 1;
+    const year = params.year ? parseInt(params.year) : today.getFullYear();
 
     // 1. Get Payroll Period Status
     const period = await prisma.payrollPeriod.findUnique({
