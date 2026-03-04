@@ -17,6 +17,7 @@ export default function AdminNavLinks() {
         { href: "/admin/payroll", label: "💰 Bảng Lương" },
         { href: "/admin/lucky-wheel", label: "🎰 Vòng quay" },
         { href: "/admin/tasks", label: "📝 Quản lý WFH" },
+        { href: "/admin/manager-tasks", label: "🗂️ Manager Tasks" },
         { href: "/admin/settings", label: "⚙️ Cấu hình (IP)" },
         { href: "/admin/help", label: "🤖 AI Trợ giúp" },
     ];
