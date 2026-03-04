@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import PayrollAdminClient from "@/components/admin/PayrollAdminClient";
 import PayrollExplanationModal from "@/components/PayrollExplanationModal";
+import { BulkSendPayslipButton } from "@/components/admin/BulkSendPayslipButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -33,9 +34,10 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
                 id: p.userId,
                 name: p.user.name,
                 email: p.user.email,
-                stats: content, // The snapshot content has the same structure as stats
-                recentAdjustments: [], // Snapshot should ideally have this, or we rely on content.adjustments
-                isSnapshot: true
+                stats: content,
+                recentAdjustments: [],
+                isSnapshot: true,
+                emailSentAt: p.emailSentAt,
             };
         });
     } else {
@@ -51,7 +53,7 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
         });
 
         const { getUserMonthlyStats } = await import("@/lib/stats");
-        const targetDate = new Date(year, month - 1, 15); // Middle of month to be safe
+        const targetDate = new Date(year, month - 1, 15);
 
         payrollData = await Promise.all(users.map(async (u) => {
             const stats = await getUserMonthlyStats(u.id, targetDate);
@@ -66,7 +68,8 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
                     reason: a.reason,
                     date: a.date.toISOString()
                 })),
-                isSnapshot: false
+                isSnapshot: false,
+                emailSentAt: null,
             };
         }));
     }
@@ -80,7 +83,17 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
                         {isClosed ? `Bảng lương tháng ${month}/${year} (Đã chốt)` : `Bảng lương tạm tính tháng ${month}/${year}`}
                      </p>
                 </div>
-                <PayrollExplanationModal />
+                <div className="flex items-center gap-2">
+                    {isClosed && (
+                        <BulkSendPayslipButton
+                            month={month}
+                            year={year}
+                            isClosed={isClosed}
+                            payslipCount={payrollData.length}
+                        />
+                    )}
+                    <PayrollExplanationModal />
+                </div>
             </div>
             
             <PayrollAdminClient 
