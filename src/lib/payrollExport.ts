@@ -51,10 +51,24 @@ const fmtTime = (d: Date | null) => {
 const fmtDate = (d: string | Date) =>
   new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-function applyHeaderStyle(ws: XLSX.WorkSheet, range: string) {
-  // SheetJS CE doesn't support cell styling but we can set column widths
-  void ws; void range;
+
+/**
+ * Apply Excel number format '#,##0' (e.g. 71,577) to all numeric cells
+ * in the given 0-based column indices, skipping the header rows.
+ */
+function applyNumberFormat(ws: XLSX.WorkSheet, colIndices: number[], skipRows: number) {
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  for (let R = range.s.r + skipRows; R <= range.e.r; R++) {
+    for (const C of colIndices) {
+      const addr = XLSX.utils.encode_cell({ r: R, c: C });
+      const cell = ws[addr];
+      if (cell && cell.t === 'n') {
+        cell.z = '#,##0';
+      }
+    }
+  }
 }
+
 
 // ─── Sheet builders ───────────────────────────────────────────────────────────
 
@@ -140,7 +154,9 @@ function buildSummarySheet(
     { wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }
   ];
 
-  applyHeaderStyle(ws, 'A3:J3');
+  // Apply #,##0 format to salary columns (G=6, H=7, I=8, J=9), skip 3 header rows
+  applyNumberFormat(ws, [6, 7, 8, 9], 3);
+
   return ws;
 }
 
@@ -224,6 +240,14 @@ function buildEmployeeDetailSheet(
     { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 10 },
     { wch: 8 }, { wch: 20 }, { wch: 25 }
   ];
+
+  // Summary section: col B (index 1) has VND values, skip 3 header rows (title, subtitle, blank)
+  applyNumberFormat(ws, [1], 3);
+  // Daily detail section: col F (index 5) = salary, starts after ~11 summary rows
+  // Apply broadly to col 1 and col 5 across entire sheet — safe since only numbers get formatted
+  applyNumberFormat(ws, [5], 10);
+  // Adjustments section col 2 (index 2) = amount
+  applyNumberFormat(ws, [2], 10);
 
   return ws;
 }
