@@ -1,7 +1,9 @@
 import { getTaskDefinitions, getPendingTasks, getTaskItems } from "@/actions/task-actions";
+import { getUsers } from "@/actions/kanban-actions";
 import { TaskDefinitionList } from "./_components/task-definition-list";
 import { TaskReviewList } from "./_components/task-review-list";
 import { TaskItemList } from "./_components/task-item-list";
+import { KanbanBoard } from "./_components/kanban/KanbanBoard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -15,6 +17,8 @@ export default async function AdminTasksPage() {
   const definitions = definitionsRes.success ? definitionsRes.data || [] : [];
   const pendingTasks = pendingTasksRes.success ? pendingTasksRes.data || [] : [];
   const taskItems = taskItemsRes.success ? taskItemsRes.data || [] : [];
+  const usersRes = await getUsers();
+  const users = usersRes.success ? usersRes.data || [] : [];
 
   return (
     <div className="container mx-auto py-8 space-y-8">
@@ -22,13 +26,19 @@ export default async function AdminTasksPage() {
         <h1 className="text-3xl font-bold">Task Management</h1>
       </div>
 
-      <Tabs defaultValue="review">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger id="tab-trigger-review" value="review">Review Pending Tasks ({pendingTasks.length})</TabsTrigger>
+      <Tabs defaultValue="kanban">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger id="tab-trigger-kanban" value="kanban">🗂️ Kanban Board</TabsTrigger>
+          <TabsTrigger id="tab-trigger-review" value="review">Review Pending ({pendingTasks.length})</TabsTrigger>
           <TabsTrigger id="tab-trigger-definitions" value="definitions">Task Definitions</TabsTrigger>
-          <TabsTrigger id="tab-trigger-items" value="items">Task Items ({taskItems.length})</TabsTrigger>
+          <TabsTrigger id="tab-trigger-items" value="items">Marketplace ({taskItems.length})</TabsTrigger>
         </TabsList>
-        
+
+        <TabsContent value="kanban">
+          <div className="pt-2">
+            <KanbanBoard initialItems={taskItems as any} users={users as any} />
+          </div>
+        </TabsContent>
         <TabsContent value="review">
           <Card>
             <CardHeader>
