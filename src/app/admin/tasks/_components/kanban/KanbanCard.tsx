@@ -69,17 +69,16 @@ export function KanbanCard({ item, onClick, isDragging: isDraggingOverlay }: Kan
             <span className="truncate max-w-[90px]">{item.assignee?.name ?? "Chưa assign"}</span>
           </div>
 
-          {item.deadline && (
-            <div className={cn(
-              "flex items-center gap-0.5 text-[10px] rounded px-1.5 py-0.5 font-mono shrink-0",
-              deadlineStatus === "overdue" && "bg-red-100 text-red-600",
-              deadlineStatus === "soon" && "bg-yellow-100 text-yellow-700",
-              deadlineStatus === "ok" && "bg-gray-100 text-gray-500",
-            )}>
-              <Calendar className="h-2.5 w-2.5" />
-              {format(new Date(item.deadline), "dd/MM")}
-            </div>
-          )}
+          <div className={cn(
+            "flex items-center gap-0.5 text-[10px] rounded px-1.5 py-0.5 font-mono shrink-0",
+            deadlineStatus === "overdue" && "bg-red-100 text-red-600",
+            deadlineStatus === "soon" && "bg-yellow-100 text-yellow-700",
+            deadlineStatus === "ok" && "bg-gray-100 text-gray-500",
+            !deadlineStatus && "text-muted-foreground/50",
+          )}>
+            <Calendar className="h-2.5 w-2.5" />
+            {item.deadline ? format(new Date(item.deadline), "dd/MM/yyyy") : "—"}
+          </div>
         </div>
 
         {/* Reward */}
