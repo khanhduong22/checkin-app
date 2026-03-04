@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = 'force-dynamic';
 
-export default async function TasksPage({ searchParams }: { searchParams?: { tab?: string } }) {
+export default async function TasksPage({ searchParams }: { searchParams?: Promise<{ tab?: string }> }) {
   const availableTasksRes = await getAvailableTasks();
   const availableItemsRes = await getAvailableTaskItems();
   const userTasksRes = await getUserTasks();
@@ -17,7 +17,8 @@ export default async function TasksPage({ searchParams }: { searchParams?: { tab
   const availableItems = availableItemsRes.success ? availableItemsRes.data || [] : [];
   const userTasks = userTasksRes.success ? userTasksRes.data || [] : [];
 
-  const defaultTab = searchParams?.tab || "market";
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const defaultTab = resolvedSearchParams?.tab || "market";
 
   return (
     <div className="container mx-auto py-8 space-y-8">

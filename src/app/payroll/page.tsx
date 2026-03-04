@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
-export default async function PayrollPage({ searchParams }: { searchParams: { month?: string, year?: string } }) {
+export default async function PayrollPage({ searchParams }: { searchParams: Promise<{ month?: string, year?: string }> }) {
     const session = await getServerSession(authOptions);
     if (!session) redirect('/login');
 
@@ -18,8 +18,9 @@ export default async function PayrollPage({ searchParams }: { searchParams: { mo
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    const selectedYear = searchParams.year ? parseInt(searchParams.year) : currentYear;
-    const selectedMonth = searchParams.month ? parseInt(searchParams.month) : currentMonth;
+    const resolvedParams = await searchParams;
+    const selectedYear = resolvedParams.year ? parseInt(resolvedParams.year) : currentYear;
+    const selectedMonth = resolvedParams.month ? parseInt(resolvedParams.month) : currentMonth;
 
     const targetDate = new Date(selectedYear, selectedMonth - 1, 15);
 

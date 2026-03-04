@@ -9,10 +9,11 @@ import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 
-export default async function ReportsPage({ searchParams }: { searchParams: { month?: string, year?: string } }) {
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ month?: string, year?: string }> }) {
     const now = new Date();
-    const month = searchParams.month ? parseInt(searchParams.month) : now.getMonth() + 1;
-    const year = searchParams.year ? parseInt(searchParams.year) : now.getFullYear();
+    const resolvedParams = await searchParams;
+    const month = resolvedParams.month ? parseInt(resolvedParams.month) : now.getMonth() + 1;
+    const year = resolvedParams.year ? parseInt(resolvedParams.year) : now.getFullYear();
 
     const report = await getMonthlyReport(month, year);
     const payroll = await calculatePayroll(month, year); // To get Top Hours
