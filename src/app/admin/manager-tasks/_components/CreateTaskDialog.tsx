@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,13 +22,19 @@ interface CreateTaskDialogProps {
 }
 
 export function CreateTaskDialog({ open, onClose, users, defaultQuadrant, onCreated }: CreateTaskDialogProps) {
+  const todayEod = (() => {
+    const d = new Date();
+    d.setHours(23, 59, 0, 0);
+    return format(d, "yyyy-MM-dd'T'HH:mm");
+  })();
+
   const [form, setForm] = useState({
     title: "",
     description: "",
     isUrgent: defaultQuadrant?.isUrgent ?? false,
     isImportant: defaultQuadrant?.isImportant ?? true,
     assigneeId: "none",
-    deadline: "",
+    deadline: (defaultQuadrant?.isUrgent || defaultQuadrant?.isImportant) ? todayEod : "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -74,14 +81,26 @@ export function CreateTaskDialog({ open, onClose, users, defaultQuadrant, onCrea
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <div className="flex items-center justify-between mb-1">
                 <Label className="text-xs font-semibold text-red-700">🔥 Khẩn cấp</Label>
-                <Switch checked={form.isUrgent} onCheckedChange={v => setForm(f => ({ ...f, isUrgent: v }))} />
+                <Switch checked={form.isUrgent} onCheckedChange={v => {
+                  setForm(f => ({
+                    ...f,
+                    isUrgent: v,
+                    deadline: v && !f.deadline ? todayEod : f.deadline,
+                  }));
+                }} />
               </div>
               <p className="text-[10px] text-red-500">Cần làm ngay hôm nay</p>
             </div>
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <div className="flex items-center justify-between mb-1">
                 <Label className="text-xs font-semibold text-yellow-700">⭐ Quan trọng</Label>
-                <Switch checked={form.isImportant} onCheckedChange={v => setForm(f => ({ ...f, isImportant: v }))} />
+                <Switch checked={form.isImportant} onCheckedChange={v => {
+                  setForm(f => ({
+                    ...f,
+                    isImportant: v,
+                    deadline: v && !f.deadline ? todayEod : f.deadline,
+                  }));
+                }} />
               </div>
               <p className="text-[10px] text-yellow-500">Ảnh hưởng đến mục tiêu</p>
             </div>
