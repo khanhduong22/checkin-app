@@ -5,6 +5,7 @@ import { getUserMonthlyStats } from "@/lib/stats";
 import { prisma } from "@/lib/prisma";
 import PayrollDetailView from "@/components/PayrollDetailView";
 import PayrollMonthSelector from "@/components/PayrollMonthSelector";
+import { SendPayslipButton } from "@/components/admin/SendPayslipButton";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -91,16 +92,25 @@ export default async function AdminEmployeePayrollPage({
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-2">
-                <Link href="/admin/payroll">
-                    <Button variant="ghost" size="icon">
-                        <ChevronLeft className="h-5 w-5" />
-                    </Button>
-                </Link>
-                <div>
-                    <h1 className="text-xl font-bold">Chi tiết lương nhân viên</h1>
-                    <p className="text-sm text-muted-foreground">Nhân viên: {targetUser.name}</p>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Link href="/admin/payroll">
+                        <Button variant="ghost" size="icon">
+                            <ChevronLeft className="h-5 w-5" />
+                        </Button>
+                    </Link>
+                    <div>
+                        <h1 className="text-xl font-bold">Chi tiết lương nhân viên</h1>
+                        <p className="text-sm text-muted-foreground">Nhân viên: {targetUser.name}</p>
+                    </div>
                 </div>
+                <SendPayslipButton
+                    userId={userId}
+                    month={selectedMonth}
+                    year={selectedYear}
+                    emailSentAt={payslip?.emailSentAt ?? null}
+                    hasPayslip={isClosed}
+                />
             </div>
 
             <div className="bg-white p-4 rounded-xl shadow-sm border max-w-md">
