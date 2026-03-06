@@ -1,7 +1,7 @@
 {
     "alias": [
-        "checkin-app-vert.vercel.app",
-        "checkin-app-jx6n.vercel.app"
+        "checkin-app-jx6n.vercel.app",
+        "checkin-lim-art.vercel.app"
     ],
     "crons": [
         {
