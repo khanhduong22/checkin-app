@@ -1,4 +1,8 @@
 {
+    "alias": [
+        "checkin-app-vert.vercel.app",
+        "checkin-app-jx6n.vercel.app"
+    ],
     "crons": [
         {
             "path": "/api/cron/birthday-bonus",
