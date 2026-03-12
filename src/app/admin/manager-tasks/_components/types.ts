@@ -27,6 +27,7 @@ export const QUADRANT_META = {
 export const STATUS_COLUMNS = [
   { id: "TODO", label: "📋 TODO" },
   { id: "DOING", label: "🔄 Đang làm" },
+  { id: "PENDING", label: "⏳ Pending" },
   { id: "DONE", label: "✅ Xong" },
   { id: "DELEGATED", label: "👥 Đã giao" },
 ];
