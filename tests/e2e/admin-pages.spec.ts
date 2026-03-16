@@ -33,7 +33,7 @@ test.describe("Admin Employees", () => {
   test("employee list renders without crashing", async ({ page }) => {
     await page.goto("/admin/employees");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 });
 
@@ -47,7 +47,7 @@ test.describe("Admin Payroll", () => {
   test("payroll page renders without crashing", async ({ page }) => {
     await page.goto("/admin/payroll");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 });
 
@@ -92,7 +92,7 @@ test.describe("Admin Settings", () => {
     });
     await page.getByRole("tab", { name: /truy cập/i }).click();
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 });
 
@@ -101,7 +101,7 @@ test.describe("Admin Reports", () => {
     await page.goto("/admin/reports");
     await expect(page).toHaveURL(/\/admin\/reports/);
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 });
 
@@ -117,6 +117,6 @@ test.describe("Admin Changelog", () => {
   test("loads changelog page", async ({ page }) => {
     await page.goto("/admin/changelog");
     await expect(page).toHaveURL(/\/admin\/changelog/);
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 });

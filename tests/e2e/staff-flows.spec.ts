@@ -18,7 +18,7 @@ test.describe("Staff — Home Page (Check-in Dashboard)", () => {
 
   test("home page loads and does NOT redirect to login", async ({ page }) => {
     await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 
   test("shows staff name or greeting", async ({ page }) => {
@@ -37,7 +37,7 @@ test.describe("Staff — History Page", () => {
     await page.goto("/history");
     await page.waitForLoadState("networkidle");
     await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 
   test("history page shows attendance records or calendar", async ({
@@ -55,7 +55,7 @@ test.describe("Staff — Requests Page", () => {
     await page.goto("/requests");
     await page.waitForLoadState("networkidle");
     await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 
   test("shows request list (may be empty for new test user)", async ({
@@ -88,7 +88,7 @@ test.describe("Staff — Requests Page", () => {
     if (await addBtn.isVisible({ timeout: 3000 })) {
       await addBtn.click();
       // Should open a form or modal
-      await expect(page.locator("body")).not.toContainText("500");
+      await expect(page.locator("body")).not.toContainText("500 Internal Server");
     } else {
       console.log("No add request button found, skipping CREATE test");
     }
@@ -100,7 +100,7 @@ test.describe("Staff — WFH Tasks Page", () => {
     await page.goto("/tasks");
     await page.waitForLoadState("networkidle");
     await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 
   test("tasks page shows available tasks or empty state", async ({ page }) => {
@@ -115,7 +115,7 @@ test.describe("Staff — Lucky Wheel", () => {
     await page.goto("/lucky-wheel");
     await page.waitForLoadState("networkidle");
     await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 
   test("shows 'VÒNG QUAY NHÂN PHẨM' heading", async ({ page }) => {

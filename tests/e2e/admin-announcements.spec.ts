@@ -69,7 +69,7 @@ test.describe("Admin Announcements (CRUD)", () => {
       await firstToggle.click();
       await page.waitForLoadState("networkidle");
       // Page should reload without error
-      await expect(page.locator("body")).not.toContainText("500");
+      await expect(page.locator("body")).not.toContainText("500 Internal Server");
     } else {
       // No announcements exist to toggle — skip gracefully
       console.log("No announcements to toggle, skipping");

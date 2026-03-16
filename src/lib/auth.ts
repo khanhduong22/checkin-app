@@ -13,6 +13,10 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account, profile, email, credentials }) {
+      console.log('SignIn Callback Debug:', { user, account, profile, email, credentials });
+      return true;
+    },
     async session({ session, user }) {
       if (session.user) {
         session.user.role = user.role;
@@ -36,6 +40,18 @@ export const authOptions: NextAuthOptions = {
           data: { role: 'ADMIN' }
         })
       }
+    }
+  },
+  debug: true,
+  logger: {
+    error(code, metadata) {
+      console.error('NextAuth Error:', code, metadata)
+    },
+    warn(code) {
+      console.warn('NextAuth Warning:', code)
+    },
+    debug(code, metadata) {
+      console.log('NextAuth Debug:', code, metadata)
     }
   }
 }

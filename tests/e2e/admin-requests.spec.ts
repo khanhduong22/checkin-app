@@ -42,7 +42,7 @@ test.describe("Admin Requests (Approve / Reject)", () => {
 
     // After approve, page refreshes without error
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 });
 

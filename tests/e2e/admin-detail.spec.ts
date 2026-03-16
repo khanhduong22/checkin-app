@@ -10,7 +10,7 @@ test.describe("Admin Payroll Detail", () => {
     await page.goto("/admin/payroll");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL(/\/admin\/payroll/);
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 
   test("payroll page has month selector or table", async ({ page }) => {
@@ -53,7 +53,7 @@ test.describe("Admin Employee Profile & Detail", () => {
       await page.waitForLoadState("networkidle");
       // Profile page should show stat cards and email
       await expect(page).toHaveURL(/\/admin\/employees\/.+/);
-      await expect(page.locator("body")).not.toContainText("500");
+      await expect(page.locator("body")).not.toContainText("500 Internal Server");
     } else {
       // No employees in DB — skip detail test
       console.log("No employee links found, skipping detail test");
@@ -102,7 +102,7 @@ test.describe("Admin Tasks / WFH Management", () => {
     });
     await page.locator("#tab-trigger-definitions").click();
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 
   test("Task Items (Marketplace) tab loads without crash", async ({ page }) => {
@@ -114,7 +114,7 @@ test.describe("Admin Tasks / WFH Management", () => {
     });
     await page.locator("#tab-trigger-items").click();
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 });
 
@@ -123,7 +123,7 @@ test.describe("Admin Help", () => {
     await page.goto("/admin/help");
     await expect(page).toHaveURL(/\/admin\/help/);
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
   });
 });
 

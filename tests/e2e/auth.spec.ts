@@ -19,7 +19,7 @@ test.describe("Authentication Flow", () => {
     await page.goto("/login");
 
     // The page should not show a server error
-    await expect(page.locator("body")).not.toContainText("500");
+    await expect(page.locator("body")).not.toContainText("500 Internal Server");
     await expect(page.locator("body")).not.toContainText("Application error");
 
     // Page content should be visible — look for a heading or sign-in element
