@@ -19,6 +19,7 @@ export function ManagerTasksClient({ initialTasks, users }: ManagerTasksClientPr
   const [view, setView] = useState<"matrix" | "kanban">("matrix");
   const [selectedTask, setSelectedTask] = useState<MTask | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [showFutureTasks, setShowFutureTasks] = useState(false);
   const [defaultQuadrant, setDefaultQuadrant] = useState<{ isUrgent: boolean; isImportant: boolean } | undefined>();
 
   function handleCreated(task: MTask) {
@@ -47,6 +48,14 @@ export function ManagerTasksClient({ initialTasks, users }: ManagerTasksClientPr
   }
 
   const donePct = tasks.length > 0 ? Math.round(tasks.filter(t => t.status === "DONE").length / tasks.length * 100) : 0;
+  
+  const now = new Date();
+  const visibleTasks = tasks.filter(t => {
+    if (showFutureTasks) return true;
+    if (!t.startDate) return true;
+    return new Date(t.startDate) <= now;
+  });
+  const futureTasksCount = tasks.length - visibleTasks.length;
 
   return (
     <div className="space-y-4">
@@ -61,6 +70,17 @@ export function ManagerTasksClient({ initialTasks, users }: ManagerTasksClientPr
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {futureTasksCount > 0 && (
+            <Button 
+              variant={showFutureTasks ? "default" : "outline"}
+              size="sm" 
+              onClick={() => setShowFutureTasks(!showFutureTasks)}
+              className="px-2"
+            >
+              Task Tương Lai ({futureTasksCount})
+            </Button>
+          )}
+
           {/* View toggle */}
           <div className="flex bg-gray-100 rounded-lg p-0.5">
             <button
@@ -85,7 +105,7 @@ export function ManagerTasksClient({ initialTasks, users }: ManagerTasksClientPr
       {/* Views */}
       {view === "matrix" ? (
         <MatrixView
-          tasks={tasks}
+          tasks={visibleTasks}
           users={users}
           onTaskClick={setSelectedTask}
           onAddClick={handleAddFromQuadrant}
@@ -93,7 +113,7 @@ export function ManagerTasksClient({ initialTasks, users }: ManagerTasksClientPr
         />
       ) : (
         <ManagerKanbanBoard
-          tasks={tasks}
+          tasks={visibleTasks}
           users={users}
           onTaskClick={setSelectedTask}
           onTaskUpdate={handleUpdate}

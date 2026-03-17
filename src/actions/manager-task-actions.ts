@@ -13,6 +13,7 @@ type ManagerTaskInput = {
   status?: string;
   assigneeId?: string | null;
   parentId?: string | null;
+  startDate?: Date | null;
   deadline?: Date | null;
 };
 

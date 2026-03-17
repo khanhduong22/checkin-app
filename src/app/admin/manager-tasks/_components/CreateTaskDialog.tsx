@@ -34,6 +34,7 @@ export function CreateTaskDialog({ open, onClose, users, defaultQuadrant, onCrea
     isUrgent: defaultQuadrant?.isUrgent ?? false,
     isImportant: defaultQuadrant?.isImportant ?? true,
     assigneeId: "none",
+    startDate: "",
     deadline: (defaultQuadrant?.isUrgent || defaultQuadrant?.isImportant) ? todayEod : "",
   });
   const [loading, setLoading] = useState(false);
@@ -48,13 +49,14 @@ export function CreateTaskDialog({ open, onClose, users, defaultQuadrant, onCrea
         isUrgent: form.isUrgent,
         isImportant: form.isImportant,
         assigneeId: form.assigneeId === "none" ? null : form.assigneeId,
+        startDate: form.startDate ? new Date(form.startDate) : null,
         deadline: form.deadline ? new Date(form.deadline) : null,
         status: form.assigneeId !== "none" ? "DELEGATED" : "TODO",
       });
       if (res.success && res.data) {
         onCreated(res.data as MTask);
         onClose();
-        setForm({ title: "", description: "", isUrgent: false, isImportant: true, assigneeId: "none", deadline: "" });
+        setForm({ title: "", description: "", isUrgent: false, isImportant: true, assigneeId: "none", startDate: "", deadline: "" });
         toast.success("Đã tạo task");
       } else {
         toast.error(res.error || "Lỗi");
@@ -117,9 +119,15 @@ export function CreateTaskDialog({ open, onClose, users, defaultQuadrant, onCrea
             </Select>
           </div>
 
-          <div className="space-y-1">
-            <Label>Deadline</Label>
-            <Input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Ngày bắt đầu (Tương lai)</Label>
+              <Input type="datetime-local" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>Deadline</Label>
+              <Input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
+            </div>
           </div>
 
           <div className="space-y-1">

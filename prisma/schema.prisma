@@ -314,6 +314,7 @@ model ManagerTask {
   status      String   @default("TODO")  // TODO, DOING, DONE, DELEGATED
   assigneeId  String?
   parentId    String?
+  startDate   DateTime?
   deadline    DateTime?
   createdById String
   createdAt   DateTime @default(now())

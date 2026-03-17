@@ -24,7 +24,7 @@ interface TaskDetailDrawerProps {
 }
 
 export function TaskDetailDrawer({ task, users, onClose, onUpdate, onDelete }: TaskDetailDrawerProps) {
-  const [form, setForm] = useState({ title: "", description: "", isUrgent: false, isImportant: false, status: "TODO", assigneeId: "none", deadline: "" });
+  const [form, setForm] = useState({ title: "", description: "", isUrgent: false, isImportant: false, status: "TODO", assigneeId: "none", startDate: "", deadline: "" });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showSubs, setShowSubs] = useState(false);
@@ -37,6 +37,7 @@ export function TaskDetailDrawer({ task, users, onClose, onUpdate, onDelete }: T
       isImportant: task.isImportant,
       status: task.status,
       assigneeId: task.assigneeId ?? "none",
+      startDate: task.startDate ? format(new Date(task.startDate), "yyyy-MM-dd'T'HH:mm") : "",
       deadline: task.deadline ? format(new Date(task.deadline), "yyyy-MM-dd'T'HH:mm") : "",
     });
   }, [task]);
@@ -57,6 +58,7 @@ export function TaskDetailDrawer({ task, users, onClose, onUpdate, onDelete }: T
         isImportant: form.isImportant,
         status: form.status,
         assigneeId: form.assigneeId === "none" ? null : form.assigneeId,
+        startDate: form.startDate ? new Date(form.startDate) : null,
         deadline: form.deadline ? new Date(form.deadline) : null,
       });
       if (res.success && res.data) {
@@ -133,10 +135,16 @@ export function TaskDetailDrawer({ task, users, onClose, onUpdate, onDelete }: T
             </Select>
           </div>
 
-          {/* Deadline */}
-          <div className="space-y-1">
-            <Label className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Deadline</Label>
-            <Input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Ngày bắt đầu</Label>
+              <Input type="datetime-local" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Deadline</Label>
+              <Input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
+            </div>
           </div>
 
           {/* Description */}
