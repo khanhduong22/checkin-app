@@ -43,13 +43,20 @@ function MKCard({ task, onClick }: { task: MTask; onClick: () => void }) {
             <User className="h-2.5 w-2.5" />
             {task.assignee?.name ?? "—"}
           </span>
-          <span className={cn(
-            "text-[10px] font-mono flex items-center gap-0.5",
-            task.deadline && isPast(new Date(task.deadline)) && task.status !== "DONE" ? "text-red-500" : "text-muted-foreground"
-          )}>
-            <Calendar className="h-2.5 w-2.5" />
-            {task.deadline ? format(new Date(task.deadline), "dd/MM/yyyy") : "—"}
-          </span>
+          <div className="flex items-center gap-1">
+            {task.startDate && new Date(task.startDate) > new Date() && (
+              <Badge variant="outline" className="text-[9px] px-1 py-0 bg-purple-50 text-purple-600 border-purple-200">
+                Tương lai
+              </Badge>
+            )}
+            <span className={cn(
+              "text-[10px] font-mono flex items-center gap-0.5",
+              task.deadline && isPast(new Date(task.deadline)) && task.status !== "DONE" ? "text-red-500" : "text-muted-foreground"
+            )}>
+              <Calendar className="h-2.5 w-2.5" />
+              {task.deadline ? format(new Date(task.deadline), "dd/MM/yyyy") : "—"}
+            </span>
+          </div>
         </div>
       </button>
     </div>

@@ -6,6 +6,7 @@ export type MTask = ManagerTask & {
   assignee: MUser | null;
   createdBy: MUser;
   subtasks: (ManagerTask & { assignee: MUser | null })[];
+  startDate?: Date | null;
 };
 
 export type Quadrant = "q1" | "q2" | "q3" | "q4";

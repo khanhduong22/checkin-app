@@ -50,12 +50,16 @@ export function ManagerTasksClient({ initialTasks, users }: ManagerTasksClientPr
   const donePct = tasks.length > 0 ? Math.round(tasks.filter(t => t.status === "DONE").length / tasks.length * 100) : 0;
   
   const now = new Date();
+  
+  const futureTasksCount = tasks.filter(t => {
+    return t.startDate && new Date(t.startDate) > now;
+  }).length;
+  
   const visibleTasks = tasks.filter(t => {
     if (showFutureTasks) return true;
     if (!t.startDate) return true;
     return new Date(t.startDate) <= now;
   });
-  const futureTasksCount = tasks.length - visibleTasks.length;
 
   return (
     <div className="space-y-4">

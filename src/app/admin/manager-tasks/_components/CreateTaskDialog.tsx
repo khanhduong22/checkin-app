@@ -122,7 +122,11 @@ export function CreateTaskDialog({ open, onClose, users, defaultQuadrant, onCrea
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Ngày bắt đầu (Tương lai)</Label>
-              <Input type="datetime-local" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+              <Input type="datetime-local" value={form.startDate} onChange={e => {
+                let val = e.target.value;
+                if (val.length === 10) val += "T00:00";
+                setForm(f => ({ ...f, startDate: val }));
+              }} />
             </div>
             <div className="space-y-1">
               <Label>Deadline</Label>

@@ -79,6 +79,11 @@ function MatrixCard({ task, onClick, onToggleDone }: {
                   📅 {format(new Date(task.deadline), "dd/MM")}
                 </span>
               )}
+              {task.startDate && new Date(task.startDate) > new Date() && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 bg-purple-50 text-purple-600 border-purple-200">
+                  Tương lai
+                </Badge>
+              )}
               {task.status === "DELEGATED" && <Badge variant="outline" className="text-[10px] px-1 py-0">👥</Badge>}
             </div>
           </div>
