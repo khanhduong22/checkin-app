@@ -94,8 +94,18 @@ export default function PayrollAdminClient({
 
         setIsSubmitting(true);
         try {
-            const result = await addAdjustment(selectedUser.id, parsedAmount, reason);
-            if (!result.success) {
+            const res = await fetch('/api/admin/adjustments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: selectedUser.id,
+                    amount: parsedAmount,
+                    reason
+                })
+            });
+            const result = await res.json();
+            
+            if (!res.ok || !result.success) {
                 alert(result.error || "Gặp lỗi lưu trữ.");
                 return;
             }
@@ -103,12 +113,10 @@ export default function PayrollAdminClient({
             setAmount('');
             setReason('');
             setSelectedUser(null);
-            // Router.refresh is no longer strictly needed here since server action revalidates,
-            // but Next 13/14 still sometimes needs it, so we'll leave it
             router.refresh(); 
         } catch (error: any) {
             console.error("Lỗi khi thêm: ", error);
-            alert("Đã có lỗi mạng/hệ thống xảy ra.");
+            alert("Đã có lỗi mạng/hệ thống xảy ra. Vui lòng thử lại.");
         } finally {
             setIsSubmitting(false);
         }
