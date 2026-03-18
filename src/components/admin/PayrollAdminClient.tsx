@@ -94,14 +94,21 @@ export default function PayrollAdminClient({
 
         setIsSubmitting(true);
         try {
-            await addAdjustment(selectedUser.id, parsedAmount, reason);
+            const result = await addAdjustment(selectedUser.id, parsedAmount, reason);
+            if (!result.success) {
+                alert(result.error || "Gặp lỗi lưu trữ.");
+                return;
+            }
+            
             setAmount('');
             setReason('');
             setSelectedUser(null);
-            router.refresh(); // Refresh page to re-calculate stats
+            // Router.refresh is no longer strictly needed here since server action revalidates,
+            // but Next 13/14 still sometimes needs it, so we'll leave it
+            router.refresh(); 
         } catch (error: any) {
             console.error("Lỗi khi thêm: ", error);
-            alert("Đã có lỗi xảy ra: " + (error?.message || "Không thể thực hiện."));
+            alert("Đã có lỗi mạng/hệ thống xảy ra.");
         } finally {
             setIsSubmitting(false);
         }

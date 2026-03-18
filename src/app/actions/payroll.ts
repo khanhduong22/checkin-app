@@ -3,15 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getUserMonthlyStats } from "@/lib/stats";
 import { revalidatePath } from "next/cache";
-import fs from 'fs';
-
 export async function addAdjustment(userId: string, amount: number, reason: string) {
-  const log = (msg: string) => {
-    try { fs.appendFileSync('server-action.log', new Date().toISOString() + ' : ' + msg + '\n'); } catch(e){}
-    console.log(msg);
-  };
-  
-  log(`[addAdjustment] Called with userId=${userId}, amount=${amount}, reason=${reason}`);
   try {
     const result = await prisma.payrollAdjustment.create({
       data: {
@@ -20,14 +12,16 @@ export async function addAdjustment(userId: string, amount: number, reason: stri
         reason
       }
     });
-    log(`[addAdjustment] Successfully created record: ${result.id}`);
 
-    log(`[addAdjustment] skipping revalidate paths to prevent deadlock`);
+    revalidatePath('/admin/payroll');
+    revalidatePath('/'); // Update user homepage
     
-    return { success: true, timestamp: Date.now() };
+    return { success: true };
   } catch (error: any) {
-    log(`[addAdjustment] Server Action Error: ` + error?.message);
-    throw new Error("Failed to add adjustment on the server.");
+    console.error(`[addAdjustment] Server Action Error: `, error);
+    // Instead of throwing an error that Next.js might fail to serialize or catch correctly,
+    // we return a standard object that the client can parse.
+    return { success: false, error: "Lỗi hệ thống: " + (error?.message || "Không thể thực hiện lưu.") };
   }
 }
 
