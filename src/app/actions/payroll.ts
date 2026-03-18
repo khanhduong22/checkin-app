@@ -3,24 +3,32 @@
 import { prisma } from "@/lib/prisma";
 import { getUserMonthlyStats } from "@/lib/stats";
 import { revalidatePath } from "next/cache";
+import fs from 'fs';
 
 export async function addAdjustment(userId: string, amount: number, reason: string) {
-  // Check if month is closed? 
-  // Ideally we should check if the CURRENT month is closed. 
-  // But adjustment date is "now". So if "now" falls in a closed month, we block?
-  // For now, let's assume UI handles the blocking.
+  const log = (msg: string) => {
+    try { fs.appendFileSync('server-action.log', new Date().toISOString() + ' : ' + msg + '\n'); } catch(e){}
+    console.log(msg);
+  };
+  
+  log(`[addAdjustment] Called with userId=${userId}, amount=${amount}, reason=${reason}`);
+  try {
+    const result = await prisma.payrollAdjustment.create({
+      data: {
+        userId,
+        amount,
+        reason
+      }
+    });
+    log(`[addAdjustment] Successfully created record: ${result.id}`);
 
-  await prisma.payrollAdjustment.create({
-    data: {
-      userId,
-      amount,
-      reason
-    }
-  });
-
-  revalidatePath('/admin/payroll');
-  revalidatePath('/'); // Update user homepage
-  return { success: true };
+    log(`[addAdjustment] skipping revalidate paths to prevent deadlock`);
+    
+    return { success: true, timestamp: Date.now() };
+  } catch (error: any) {
+    log(`[addAdjustment] Server Action Error: ` + error?.message);
+    throw new Error("Failed to add adjustment on the server.");
+  }
 }
 
 import { EmploymentType } from "@prisma/client";

@@ -85,13 +85,26 @@ export default function PayrollAdminClient({
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedUser) return;
+
+        const parsedAmount = parseInt(amount, 10);
+        if (isNaN(parsedAmount)) {
+            alert("Số tiền không hợp lệ.");
+            return;
+        }
+
         setIsSubmitting(true);
-        await addAdjustment(selectedUser.id, parseInt(amount), reason);
-        setIsSubmitting(false);
-        setAmount('');
-        setReason('');
-        setSelectedUser(null);
-        router.refresh(); // Refresh page to re-calculate stats
+        try {
+            await addAdjustment(selectedUser.id, parsedAmount, reason);
+            setAmount('');
+            setReason('');
+            setSelectedUser(null);
+            router.refresh(); // Refresh page to re-calculate stats
+        } catch (error: any) {
+            console.error("Lỗi khi thêm: ", error);
+            alert("Đã có lỗi xảy ra: " + (error?.message || "Không thể thực hiện."));
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleUpdateBonus = async () => {
