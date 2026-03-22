@@ -103,7 +103,7 @@ export async function getMonthlyReport(month: number, year: number) {
   const report = Object.values(userStats);
 
   return {
-    topLate: report.sort((a, b) => b.totalLateMinutes - a.totalLateMinutes).slice(0, 5),
-    topEarlyBird: report.filter(u => u.earliestCheckin).sort((a, b) => a.earliestCheckin - b.earliestCheckin).slice(0, 3)
+    topLate: report.sort((a, b) => b.totalLateMinutes - a.totalLateMinutes),
+    topEarlyBird: report.filter((u: any) => u.earliestCheckin).sort((a: any, b: any) => a.earliestCheckin - b.earliestCheckin).slice(0, 3)
   };
 }

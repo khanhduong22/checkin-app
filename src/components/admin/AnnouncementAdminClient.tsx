@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { createAnnouncement, toggleAnnouncement } from "@/app/actions/announcement";
+import { createAnnouncement, toggleAnnouncement, deleteAnnouncement } from "@/app/actions/announcement";
 import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch"; 
 
@@ -46,6 +46,11 @@ export default function AnnouncementAdminClient({ announcements }: { announcemen
         router.refresh();
     };
 
+    const handleDelete = async (id: string) => {
+        if (!confirm("Bạn có chắc chắn muốn xóa thông báo này?")) return;
+        await deleteAnnouncement(id);
+        router.refresh();
+    };
     return (
         <div className="space-y-6">
             <Button id="announcement-new-btn" onClick={() => setIsOpen(true)}>📢 Đăng thông báo mới</Button>
@@ -72,6 +77,13 @@ export default function AnnouncementAdminClient({ announcements }: { announcemen
                                     onClick={() => handleToggle(a.id, a.active)}
                                 >
                                     {a.active ? 'Tắt' : 'Bật'}
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    variant="destructive"
+                                    onClick={() => handleDelete(a.id)}
+                                >
+                                    Xóa
                                 </Button>
                             </div>
                         </CardContent>

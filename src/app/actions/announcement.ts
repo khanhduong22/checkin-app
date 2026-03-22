@@ -29,3 +29,15 @@ export async function toggleAnnouncement(id: string, active: boolean) {
   revalidatePath('/');
   return { success: true, message: "Đã cập nhật!" };
 }
+
+export async function deleteAnnouncement(id: string) {
+  const session = await getServerSession(authOptions);
+  // @ts-ignore
+  if (session?.user?.role !== 'ADMIN') return { success: false, message: "Forbidden" };
+
+  await prisma.announcement.delete({
+    where: { id }
+  });
+  revalidatePath('/');
+  return { success: true, message: "Đã xóa thông báo!" };
+}
