@@ -152,7 +152,8 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
               </CardHeader>
               <CardContent>
                 <p>Quantity: {task.quantity} {task.taskDefinition.unit}</p>
-                <p className="text-sm text-muted-foreground truncate">Ref: {task.evidenceLink}</p>
+                {task.note && <p className="text-sm text-emerald-700 mt-1 font-medium">Ghi chú: {task.note}</p>}
+                <p className="text-sm text-muted-foreground truncate mt-1">Ref: {task.evidenceLink}</p>
               </CardContent>
             </Card>
           ))}
@@ -181,6 +182,12 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
                     )}
                   </div>
                 </div>
+                {task.note && (
+                  <div className="text-sm bg-muted/50 p-2 rounded border border-l-4 border-l-blue-400">
+                    <span className="font-semibold block text-xs uppercase text-muted-foreground mb-1">Ghi chú của bạn</span>
+                    {task.note}
+                  </div>
+                )}
                 {task.adminNote && (
                   <div className="text-sm bg-muted p-2 rounded border border-l-4 border-l-orange-400">
                     <span className="font-semibold block text-xs uppercase text-muted-foreground mb-1">Admin Note</span>
