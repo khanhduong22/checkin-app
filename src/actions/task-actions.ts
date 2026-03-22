@@ -382,7 +382,10 @@ export async function reviewTask(userTaskId: string, decision: "APPROVED" | "REJ
     const session = await getServerSession(authOptions);
     if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
-    const task = await prisma.userTask.findUnique({ where: { id: userTaskId } });
+    const task = await prisma.userTask.findUnique({ 
+      where: { id: userTaskId },
+      include: { taskDefinition: true, taskItem: true }
+    });
     if (!task) return { success: false, error: "Task not found" };
 
     // Calculate final amount if approved
@@ -427,11 +430,13 @@ export async function reviewTask(userTaskId: string, decision: "APPROVED" | "REJ
     // It seems safer to create a PayrollAdjustment so it shows up in existing financial reports instantly.
 
     if (decision === "APPROVED") {
+      const taskName = task.taskItem?.title || task.taskDefinition?.name || "Unknown Task";
+      const noteSuffix = task.note ? ` (${task.note})` : "";
       await prisma.payrollAdjustment.create({
         data: {
           userId: task.userId,
           amount: Math.round(finalAmount), // PayrollAdjustment uses Int
-          reason: `WFH Task: ${updated.quantity}x (Ref: ${task.id})`,
+          reason: `Task: ${taskName} - ${updated.quantity}x${noteSuffix}`,
         }
       });
     }
