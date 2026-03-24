@@ -27,7 +27,7 @@ export async function addAdjustment(userId: string, amount: number, reason: stri
 
 import { EmploymentType } from "@prisma/client";
 
-export async function closePayrollMonth(month: number, year: number, bonusPercent: number, targets: EmploymentType[] = ['PART_TIME']) {
+export async function closePayrollMonth(month: number, year: number, bonusPercent: number, targets: EmploymentType[] = ['PART_TIME'], excludedBonusUsers: string[] = []) {
   // 1. Get all users
   const users = await prisma.user.findMany({});
 
@@ -38,7 +38,7 @@ export async function closePayrollMonth(month: number, year: number, bonusPercen
     const stats = await getUserMonthlyStats(u.id, targetDate);
 
     // Calculate Final Net with Bonus
-    const shouldApplyBonus = targets.includes(u.employmentType);
+    const shouldApplyBonus = targets.includes(u.employmentType) && !excludedBonusUsers.includes(u.id);
     const bonusAmount = shouldApplyBonus ? stats.baseSalary * (bonusPercent / 100) : 0;
     const finalNet = stats.totalSalary + bonusAmount;
 
@@ -61,8 +61,8 @@ export async function closePayrollMonth(month: number, year: number, bonusPercen
     // Create/Update Period
     await tx.payrollPeriod.upsert({
       where: { month_year: { month, year } },
-      create: { month, year, status: 'CLOSED', bonusPercent, bonusTargets: targets },
-      update: { status: 'CLOSED', bonusPercent, bonusTargets: targets }
+      create: { month, year, status: 'CLOSED', bonusPercent, bonusTargets: targets, excludedBonusUsers },
+      update: { status: 'CLOSED', bonusPercent, bonusTargets: targets, excludedBonusUsers }
     });
 
     // Create/Update Payslips
@@ -89,11 +89,11 @@ export async function closePayrollMonth(month: number, year: number, bonusPercen
   return { success: true };
 }
 
-export async function updatePayrollBonus(month: number, year: number, bonusPercent: number, targets: EmploymentType[] = ['PART_TIME']) {
+export async function updatePayrollBonus(month: number, year: number, bonusPercent: number, targets: EmploymentType[] = ['PART_TIME'], excludedBonusUsers: string[] = []) {
   await prisma.payrollPeriod.upsert({
     where: { month_year: { month, year } },
-    create: { month, year, bonusPercent, bonusTargets: targets },
-    update: { bonusPercent, bonusTargets: targets }
+    create: { month, year, bonusPercent, bonusTargets: targets, excludedBonusUsers },
+    update: { bonusPercent, bonusTargets: targets, excludedBonusUsers }
   });
   revalidatePath('/admin/payroll');
   return { success: true };

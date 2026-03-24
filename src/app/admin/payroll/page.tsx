@@ -18,6 +18,7 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
 
     const isClosed = period?.status === 'CLOSED';
     const bonusPercent = period?.bonusPercent || 0;
+    const excludedBonusUsers = period?.excludedBonusUsers || [];
 
     let payrollData = [];
 
@@ -104,6 +105,7 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
                 isClosed={isClosed} 
                 initialBonusPercent={bonusPercent}
                 initialBonusTargets={(period?.bonusTargets as any) || ['PART_TIME']}
+                initialExcludedUsers={excludedBonusUsers}
             />
         </div>
     );

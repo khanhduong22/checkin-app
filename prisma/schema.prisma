@@ -263,6 +263,7 @@ model PayrollPeriod {
   status       String   @default("OPEN") // OPEN, CLOSED, LOCKED
   bonusPercent Float            @default(0) // Global bonus for the month
   bonusTargets EmploymentType[] @default([PART_TIME])
+  excludedBonusUsers String[]   @default([])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

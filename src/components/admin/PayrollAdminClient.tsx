@@ -15,14 +15,16 @@ export default function PayrollAdminClient({
     year, 
     isClosed, 
     initialBonusPercent,
-    initialBonusTargets = ['PART_TIME']
+    initialBonusTargets = ['PART_TIME'],
+    initialExcludedUsers = []
 }: { 
     data: any[], 
     month: number, 
     year: number, 
     isClosed: boolean, 
     initialBonusPercent: number,
-    initialBonusTargets?: string[]
+    initialBonusTargets?: string[],
+    initialExcludedUsers?: string[]
 }) {
     const router = useRouter();
     const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -34,6 +36,7 @@ export default function PayrollAdminClient({
     // Bonus & Close Logic
     const [bonusPercent, setBonusPercent] = useState(initialBonusPercent);
     const [bonusTargets, setBonusTargets] = useState<string[]>(initialBonusTargets);
+    const [excludedUsers, setExcludedUsers] = useState<string[]>(initialExcludedUsers || []);
     const [showTargetDropdown, setShowTargetDropdown] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
     const [isUpdatingBonus, setIsUpdatingBonus] = useState(false);
@@ -42,7 +45,8 @@ export default function PayrollAdminClient({
     useEffect(() => {
         setBonusPercent(initialBonusPercent);
         setBonusTargets(initialBonusTargets);
-    }, [initialBonusPercent, initialBonusTargets]);
+        setExcludedUsers(initialExcludedUsers || []);
+    }, [initialBonusPercent, initialBonusTargets, initialExcludedUsers]);
 
     const filteredData = data.filter(u => 
         u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -55,7 +59,7 @@ export default function PayrollAdminClient({
     const totalWithBonus = isClosed 
         ? filteredData.reduce((sum, u) => sum + (u.stats.finalNet || u.stats.totalSalary), 0)
         : filteredData.reduce((sum, u) => {
-            const shouldApply = bonusTargets.includes(u.stats.employmentType);
+            const shouldApply = bonusTargets.includes(u.stats.employmentType) && !excludedUsers.includes(u.id);
             const bonus = shouldApply ? (u.stats.baseSalary * bonusPercent / 100) : 0;
             return sum + u.stats.totalSalary + bonus;
         }, 0);
@@ -125,7 +129,7 @@ export default function PayrollAdminClient({
     const handleUpdateBonus = async () => {
         setIsUpdatingBonus(true);
         const { updatePayrollBonus } = await import("@/app/actions/payroll");
-        await updatePayrollBonus(month, year, bonusPercent, bonusTargets as any);
+        await updatePayrollBonus(month, year, bonusPercent, bonusTargets as any, excludedUsers);
         setIsUpdatingBonus(false);
         router.refresh();
     };
@@ -134,7 +138,7 @@ export default function PayrollAdminClient({
         if (!confirm(`Bạn có chắc chắn muốn CHỐT lương tháng ${month}/${year}? Dữ liệu sẽ được lưu trữ và không thể chỉnh sửa.`)) return;
         setIsClosing(true);
         const { closePayrollMonth } = await import("@/app/actions/payroll");
-        await closePayrollMonth(month, year, bonusPercent, bonusTargets as any);
+        await closePayrollMonth(month, year, bonusPercent, bonusTargets as any, excludedUsers);
         setIsClosing(false);
         router.refresh();
     };
@@ -183,11 +187,11 @@ export default function PayrollAdminClient({
                                         min={0}
                                         max={100}
                                     />
-                                    <Button 
+                                        <Button 
                                         size="sm" 
                                         variant="ghost" 
                                         onClick={handleUpdateBonus} 
-                                        disabled={isUpdatingBonus || (bonusPercent === initialBonusPercent && JSON.stringify(bonusTargets) === JSON.stringify(initialBonusTargets))}
+                                        disabled={isUpdatingBonus || (bonusPercent === initialBonusPercent && JSON.stringify(bonusTargets) === JSON.stringify(initialBonusTargets) && JSON.stringify(excludedUsers) === JSON.stringify(initialExcludedUsers || []))}
                                         title="Lưu thưởng"
                                     >
                                         {isUpdatingBonus ? "..." : "Lưu"}
@@ -285,7 +289,9 @@ export default function PayrollAdminClient({
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[250px]">Nhân viên</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground">Giờ công</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right">Lương</th>
-                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right">Thưởng {bonusPercent}%</th>
+                                <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-center" colSpan={2}>
+                                    Thưởng {bonusPercent}%
+                                </th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground w-[150px]">Thưởng / Phạt</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right w-[150px]">Tổng cộng</th>
                                 <th className="h-12 px-4 align-middle font-medium text-muted-foreground text-right w-[140px]">Thao tác</th>
@@ -293,7 +299,7 @@ export default function PayrollAdminClient({
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
                             {filteredData.map((user) => {
-                                const shouldApply = !isClosed && bonusTargets.includes(user.stats.employmentType);
+                                const shouldApply = !isClosed && bonusTargets.includes(user.stats.employmentType) && !excludedUsers.includes(user.id);
                                 const bonusAmount = isClosed
                                     ? (user.stats.bonusAmount || 0)
                                     : (shouldApply ? (user.stats.baseSalary * bonusPercent / 100) : 0);
@@ -336,6 +342,20 @@ export default function PayrollAdminClient({
                                     </td>
                                     <td className="p-4 align-middle text-right font-medium text-gray-700">
                                         {f(user.stats.baseSalary)}
+                                    </td>
+                                    <td className="p-4 align-middle text-center w-8">
+                                        {!isClosed && bonusTargets.includes(user.stats.employmentType) && (
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                checked={!excludedUsers.includes(user.id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) setExcludedUsers(excludedUsers.filter(id => id !== user.id));
+                                                    else setExcludedUsers([...excludedUsers, user.id]);
+                                                }}
+                                                title="Tích để nhận thưởng, bỏ tích để loại khỏi thưởng"
+                                            />
+                                        )}
                                     </td>
                                     <td className="p-4 align-middle text-right font-medium text-blue-600">
                                         {bonusAmount > 0 ? "+" : ""}{f(bonusAmount)}
@@ -390,7 +410,7 @@ export default function PayrollAdminClient({
                         </tbody>
                         <tfoot className="bg-muted font-bold text-sm">
                             <tr>
-                                <td colSpan={5} className="p-4 text-right uppercase">Tổng cộng ({filteredData.length} nhân viên):</td>
+                                <td colSpan={6} className="p-4 text-right uppercase">Tổng cộng ({filteredData.length} nhân viên):</td>
                                 <td className="p-4 text-emerald-600 font-bold text-lg text-right">
                                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalWithBonus)}
                                 </td>
