@@ -47,9 +47,9 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
 
   const openSubmit = (task: UserTaskWithDef) => {
     setSubmittingTask(task);
-    setQuantity(1);
-    setEvidenceLink("");
-    setNote("");
+    setQuantity(task.quantity || 1);
+    setEvidenceLink(task.evidenceLink || "");
+    setNote(task.note || "");
   };
 
   const handleSubmit = async () => {
@@ -195,6 +195,13 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
                   </div>
                 )}
               </CardContent>
+              {task.status === "REJECTED" && (
+                <CardFooter className="pt-0">
+                  <Button onClick={() => openSubmit(task)} className="w-full" variant="outline">
+                    <Upload className="mr-2 h-4 w-4" /> Sửa &amp; Gửi lại
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
           ))}
         </TabsContent>

@@ -337,7 +337,9 @@ export async function submitTask(userTaskId: string, data: { quantity: number; e
 
     if (!userTask) return { success: false, error: "Task not found" };
     if (userTask.userId !== session.user.id) return { success: false, error: "Unauthorized" };
-    if (userTask.status !== "PENDING") return { success: false, error: "Task is not in PENDING state" };
+    if (userTask.status !== "PENDING" && userTask.status !== "REJECTED") {
+      return { success: false, error: "Task is not in PENDING or REJECTED state" };
+    }
 
     const updated = await prisma.userTask.update({
       where: { id: userTaskId },
