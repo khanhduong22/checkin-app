@@ -388,6 +388,10 @@ export async function reviewTask(userTaskId: string, decision: "APPROVED" | "REJ
     });
     if (!task) return { success: false, error: "Task not found" };
 
+    if (task.status !== "SUBMITTED") {
+      return { success: false, error: "Task has already been processed or is not pending review" };
+    }
+
     // Calculate final amount if approved
     let finalAmount = 0;
     if (decision === "APPROVED") {

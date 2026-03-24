@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, X, ExternalLink } from "lucide-react";
+import { Check, X, ExternalLink, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 type UserTaskWithRelations = UserTask & {
@@ -44,9 +44,11 @@ export function TaskReviewList({ initialTasks }: TaskReviewListProps) {
   // Review form state
   const [bonusPenalty, setBonusPenalty] = useState(0);
   const [adminNote, setAdminNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleReview = async (decision: "APPROVED" | "REJECTED") => {
-      if (!reviewingTask) return;
+      if (!reviewingTask || isSubmitting) return;
+      setIsSubmitting(true);
 
       try {
           const result = await reviewTask(reviewingTask.id, decision, {
@@ -65,6 +67,8 @@ export function TaskReviewList({ initialTasks }: TaskReviewListProps) {
           }
       } catch (error) {
           toast.error("An error occurred");
+      } finally {
+          setIsSubmitting(false);
       }
   };
 
@@ -209,12 +213,14 @@ export function TaskReviewList({ initialTasks }: TaskReviewListProps) {
           )}
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="destructive" onClick={() => handleReview("REJECTED")}>
-                <X className="mr-2 h-4 w-4" /> Reject
+            <Button variant="destructive" onClick={() => handleReview("REJECTED")} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                Reject
             </Button>
             <div className="flex-1"></div>
-            <Button variant="default" onClick={() => handleReview("APPROVED")}>
-                <Check className="mr-2 h-4 w-4" /> Approve
+            <Button variant="default" onClick={() => handleReview("APPROVED")} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                Approve
             </Button>
           </DialogFooter>
         </DialogContent>
