@@ -63,6 +63,9 @@ async function fetchUserData(userId: string, startDate: Date, endDate: Date) {
       adjustments: {
         where: {
           date: { gte: startDate, lte: endDate }
+        },
+        orderBy: {
+          date: 'desc'
         }
       }
     }

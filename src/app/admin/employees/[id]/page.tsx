@@ -46,7 +46,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                  </div>
                  <div className="flex gap-2">
                       <EmployeePayrollExportButton
-                          user={{ name: user.name || '', email: user.email || '', stats: { ...stats, employmentType: stats.employmentType as string || '', adjustments: user.adjustments.map((a: any) => ({ ...a, date: a.date.toISOString() })) } }}
+                          user={{ name: user.name || '', email: user.email || '', stats: { ...stats, employmentType: stats.employmentType as string || '', adjustments: stats.adjustments.map((a: any) => ({ ...a, date: a.date.toISOString() })) } }}
                           month={new Date().getMonth() + 1}
                           year={new Date().getFullYear()}
                       />
@@ -86,7 +86,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                          <div className={`text-2xl font-bold ${stats.totalAdjustments > 0 ? 'text-emerald-600' : stats.totalAdjustments < 0 ? 'text-red-500' : ''}`}>
                              {stats.totalAdjustments > 0 ? '+' : ''}{f(stats.totalAdjustments)}
                          </div>
-                         <p className="text-xs text-muted-foreground">{user.adjustments.length} giao dịch</p>
+                         <p className="text-xs text-muted-foreground">{stats.adjustments.length} giao dịch</p>
                      </CardContent>
                  </Card>
                  <Card>
@@ -163,8 +163,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                              <CardTitle>Lịch sử Thưởng/Phạt</CardTitle>
                          </CardHeader>
                          <CardContent className="space-y-4">
-                             {user.adjustments.length === 0 && <p className="text-sm text-muted-foreground">Chưa có dữ liệu.</p>}
-                             {user.adjustments.map((adj) => (
+                             {stats.adjustments.length === 0 && <p className="text-sm text-muted-foreground">Chưa có dữ liệu.</p>}
+                             {stats.adjustments.map((adj) => (
                                  <div key={adj.id} className="flex justify-between items-start border-b pb-3 last:border-0 last:pb-0">
                                      <div>
                                          <p className="font-medium text-sm">{adj.reason}</p>
