@@ -21,6 +21,7 @@ interface DailyDetail {
 
 export interface MonthlyStats {
   totalHours: number;
+  totalOvertimeHours: number;
   daysWorked: number;
   checkinCount: number;
   baseSalary: number;
@@ -196,6 +197,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
 
   // 4. Daily Loop
   let totalHours = 0;
+  let totalOvertimeHours = 0;
   const dailyDetails: DailyDetail[] = [];
   const allDates = new Set([...Object.keys(checkinsByDay), ...Array.from(wfhMap.keys())]);
 
@@ -264,7 +266,19 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
       errorMsg = 'Quên Check-out';
     }
 
-    if (dayHours > 0) totalHours += dayHours;
+    let scheduledHours = user.employmentType === 'FULL_TIME' ? 8 : 0;
+    let canEarnOT = user.employmentType === 'FULL_TIME' || !!shift;
+    
+    if (shift) {
+      scheduledHours = (shift.end.getTime() - shift.start.getTime()) / (1000 * 60 * 60);
+    }
+
+    if (dayHours > 0) {
+      totalHours += dayHours;
+      if (canEarnOT && dayHours > scheduledHours) {
+        totalOvertimeHours += (dayHours - scheduledHours);
+      }
+    }
 
     // WFH Logic
     if (wfhMap.has(date)) {
@@ -327,6 +341,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
 
   return {
     totalHours,
+    totalOvertimeHours,
     daysWorked: daysWorked.size,
     checkinCount: checkins.length,
     baseSalary,

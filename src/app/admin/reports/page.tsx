@@ -23,6 +23,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         .sort((a, b) => b.totalHours - a.totalHours)
         .slice(0, 3);
 
+    const topOvertime = [...payroll]
+        .filter((p: any) => p.totalOvertimeHours && p.totalOvertimeHours > 0)
+        .sort((a, b) => b.totalOvertimeHours - a.totalOvertimeHours)
+        .slice(0, 3);
+
     // Format time helper (8.5 -> 08:30)
     const formatTimeVal = (val: number) => {
         if (!val) return '--:--';
@@ -59,7 +64,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             </div>
             
             {/* 🏆 HERO SECTION: HALL OF FAME */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card id="report-top-hardworking" className="bg-gradient-to-br from-yellow-50 to-orange-50 border-orange-200">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-orange-700">
@@ -131,6 +136,41 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                                 </div>
                             ))}
                             {report.topEarlyBird.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có ai check-in.</div>}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card id="report-top-overtime" className="bg-gradient-to-br from-rose-50 to-pink-50 border-pink-200">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-pink-700">
+                            🔥 Top Cày Cuốc (OT)
+                        </CardTitle>
+                        <CardDescription>Nhân viên có số giờ làm thêm cao nhất</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {topOvertime.map((u: any, idx) => (
+                                <div key={u.id} className="flex items-center justify-between bg-white/60 p-3 rounded-lg shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`
+                                            flex items-center justify-center w-8 h-8 rounded-full font-bold text-white
+                                            ${idx === 0 ? 'bg-pink-500' : idx === 1 ? 'bg-gray-400' : 'bg-red-900'}
+                                        `}>
+                                            {idx + 1}
+                                        </div>
+                                        <div>
+                                            <div className="font-bold">
+                                                <Link href={`/admin/employees/${u.id}`} className="hover:underline">
+                                                    {u.name}
+                                                </Link>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">{u.daysWorked} ngày công</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-xl font-bold text-pink-600">{u.totalOvertimeHours.toFixed(1)}h</div>
+                                </div>
+                            ))}
+                            {topOvertime.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có ai làm thêm giờ.</div>}
                         </div>
                     </CardContent>
                 </Card>
