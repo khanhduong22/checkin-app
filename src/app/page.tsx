@@ -277,8 +277,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                         </div>
 
                         {/* Gacha Game */}
-                        <div id="home-gacha" className="pt-2">
+                        <div id="home-gacha" className="pt-2 space-y-3">
                             <GachaButton userId={user?.id!} hasCheckedIn={!!hasCheckedInToday} isAdmin={user?.role === 'ADMIN'} />
+                            <a href="/rewards" className="block w-full">
+                                <Button variant="outline" className="w-full h-11 text-sm font-bold border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 text-orange-700 hover:from-yellow-100 hover:to-orange-100 shadow-sm transition-all hover:scale-[1.01]">
+                                    🏆 Bảng Vàng & Khen Thưởng
+                                </Button>
+                            </a>
                         </div>
 
                         {/* Sticky Notes Widget */}
@@ -319,11 +324,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                                 <a href="/packing" className="block w-full">
                                     <Button variant="default" className="w-full text-xs bg-purple-600 hover:bg-purple-700 text-white">
                                         📦 Ghi nhận Đóng gói
-                                    </Button>
-                                </a>
-                                <a href="/rewards" className="block w-full col-span-2">
-                                    <Button variant="outline" className="w-full text-xs border-yellow-300 bg-yellow-50 text-yellow-800 hover:bg-yellow-100">
-                                        🏆 Bảng Vàng & Khen Thưởng
                                     </Button>
                                 </a>
                             </div>
