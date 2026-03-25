@@ -362,42 +362,6 @@ export async function submitTask(userTaskId: string, data: { quantity: number; e
   }
 }
 
-export async function directSubmitTask(taskDefId: string, data: { quantity: number; note?: string }) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return { success: false, error: "Unauthorized" };
-
-    const taskDef = await prisma.taskDefinition.findUnique({
-      where: { id: taskDefId },
-    });
-
-    if (!taskDef || !taskDef.active) {
-      return { success: false, error: "Task definition not found or inactive" };
-    }
-
-    const userTask = await prisma.userTask.create({
-      data: {
-        userId: session.user.id,
-        taskDefId: taskDefId,
-        unitPrice: taskDef.baseReward,
-        status: "SUBMITTED",
-        submittedAt: new Date(),
-        quantity: data.quantity,
-        note: data.note,
-        evidenceLink: "",
-      },
-    });
-
-    revalidatePath("/packing");
-    revalidatePath("/tasks");
-    revalidatePath("/admin/tasks");
-    return { success: true, data: { id: userTask.id } };
-  } catch (error: any) {
-    console.error("Error direct submitting task:", error);
-    return { success: false, error: error.message || "Failed to submit task" };
-  }
-}
-
 // --- Admin Review Actions ---
 
 export async function getPendingTasks() {

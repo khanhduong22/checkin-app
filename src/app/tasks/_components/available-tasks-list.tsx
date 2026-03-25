@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { TaskDefinition } from "@prisma/client";
-import { startTask, directSubmitTask } from "@/actions/task-actions";
+import { startTask } from "@/actions/task-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardFooter, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -47,10 +47,19 @@ export function AvailableTasksList({ tasks }: AvailableTasksListProps) {
 
     setIsSubmitting(true);
     try {
-      const result = await directSubmitTask(submittingTask.id, {
-        quantity,
-        note
+      const resp = await fetch('/api/packing/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          taskDefId: submittingTask.id,
+          quantity,
+          note
+        })
       });
+
+      const result = await resp.json();
 
       if (result.success) {
         toast.success("Khai báo Đóng Gói thành công! Đơn đang chờ duyệt.");
