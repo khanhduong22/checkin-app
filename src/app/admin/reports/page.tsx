@@ -18,7 +18,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     const report = await getMonthlyReport(month, year);
     const payroll = await calculatePayroll(month, year); // To get Top Hours
 
-    const topHardworking = [...payroll].sort((a, b) => b.totalHours - a.totalHours).slice(0, 3);
+    const topHardworking = [...payroll]
+        .filter((p: any) => p.employmentType !== 'FULL_TIME')
+        .sort((a, b) => b.totalHours - a.totalHours)
+        .slice(0, 3);
 
     // Format time helper (8.5 -> 08:30)
     const formatTimeVal = (val: number) => {

@@ -16,6 +16,7 @@ export async function calculatePayroll(month: number, year: number) {
       email: user.email,
       image: user.image,
       role: user.role,
+      employmentType: user.employmentType,
       // Mapping stats to Payroll format
       ...stats
     };
