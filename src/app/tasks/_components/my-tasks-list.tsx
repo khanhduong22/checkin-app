@@ -35,6 +35,7 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
   const [tasks, setTasks] = useState(initialTasks);
   const [submittingTask, setSubmittingTask] = useState<UserTaskWithDef | null>(null);
   const [viewingTask, setViewingTask] = useState<UserTaskWithDef | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Submission Form
   const [quantity, setQuantity] = useState(1);
@@ -53,7 +54,7 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
   };
 
   const handleSubmit = async () => {
-    if (!submittingTask) return;
+    if (!submittingTask || isSubmitting) return;
 
     const isPacking = submittingTask.taskDefinition?.unit === 'điểm';
     if (!isPacking && !evidenceLink) {
@@ -61,6 +62,7 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const result = await submitTask(submittingTask.id, {
         quantity,
@@ -82,6 +84,8 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
       }
     } catch (error) {
       toast.error("An error occurred");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -258,7 +262,9 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleSubmit}>Submit</Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? "Đang xử lý..." : "Submit"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
