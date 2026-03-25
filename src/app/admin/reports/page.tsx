@@ -28,6 +28,31 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         .sort((a, b) => b.totalOvertimeHours - a.totalOvertimeHours)
         .slice(0, 3);
 
+    // Leaderboard Vua Đóng Hàng
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    const pointTasks = await prisma.userTask.findMany({
+        where: {
+            status: "APPROVED",
+            updatedAt: { gte: startDate, lte: endDate },
+            taskDefinition: { unit: 'điểm' }
+        },
+        include: { user: true }
+    });
+
+    const userPointsMap: Record<string, { id: string, name: string, points: number }> = {};
+    for (const pt of pointTasks) {
+        if (!userPointsMap[pt.userId]) {
+            userPointsMap[pt.userId] = { id: pt.user.id, name: pt.user.name || '', points: 0 };
+        }
+        userPointsMap[pt.userId].points += (pt.finalAmount || 0);
+    }
+
+    const topPacking = Object.values(userPointsMap)
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 3);
+
     // Format time helper (8.5 -> 08:30)
     const formatTimeVal = (val: number) => {
         if (!val) return '--:--';
@@ -64,7 +89,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             </div>
             
             {/* 🏆 HERO SECTION: HALL OF FAME */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card id="report-top-hardworking" className="bg-gradient-to-br from-yellow-50 to-orange-50 border-orange-200">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-orange-700">
@@ -171,6 +196,45 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                                 </div>
                             ))}
                             {topOvertime.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có ai làm thêm giờ.</div>}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card id="report-top-packing" className="bg-gradient-to-br from-indigo-50 to-purple-50 border-purple-200">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-purple-700">
+                            📦 Vua Đóng Hàng
+                        </CardTitle>
+                        <CardDescription>Điểm đóng gói lớn (Top 1 được 100K)</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {topPacking.map((u, idx) => (
+                                <div key={u.id} className="flex items-center justify-between bg-white/60 p-3 rounded-lg shadow-sm relative overflow-hidden">
+                                    {idx === 0 && (
+                                        <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg whitespace-nowrap">
+                                            +100K VND
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-3">
+                                        <div className={`
+                                            flex items-center justify-center w-8 h-8 rounded-full font-bold text-white
+                                            ${idx === 0 ? 'bg-purple-500' : idx === 1 ? 'bg-gray-400' : 'bg-purple-900'}
+                                        `}>
+                                            {idx + 1}
+                                        </div>
+                                        <div>
+                                            <div className="font-bold">
+                                                <Link href={`/admin/employees/${u.id}`} className="hover:underline">
+                                                    {u.name}
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-xl font-bold text-purple-600">{u.points}đ</div>
+                                </div>
+                            ))}
+                            {topPacking.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có ai đóng hàng bự.</div>}
                         </div>
                     </CardContent>
                 </Card>

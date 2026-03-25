@@ -76,6 +76,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
     const { runBirthdayBonus } = await import("@/lib/birthday-bonus");
     await runBirthdayBonus();
 
+    // Auto-run packing bonus (safe: duplicate-checked per month)
+    const { runPackingBonus } = await import("@/lib/packing-bonus");
+    await runPackingBonus();
+
     const notes = await prisma.stickyNote.findMany({
         orderBy: { createdAt: 'desc' },
         take: 6,
@@ -307,9 +311,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                                         📝 Xin giải trình
                                     </Button>
                                 </a>
-                                <a href="/tasks" className="block w-full col-span-2">
+                                <a href="/tasks" className="block w-full">
                                     <Button variant="default" className="w-full text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
-                                        💼 Nhận Job WFH
+                                        💼 Job WFH
+                                    </Button>
+                                </a>
+                                <a href="/packing" className="block w-full">
+                                    <Button variant="default" className="w-full text-xs bg-purple-600 hover:bg-purple-700 text-white">
+                                        📦 Ghi nhận Đóng gói
                                     </Button>
                                 </a>
                             </div>

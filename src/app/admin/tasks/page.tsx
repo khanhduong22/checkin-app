@@ -23,7 +23,7 @@ export default async function AdminTasksPage() {
   return (
     <div className="container mx-auto py-8 space-y-8">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Task Management</h1>
+        <h1 className="text-3xl font-bold">WFH & Packing Management</h1>
       </div>
 
       <Tabs defaultValue="kanban">
@@ -44,7 +44,7 @@ export default async function AdminTasksPage() {
             <CardHeader>
               <CardTitle>Review & Approval</CardTitle>
               <CardDescription>
-                Review submitted tasks from employees. Check evidence and approve for payment.
+                Duyệt công việc nhân viên làm tại nhà (cộng lương) và các hoá đơn đóng gói (tích điểm).
               </CardDescription>
             </CardHeader>
             <CardContent>

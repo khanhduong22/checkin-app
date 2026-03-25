@@ -288,23 +288,25 @@ export async function startTask(taskDefId: string, taskItemId?: string) {
       return result;
     }
 
-    // General Task (WFH): must be checked out from office first
-    const lastCheckIn = await prisma.checkIn.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { timestamp: 'desc' }
-    });
-
-    if (lastCheckIn && lastCheckIn.type === "IN") {
-      return { success: false, error: "Must be checked out from office to start a WFH task." };
-    }
-
-    // Legacy: Starting a Generic Task (if still allowed?)
     const taskDef = await prisma.taskDefinition.findUnique({
       where: { id: taskDefId },
     });
 
     if (!taskDef || !taskDef.active) {
       return { success: false, error: "Task definition not found or inactive" };
+    }
+
+    // General Task (WFH): must be checked out from office first
+    // Exception: point tasks (packing) can be done anytime.
+    if (taskDef.unit !== 'điểm') {
+      const lastCheckIn = await prisma.checkIn.findFirst({
+        where: { userId: session.user.id },
+        orderBy: { timestamp: 'desc' }
+      });
+
+      if (lastCheckIn && lastCheckIn.type === "IN") {
+        return { success: false, error: "Must be checked out from office to start a WFH task." };
+      }
     }
 
     const userTask = await prisma.userTask.create({
@@ -438,13 +440,16 @@ export async function reviewTask(userTaskId: string, decision: "APPROVED" | "REJ
     if (decision === "APPROVED") {
       const taskName = task.taskItem?.title || task.taskDefinition?.name || "Unknown Task";
       const noteSuffix = task.note ? ` (${task.note})` : "";
-      await prisma.payrollAdjustment.create({
-        data: {
-          userId: task.userId,
-          amount: Math.round(finalAmount), // PayrollAdjustment uses Int
-          reason: `Task: ${taskName} - ${updated.quantity}x${noteSuffix}`,
-        }
-      });
+      
+      if (task.taskDefinition?.unit !== 'điểm') {
+        await prisma.payrollAdjustment.create({
+          data: {
+            userId: task.userId,
+            amount: Math.round(finalAmount), // PayrollAdjustment uses Int
+            reason: `Task: ${taskName} - ${updated.quantity}x${noteSuffix}`,
+          }
+        });
+      }
     }
 
     revalidatePath("/admin/tasks");

@@ -82,7 +82,7 @@ test.describe("Admin Tasks / WFH Management", () => {
   test("loads Task Management page with heading", async ({ page }) => {
     await page.goto("/admin/tasks");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("h1").filter({ hasText: /Task Management/i })).toBeVisible();
+    await expect(page.locator("h1").filter({ hasText: /WFH & Packing Management/i })).toBeVisible();
   });
 
   test("shows 3 tabs: Review, Definitions, Items", async ({ page }) => {

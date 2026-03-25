@@ -15,7 +15,11 @@ export default async function TasksPage({ searchParams }: { searchParams?: Promi
 
   const availableTasks = availableTasksRes.success ? availableTasksRes.data || [] : [];
   const availableItems = availableItemsRes.success ? availableItemsRes.data || [] : [];
-  const userTasks = userTasksRes.success ? userTasksRes.data || [] : [];
+  const userTasksAll = userTasksRes.success ? userTasksRes.data || [] : [];
+
+  const wfhTasks = availableTasks.filter((t: any) => t.unit !== 'điểm');
+  // Only show non-packing tasks in the WFH history
+  const userTasks = userTasksAll.filter((t: any) => t.taskDefinition?.unit !== 'điểm');
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const defaultTab = resolvedSearchParams?.tab || "market";
@@ -32,7 +36,7 @@ export default async function TasksPage({ searchParams }: { searchParams?: Promi
       <Tabs defaultValue={defaultTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger id="tab-market" value="market">Task Market ({availableItems.length})</TabsTrigger>
-          <TabsTrigger id="tab-general" value="general">General Tasks</TabsTrigger>
+          <TabsTrigger id="tab-general" value="general">WFH Tasks</TabsTrigger>
           <TabsTrigger id="tab-my-tasks" value="my-tasks">My History</TabsTrigger>
         </TabsList>
 
@@ -45,8 +49,10 @@ export default async function TasksPage({ searchParams }: { searchParams?: Promi
         </TabsContent>
 
         <TabsContent value="general" className="space-y-4">
-          <h2 className="text-xl font-semibold">General Tasks</h2>
-          <AvailableTasksList tasks={availableTasks} />
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">General WFH Tasks</h2>
+          </div>
+          <AvailableTasksList tasks={wfhTasks} />
         </TabsContent>
 
         <TabsContent value="my-tasks">
