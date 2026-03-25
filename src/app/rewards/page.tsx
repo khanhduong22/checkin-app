@@ -197,34 +197,6 @@ export default async function RewardsPage() {
                         </CardContent>
                     </Card>
                 </div>
-
-                <div className="pt-6">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800">
-                        <Star className="h-5 w-5 text-orange-500 fill-orange-500" />
-                        Chính sách Thưởng / Phạt cố định
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card className="border-orange-200 shadow-sm">
-                            <CardHeader className="bg-orange-50/50 border-b">
-                                <CardTitle className="text-base text-orange-700 flex items-center gap-2"><Flame className="h-4 w-4" /> Hệ Thống Streak</CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-4 space-y-3">
-                                <div className="flex justify-between items-center text-sm"><span className="font-medium">Chuỗi 7 ngày</span><Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200">50k</Badge></div>
-                                <div className="flex justify-between items-center text-sm"><span className="font-medium">Chuỗi 30 ngày</span><Badge className="bg-red-100 text-red-700 hover:bg-red-200">200k + Vinh danh</Badge></div>
-                            </CardContent>
-                        </Card>
-                        
-                        <Card className="border-red-200 shadow-sm">
-                            <CardHeader className="bg-red-50/50 border-b">
-                                <CardTitle className="text-base text-red-700 flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> Khung Xử Phạt</CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-4 space-y-3">
-                                <div className="flex justify-between items-center text-sm"><span className="font-medium">Muộn/Về sớm</span><span className="text-red-600 bg-red-50 px-2 py-0.5 rounded">-50k/lần</span></div>
-                                <div className="flex justify-between items-center text-sm"><span className="font-medium">Quên Checkin/out</span><span className="text-red-600 bg-red-50 px-2 py-0.5 rounded">-20k/lần</span></div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
              </div>
         </main>
     );
