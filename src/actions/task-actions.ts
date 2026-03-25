@@ -391,7 +391,7 @@ export async function directSubmitTask(taskDefId: string, data: { quantity: numb
     revalidatePath("/packing");
     revalidatePath("/tasks");
     revalidatePath("/admin/tasks");
-    return { success: true, data: userTask };
+    return { success: true, data: { id: userTask.id } };
   } catch (error: any) {
     console.error("Error direct submitting task:", error);
     return { success: false, error: error.message || "Failed to submit task" };

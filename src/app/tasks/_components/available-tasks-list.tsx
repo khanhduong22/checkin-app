@@ -60,8 +60,9 @@ export function AvailableTasksList({ tasks }: AvailableTasksListProps) {
       } else {
         toast.error((result as any).error || "Có lỗi xảy ra");
       }
-    } catch (error) {
-      toast.error("Đã xảy ra lỗi hệ thống khi nộp");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Lỗi hệ thống: ${error.message || String(error)}`);
     } finally {
       setIsSubmitting(false);
     }
