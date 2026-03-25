@@ -321,6 +321,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                                         📦 Ghi nhận Đóng gói
                                     </Button>
                                 </a>
+                                <a href="/rewards" className="block w-full col-span-2">
+                                    <Button variant="outline" className="w-full text-xs border-yellow-300 bg-yellow-50 text-yellow-800 hover:bg-yellow-100">
+                                        🏆 Bảng Vàng & Khen Thưởng
+                                    </Button>
+                                </a>
                             </div>
                         </div>
                         {/* Admin Link... */}
