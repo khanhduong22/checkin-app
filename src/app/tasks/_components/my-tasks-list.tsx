@@ -54,7 +54,9 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
 
   const handleSubmit = async () => {
     if (!submittingTask) return;
-    if (!evidenceLink) {
+
+    const isPacking = submittingTask.taskDefinition?.unit === 'điểm';
+    if (!isPacking && !evidenceLink) {
       toast.error("Evidence link is required");
       return;
     }
@@ -231,16 +233,18 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="link" className="text-right">Evidence Link</Label>
-              <Input
-                id="link"
-                placeholder="https://..."
-                value={evidenceLink}
-                onChange={(e) => setEvidenceLink(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
+            {submittingTask?.taskDefinition?.unit !== 'điểm' && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="link" className="text-right">Evidence Link</Label>
+                <Input
+                  id="link"
+                  placeholder="https://..."
+                  value={evidenceLink}
+                  onChange={(e) => setEvidenceLink(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="note" className="text-right">Note</Label>
