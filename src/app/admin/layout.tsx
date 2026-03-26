@@ -8,6 +8,7 @@ import TourHelpButton from "@/components/TourHelpButton";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
 export default async function AdminLayout({
   children,
@@ -21,11 +22,16 @@ export default async function AdminLayout({
     redirect('/');
   }
 
+  const [pendingRequestsCount, pendingTasksCount] = await Promise.all([
+    prisma.request.count({ where: { status: 'PENDING' } }),
+    prisma.userTask.count({ where: { status: 'SUBMITTED' } })
+  ]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
        <AdminTour />
        <TourHelpButton />
-       <AdminSidebar />
+       <AdminSidebar pendingRequestsCount={pendingRequestsCount} pendingTasksCount={pendingTasksCount} />
        <div className="lg:pl-[240px] flex flex-col min-h-screen">
           <header className="flex h-14 items-center gap-4 border-b bg-white dark:bg-gray-950 px-6 lg:h-[60px] sticky top-0 z-10 w-full">
                <Sheet>
@@ -40,7 +46,10 @@ export default async function AdminLayout({
                             <span className="font-semibold text-lg">Admin Panel</span>
                       </div>
                       <div className="py-2">
-                        <AdminNavLinks />
+                        <AdminNavLinks 
+                          pendingRequestsCount={pendingRequestsCount} 
+                          pendingTasksCount={pendingTasksCount} 
+                        />
                       </div>
                   </SheetContent>
                </Sheet>

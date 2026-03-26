@@ -145,21 +145,21 @@ test.describe("Staff — Rewards / Policy Page", () => {
     await expect(page.locator("body")).not.toContainText("Internal Server Error");
   });
 
-  test("shows 'Chính sách Thưởng / Phạt' heading", async ({ page }) => {
+  test("shows 'Bảng Vàng Thành Tích' heading", async ({ page }) => {
     await page.goto("/rewards");
     await expect(
-      page.getByRole("heading", { name: /chính sách thưởng/i })
+      page.getByRole("heading", { name: /bảng vàng thành tích/i })
     ).toBeVisible();
   });
 
-  test("shows Streak reward section", async ({ page }) => {
+  test("shows Top Chăm Chỉ section", async ({ page }) => {
     await page.goto("/rewards");
-    await expect(page.locator("body")).toContainText("Hệ Thống Streak");
+    await expect(page.locator("body")).toContainText("Top Chăm Chỉ");
   });
 
-  test("shows Penalty rules section", async ({ page }) => {
+  test("shows Vua Đóng Hàng section", async ({ page }) => {
     await page.goto("/rewards");
-    await expect(page.locator("body")).toContainText("Quy Định Xử Phạt");
+    await expect(page.locator("body")).toContainText("Vua Đóng Hàng");
   });
 
   test("back to home link works", async ({ page }) => {
