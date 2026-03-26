@@ -18,6 +18,11 @@ const packingTasks = [
   { name: 'Đóng gói: Toan vẽ 70x90', baseReward: 3, unit: 'điểm' },
   { name: 'Đóng gói: Toan vẽ 70x100', baseReward: 4, unit: 'điểm' },
   { name: 'Đóng gói: Toan vẽ 80x100', baseReward: 4, unit: 'điểm' },
+  { name: 'Đóng gói: Khung viền 30x40', baseReward: 1, unit: 'điểm' },
+  { name: 'Đóng gói: Khung viền 40x40', baseReward: 2, unit: 'điểm' },
+  { name: 'Đóng gói: Khung viền 40x50', baseReward: 3, unit: 'điểm' },
+  { name: 'Đóng gói: Khung viền 40x60', baseReward: 4, unit: 'điểm' },
+  { name: 'Đóng gói: Khung viền 50x50', baseReward: 4, unit: 'điểm' },
 ]
 
 async function main() {
