@@ -54,11 +54,12 @@ export default async function RewardsPage() {
         .sort((a, b) => b.points - a.points)
         .slice(0, 3);
 
-    const formatTimeVal = (val: number) => {
-        if (!val) return '--:--';
-        const h = Math.floor(val);
-        const m = Math.round((val - h) * 60);
-        return `${h}:${m.toString().padStart(2, '0')}`;
+    const formatDuration = (mins: number) => {
+        if (!mins) return '0p';
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        if (h > 0) return `${h}h ${m}p`;
+        return `${m}p`;
     }
 
     return (
@@ -113,7 +114,7 @@ export default async function RewardsPage() {
                              <CardTitle className="flex items-center gap-2 text-blue-700">
                                 🌅 Top Check-in Sớm
                             </CardTitle>
-                            <CardDescription>Nhân viên check-in sớm nhất (Kỷ lục tháng)</CardDescription>
+                            <CardDescription>Tổng thời gian đi làm sớm nhiều nhất tháng</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <div className="space-y-4">
@@ -128,7 +129,7 @@ export default async function RewardsPage() {
                                             <div className="font-bold text-gray-800">{u.user.name}</div>
                                         </div>
                                          <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200">
-                                            {formatTimeVal(u.earliestCheckin)}
+                                            {formatDuration(u.totalEarlyMinutes)}
                                          </Badge>
                                     </div>
                                 ))}

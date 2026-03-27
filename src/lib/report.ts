@@ -40,7 +40,7 @@ export async function getMonthlyReport(month: number, year: number) {
         lateCount: 0,
         earlyLeaveCount: 0,
         checkinCount: 0,
-        earliestCheckin: null // For Top Early Bird
+        totalEarlyMinutes: 0 // For Top Early Bird
       };
     }
 
@@ -76,9 +76,10 @@ export async function getMonthlyReport(month: number, year: number) {
         stats.totalLateMinutes += lateMins;
       }
 
-      // Check Early Bird (Min checkin time)
-      if (!stats.earliestCheckin || timeVal < stats.earliestCheckin) {
-        stats.earliestCheckin = timeVal;
+      // Check Early Bird (Total early minutes)
+      if (shouldCheck && timeVal < expectedStart) {
+        const earlyMins = Math.round((expectedStart - timeVal) * 60);
+        stats.totalEarlyMinutes += earlyMins;
       }
     }
     else if (c.type === 'checkout') {
@@ -104,6 +105,6 @@ export async function getMonthlyReport(month: number, year: number) {
 
   return {
     topLate: report.sort((a, b) => b.totalLateMinutes - a.totalLateMinutes),
-    topEarlyBird: report.filter((u: any) => u.earliestCheckin).sort((a: any, b: any) => a.earliestCheckin - b.earliestCheckin).slice(0, 3)
+    topEarlyBird: report.filter((u: any) => u.totalEarlyMinutes > 0).sort((a: any, b: any) => b.totalEarlyMinutes - a.totalEarlyMinutes).slice(0, 3)
   };
 }

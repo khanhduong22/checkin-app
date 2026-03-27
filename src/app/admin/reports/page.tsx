@@ -53,12 +53,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         .sort((a, b) => b.points - a.points)
         .slice(0, 3);
 
-    // Format time helper (8.5 -> 08:30)
-    const formatTimeVal = (val: number) => {
-        if (!val) return '--:--';
-        const h = Math.floor(val);
-        const m = Math.round((val - h) * 60);
-        return `${h}:${m.toString().padStart(2, '0')}`;
+    // Format duration helper (125 -> 2h 5p)
+    const formatDuration = (mins: number) => {
+        if (!mins) return '0p';
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        if (h > 0) return `${h}h ${m}p`;
+        return `${m}p`;
     }
 
     const totalPayrollCost = payroll.reduce((sum: number, p: any) => sum + p.totalSalary, 0);
@@ -129,7 +130,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                          <CardTitle className="flex items-center gap-2 text-blue-700">
                             🌅 Top Check-in Sớm
                         </CardTitle>
-                        <CardDescription>Nhân viên check-in sớm nhất (Kỷ lục)</CardDescription>
+                        <CardDescription>Nhân viên đi làm sớm nhiều nhất</CardDescription>
                     </CardHeader>
                     <CardContent>
                          <div className="space-y-4">
@@ -156,7 +157,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                                         </div>
                                     </div>
                                      <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                                        {formatTimeVal(u.earliestCheckin)}
+                                        {formatDuration(u.totalEarlyMinutes)}
                                      </Badge>
                                 </div>
                             ))}
