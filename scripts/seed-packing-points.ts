@@ -23,6 +23,18 @@ const packingTasks = [
   { name: 'Đóng gói: Khung viền 40x50', baseReward: 3, unit: 'điểm' },
   { name: 'Đóng gói: Khung viền 40x60', baseReward: 4, unit: 'điểm' },
   { name: 'Đóng gói: Khung viền 50x50', baseReward: 4, unit: 'điểm' },
+  { name: 'Đóng gói: Bảng 58x33', baseReward: 1, unit: 'điểm' },
+  { name: 'Đóng gói: Bảng 58x33 kèm phấn', baseReward: 2, unit: 'điểm' },
+  { name: 'Đóng gói: Bảng 46x26,5', baseReward: 1, unit: 'điểm' },
+  { name: 'Đóng gói: Bảng 46x26,6 kèm phấn', baseReward: 2, unit: 'điểm' },
+  { name: 'Đóng gói: Giá vẽ cao từ 90cm 2 cái', baseReward: 1, unit: 'điểm' },
+  { name: 'Đóng gói: Giá vẽ cao từ 90cm 3-4 cái', baseReward: 2, unit: 'điểm' },
+  { name: 'Đóng gói: Giá vẽ cao từ 90cm 5-6 cái', baseReward: 3, unit: 'điểm' },
+  { name: 'Đóng gói: Giá vẽ cao từ 90cm 7-8 cái', baseReward: 4, unit: 'điểm' },
+  { name: 'Đóng gói: Giá vẽ cao từ 90cm 8-9 cái', baseReward: 5, unit: 'điểm' },
+  { name: 'Đóng gói: Giá vẽ cao từ 90cm 9-10 cái', baseReward: 6, unit: 'điểm' },
+  { name: 'Đóng gói: Khung vintage 40x60', baseReward: 1, unit: 'điểm' },
+  { name: 'Đóng gói: Khung căng từ 80cm 3 cái trở lên', baseReward: 1, unit: 'điểm' },
 ]
 
 async function main() {
