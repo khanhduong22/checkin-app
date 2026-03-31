@@ -1,6 +1,15 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend() {
+  if (!_resend) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY chưa được cấu hình trong .env");
+    }
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 const FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
 const APP_NAME = process.env.APP_NAME || "LimArt";
 
@@ -127,13 +136,9 @@ function buildPayslipHtml(data: PayslipEmailData): string {
 }
 
 export async function sendPayslipEmail(data: PayslipEmailData) {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY chưa được cấu hình trong .env");
-  }
-
   const html = buildPayslipHtml(data);
 
-  const result = await resend.emails.send({
+  const result = await getResend().emails.send({
     from: `${APP_NAME} <${FROM}>`,
     to: data.employeeEmail,
     subject: `[${APP_NAME}] Phiếu lương tháng ${data.month}/${data.year} — ${data.employeeName}`,
