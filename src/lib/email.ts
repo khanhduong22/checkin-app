@@ -12,6 +12,7 @@ function getResend() {
 }
 const FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
 const APP_NAME = process.env.APP_NAME || "LimArt";
+const PAYSLIP_CC = ["dung.do.vcr@gmail.com", "khanhdev4@gmail.com"];
 
 export type PayslipEmailData = {
   employeeName: string;
@@ -141,6 +142,7 @@ export async function sendPayslipEmail(data: PayslipEmailData) {
   const result = await getResend().emails.send({
     from: `${APP_NAME} <${FROM}>`,
     to: data.employeeEmail,
+    cc: PAYSLIP_CC.filter(e => e !== data.employeeEmail),
     subject: `[${APP_NAME}] Phiếu lương tháng ${data.month}/${data.year} — ${data.employeeName}`,
     html,
   });
