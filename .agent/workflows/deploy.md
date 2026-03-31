@@ -42,15 +42,15 @@ git push origin main
 ## Step 5: Vercel Deploy
 
 > [!CAUTION]
-> **Pre-deploy safety check**: Verify CLI is linked to the correct project **`checkin-app-jx6n`** (domain: `lim-art.vercel.app`).
+> **Pre-deploy safety check**: Verify CLI is linked to the correct project **`checkin-app`** (domain: `lim-art.vercel.app`).
 > If `.vercel/project.json` is missing or shows wrong project name, run:
 > ```bash
-> npx vercel link --project checkin-app-jx6n -y
+> npx vercel link --project checkin-app -y
 > ```
 
 ```bash
 # Verify correct project before deploying
-cat .vercel/project.json | grep -q "checkin-app-jx6n" || { echo "❌ WRONG PROJECT! Run: npx vercel link --project checkin-app-jx6n -y"; exit 1; }
+cat .vercel/project.json | grep -q "checkin-app" || { echo "❌ WRONG PROJECT! Run: npx vercel link --project checkin-app -y"; exit 1; }
 vercel --prod
 ```
 
