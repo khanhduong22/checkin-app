@@ -365,6 +365,11 @@ export default function PayrollAdminClient({
                                             <span className={`font-medium ${user.stats.totalAdjustments > 0 ? "text-emerald-600" : user.stats.totalAdjustments < 0 ? "text-red-500" : "text-gray-500"}`}>
                                                 {user.stats.totalAdjustments > 0 ? "+" : ""}{f(user.stats.totalAdjustments)}
                                             </span>
+                                            {user.stats.latePenaltyAmount > 0 && (
+                                                <span className="text-[10px] text-red-500 font-semibold">
+                                                    Trễ {user.stats.lateCount} lần → -{f(user.stats.latePenaltyAmount)}
+                                                </span>
+                                            )}
                                             {!isClosed && user.recentAdjustments?.length > 0 && (
                                                 <span className="text-[10px] text-muted-foreground line-clamp-1">
                                                     Mới nhất: {user.recentAdjustments[0].reason}

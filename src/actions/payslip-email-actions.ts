@@ -41,6 +41,9 @@ export async function sendPayslipEmailAction(userId: string, month: number, year
         totalAdjustments: content?.totalAdjustments,
         netSalary: payslip.netSalary,
         bonusAmount: content?.bonusAmount,
+        lateCount: content?.lateCount,
+        latePenaltyHours: content?.latePenaltyHours,
+        latePenaltyAmount: content?.latePenaltyAmount,
       },
     });
 
@@ -93,6 +96,9 @@ export async function sendAllPayslipEmailsAction(month: number, year: number) {
             totalAdjustments: content?.totalAdjustments,
             netSalary: payslip.netSalary,
             bonusAmount: content?.bonusAmount,
+            lateCount: content?.lateCount,
+            latePenaltyHours: content?.latePenaltyHours,
+            latePenaltyAmount: content?.latePenaltyAmount,
           },
         });
 
