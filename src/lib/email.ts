@@ -112,6 +112,7 @@ function buildPayslipHtml(data: PayslipEmailData): string {
               </thead>
               <tbody style="font-size:14px;color:#374151;">
                 ${rows}
+                ${bonusAmount > 0 ? `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 16px;font-weight:600;">🎁 Thưởng tháng</td><td align="right" style="padding:10px 16px;color:#059669;font-weight:600;">+${formatVND(bonusAmount)}</td></tr>` : ""}
                 ${totalTaskIncome ? `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 16px;">Thu nhập WFH / Task</td><td align="right" style="padding:10px 16px;color:#16a34a">+${formatVND(totalTaskIncome)}</td></tr>` : ""}
                 ${totalAdjustments !== 0 ? `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 16px;">Điều chỉnh</td><td align="right" style="padding:10px 16px;color:${totalAdjustments > 0 ? "#16a34a" : "#dc2626"}">${totalAdjustments > 0 ? "+" : ""}${formatVND(totalAdjustments)}</td></tr>` : ""}
                 ${latePenaltyAmount > 0 ? `<tr style="border-top:1px solid #e2e8f0;background:#fff5f5;"><td style="padding:10px 16px;color:#dc2626;">⚠️ Phạt đi trễ (${lateCount} lần, trừ ${latePenaltyHours}h)</td><td align="right" style="padding:10px 16px;color:#dc2626;font-weight:600;">-${formatVND(latePenaltyAmount)}</td></tr>` : ""}
