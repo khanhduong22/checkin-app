@@ -32,6 +32,8 @@ export type PayslipEmailData = {
     lateCount?: number;
     latePenaltyHours?: number;
     latePenaltyAmount?: number;
+    positiveAdjustments?: number;
+    negativeAdjustments?: number;
   };
 };
 
@@ -53,6 +55,8 @@ function buildPayslipHtml(data: PayslipEmailData): string {
     lateCount = 0,
     latePenaltyHours = 0,
     latePenaltyAmount = 0,
+    positiveAdjustments = 0,
+    negativeAdjustments = 0,
   } = stats;
 
   const isFullTime = employmentType === "FULL_TIME";
@@ -114,7 +118,8 @@ function buildPayslipHtml(data: PayslipEmailData): string {
                 ${rows}
                 ${bonusAmount > 0 ? `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 16px;font-weight:600;">🎁 Thưởng tháng</td><td align="right" style="padding:10px 16px;color:#059669;font-weight:600;">+${formatVND(bonusAmount)}</td></tr>` : ""}
                 ${totalTaskIncome ? `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 16px;">Thu nhập WFH / Task</td><td align="right" style="padding:10px 16px;color:#16a34a">+${formatVND(totalTaskIncome)}</td></tr>` : ""}
-                ${totalAdjustments !== 0 ? `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 16px;">Điều chỉnh</td><td align="right" style="padding:10px 16px;color:${totalAdjustments > 0 ? "#16a34a" : "#dc2626"}">${totalAdjustments > 0 ? "+" : ""}${formatVND(totalAdjustments)}</td></tr>` : ""}
+                ${positiveAdjustments > 0 ? `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 16px;">Thưởng khác / Làm thêm</td><td align="right" style="padding:10px 16px;color:#16a34a">+${formatVND(positiveAdjustments)}</td></tr>` : ""}
+                ${negativeAdjustments > 0 ? `<tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 16px;">Phạt / Giảm trừ khác</td><td align="right" style="padding:10px 16px;color:#dc2626">-${formatVND(negativeAdjustments)}</td></tr>` : ""}
                 ${latePenaltyAmount > 0 ? `<tr style="border-top:1px solid #e2e8f0;background:#fff5f5;"><td style="padding:10px 16px;color:#dc2626;">⚠️ Phạt đi trễ (${lateCount} lần, trừ ${latePenaltyHours}h)</td><td align="right" style="padding:10px 16px;color:#dc2626;font-weight:600;">-${formatVND(latePenaltyAmount)}</td></tr>` : ""}
               </tbody>
               <tfoot>
