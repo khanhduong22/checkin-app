@@ -8,11 +8,29 @@ import { ArrowLeft, Clock, Calendar, Banknote, Star, AlertTriangle } from "lucid
 import ManualCheckInForm from "@/components/admin/ManualCheckInForm";
 import EmployeePayrollExportButton from "@/components/admin/EmployeePayrollExportButton";
 import { redirect } from "next/navigation";
+import MonthYearSelector from "@/components/admin/MonthYearSelector";
 
 export const dynamic = 'force-dynamic';
 
-export default async function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EmployeeDetailPage({ 
+    params,
+    searchParams
+}: { 
+    params: Promise<{ id: string }>,
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
     const { id: userId } = await params;
+    const resolvedSearchParams = await searchParams;
+    
+    const now = new Date();
+    const currentDefaultMonth = now.getMonth() + 1;
+    const currentDefaultYear = now.getFullYear();
+
+    const month = resolvedSearchParams.month ? parseInt(resolvedSearchParams.month as string, 10) : currentDefaultMonth;
+    const year = resolvedSearchParams.year ? parseInt(resolvedSearchParams.year as string, 10) : currentDefaultYear;
+    
+    // Day 1 of selected month in UTC (but stats will adjust based on VN offset)
+    const targetDate = new Date(year, month - 1, 1);
 
     const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -25,7 +43,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
     if (!user) return <div>Không tìm thấy nhân viên</div>;
 
-    const stats = await getUserMonthlyStats(userId);
+    const stats = await getUserMonthlyStats(userId, targetDate);
 
     const f = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
@@ -47,8 +65,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                  <div className="flex gap-2">
                       <EmployeePayrollExportButton
                           user={{ name: user.name || '', email: user.email || '', stats: { ...stats, employmentType: stats.employmentType as string || '', adjustments: stats.adjustments.map((a: any) => ({ ...a, date: a.date.toISOString() })) } }}
-                          month={new Date().getMonth() + 1}
-                          year={new Date().getFullYear()}
+                          month={month}
+                          year={year}
                       />
                       <Link href={`/admin/payroll`}>
                           <Button variant="outline">💰 Xem Lương</Button>
@@ -112,8 +130,13 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
                      <Card>
                          <CardHeader>
-                             <CardTitle>Bảng Chấm Công Chi Tiết</CardTitle>
-                             <CardDescription>Dữ liệu tháng hiện tại</CardDescription>
+                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                 <div>
+                                     <CardTitle>Bảng Chấm Công Chi Tiết</CardTitle>
+                                     <CardDescription>Dữ liệu tháng {month}/{year}</CardDescription>
+                                 </div>
+                                 <MonthYearSelector defaultMonth={currentDefaultMonth} defaultYear={currentDefaultYear} />
+                             </div>
                          </CardHeader>
                          <CardContent>
                              <div className="rounded-md border">
