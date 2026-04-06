@@ -104,7 +104,9 @@ export default function PayrollAdminClient({
                 body: JSON.stringify({
                     userId: selectedUser.id,
                     amount: parsedAmount,
-                    reason
+                    reason,
+                    month,
+                    year
                 })
             });
             const result = await res.json();
