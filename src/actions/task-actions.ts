@@ -460,3 +460,34 @@ export async function reviewTask(userTaskId: string, decision: "APPROVED" | "REJ
     return { success: false, error: "Failed to review task" };
   }
 }
+
+export async function getReviewedTasks(month?: number, year?: number) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
+
+    const whereClause: any = { 
+      status: { in: ["APPROVED", "REJECTED"] } 
+    };
+
+    if (month && year) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 1);
+      whereClause.reviewedAt = {
+        gte: startDate,
+        lt: endDate
+      };
+    }
+
+    const tasks = await prisma.userTask.findMany({
+      where: whereClause,
+      include: { user: true, taskDefinition: true, taskItem: true },
+      orderBy: { reviewedAt: 'desc' },
+      take: month ? undefined : 100 // all if filtered, else recent 100
+    });
+    return { success: true, data: tasks };
+  } catch (error) {
+    console.error("Error fetching reviewed tasks", error);
+    return { success: false, error: "Failed" };
+  }
+}
