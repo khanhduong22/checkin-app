@@ -20,6 +20,12 @@ export async function spinWheel() {
 
   // --- 🛡️ PERMISSION CHECK (Bypass for ADMIN) ---
   if (user.role !== 'ADMIN') {
+    // --- BẬT / TẮT QUYỀN VÒNG QUAY CHI TIẾT TỪ ADMIN PANEL ---
+    // @ts-ignore (If typescript complains about new column before restart)
+    if (!user.luckyWheelAllowed) {
+      return { success: false, message: 'Rất tiếc! Sự kiện rút thăm hôm nay không dành cho tài khoản của bạn. Hẹn bạn dịp khác nhé!' };
+    }
+
     const now = new Date();
     // Get VN Day String YYYY-MM-DD to define "Today" in VN Timezone
     const vnDateString = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
@@ -63,38 +69,43 @@ export async function spinWheel() {
     return { success: false, message: 'Kho quà đã hết sạch rồi!' };
   }
 
-  // Weighted Random Algorithm
-  const totalProbability = prizes.reduce((sum, prize) => sum + prize.probability, 0);
-  // Normalize random range to match Total Probability.
-  // This ensures we always pick a prize (relative to their weights), 
-  // preventing "Miss" if sum < 100, or "Overflow" if sum > 100.
-  let random = Math.random() * totalProbability;
-
-  // Adjust random range if total prob is less than 100 (optional, or just treat > total as "Miss")
-  // If we want "Miss" to be explicit, ensure there's a "Miss" prize or handle logic here.
-  // Based on user's seed, there is a "Better luck next time" prize with high probability.
-
-  // However, if the configured probabilities don't sum to exactly 100, we should normalize or handle the gap.
-  // Approach: If random > totalProbability, it's a "Miss" (or pick a default fallback if configured).
-  // Let's assume the user configured prizes cover the range or we have a default "Miss".
-  // If nothing matches, we'll return a generic "Chúc may mắn lần sau" without DB record implies no prize.
-  // OR we pick the "Better Luck Next Time" prize if it exists in the fetched list.
+  // Draw Mode vs Probability Mode check
+  // If we have <= 24 total remaining items, we enter "Draw Mode" to guarantee X winners out of Y spins.
+  const totalRemaining = prizes.reduce((sum, prize) => sum + prize.remaining, 0);
+  const isDrawMode = totalRemaining > 0 && totalRemaining <= 24;
 
   let selectedPrize = null;
-  let accumulatedProb = 0;
 
-  for (const prize of prizes) {
-    accumulatedProb += prize.probability;
-    if (random <= accumulatedProb) {
-      selectedPrize = prize;
-      break;
-    }
-  }
+  if (isDrawMode) {
+      // 🎲 Draw Without Replacement Mode (Bốc thăm)
+      // Pick a random ticket out of the `totalRemaining` pool
+      let randomHit = Math.floor(Math.random() * totalRemaining);
+      let accumulatedRemain = 0;
+      
+      for (const prize of prizes) {
+          accumulatedRemain += prize.remaining;
+          if (randomHit < accumulatedRemain) {
+              selectedPrize = prize;
+              break;
+          }
+      }
+  } else {
+      // 📊 Standard Weighted Probability Mode
+      const totalProbability = prizes.reduce((sum, prize) => sum + prize.probability, 0);
+      let random = Math.random() * totalProbability;
+      
+      let accumulatedProb = 0;
+      for (const prize of prizes) {
+        accumulatedProb += prize.probability;
+        if (random <= accumulatedProb) {
+          selectedPrize = prize;
+          break;
+        }
+      }
 
-  if (!selectedPrize) {
-    // Fallback if random > all probabilities (and probabilities < 100)
-    // Check if there's a "Better Luck Next Time" or similar default
-    selectedPrize = prizes.find(p => p.type === 'BETTER_LUCK_NEXT_TIME');
+      if (!selectedPrize) {
+        selectedPrize = prizes.find(p => p.type === 'BETTER_LUCK_NEXT_TIME');
+      }
   }
 
   if (!selectedPrize) {

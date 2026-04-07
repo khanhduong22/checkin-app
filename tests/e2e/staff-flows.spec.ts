@@ -128,7 +128,7 @@ test.describe("Staff — Lucky Wheel", () => {
     await page.goto("/lucky-wheel");
     await page.waitForLoadState("networkidle");
     // Either wheel renders OR the fallback message shows
-    const hasWheel = await page.locator("canvas, [class*='wheel']").isVisible({ timeout: 2000 }).catch(() => false);
+    const hasWheel = await page.locator("#lucky-wheel").isVisible({ timeout: 2000 }).catch(() => false);
     const hasFallback = await page.locator("body").textContent().then(t => t?.includes("Hiện chưa có đủ giải thưởng"));
     expect(hasWheel || hasFallback).toBeTruthy();
   });

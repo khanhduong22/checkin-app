@@ -7,6 +7,8 @@ import PrizeDialog from "./PrizeDialog";
 import DeletePrizeButton from "./DeletePrizeButton";
 import LuckyWheelHistoryClient from "@/components/admin/LuckyWheelHistoryClient";
 
+import AllowedUsersManagerClient from "./AllowedUsersManagerClient";
+
 export const dynamic = 'force-dynamic';
 
 export default async function LuckyWheelPage() {
@@ -35,6 +37,12 @@ export default async function LuckyWheelPage() {
     // Group prizes by status
     const availablePrizes = prizes.filter((p: any) => p.remaining > 0);
     const outOfStockPrizes = prizes.filter((p: any) => p.remaining === 0);
+
+    // Fetch users for allowed list
+    const users = await prisma.user.findMany({
+        select: { id: true, name: true, email: true, luckyWheelAllowed: true },
+        orderBy: { name: 'asc' }
+    });
 
     return (
         <div className="space-y-6">
@@ -88,6 +96,8 @@ export default async function LuckyWheelPage() {
                     </CardContent>
                  </Card>
             </div>
+
+            <AllowedUsersManagerClient users={users} />
 
             <Card id="lucky-wheel-prizes-list">
                 <CardHeader>

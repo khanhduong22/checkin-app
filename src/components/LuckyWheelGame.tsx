@@ -24,9 +24,18 @@ export default function LuckyWheelGame({ prizes }: { prizes: Prize[] }) {
     const [result, setResult] = useState<any>(null);
     const [showResult, setShowResult] = useState(false);
     
-    // Normalize prizes for the wheel (even slices for visual simplicity, or we could weight them visualy too but usually wheels are even slices and prob is hidden)
-    // Let's assume even slices for the visual wheel.
-    const sliceAngle = 360 / prizes.length;
+    // Auto "Draw Mode" (Bốc thăm) if total remaining items are low enough to fit visually.
+    const totalRemaining = prizes.reduce((sum, p) => sum + p.remaining, 0);
+    const isDrawMode = totalRemaining > 0 && totalRemaining <= 24;
+
+    // We can't put `toSorted` outside of a stable ref or effect without Hydration mismatches, 
+    // so we'll use a stable wheelSlices state or just rely on a deterministic distribution.
+    // For simplicity, we just flatMap without shuffling, or shuffle predictably based on id.
+    const wheelSlices = isDrawMode 
+        ? prizes.flatMap(p => Array.from({length: p.remaining}, () => p))
+        : prizes;
+    
+    const sliceAngle = 360 / wheelSlices.length;
 
     const handleSpin = async () => {
         if (spinning) return;
@@ -49,7 +58,15 @@ export default function LuckyWheelGame({ prizes }: { prizes: Prize[] }) {
                  setSpinning(false);
                  return;
             }
-            const winningIndex = prizes.findIndex(p => p.id === winningPrize.id);
+            
+            let winningIndex = -1;
+            if (isDrawMode) {
+                const matchingIndices = wheelSlices.map((s, idx) => s.id === winningPrize.id ? idx : -1).filter(i => i !== -1);
+                // Randomly pick one of the visual slices that represent this prize
+                winningIndex = matchingIndices[Math.floor(Math.random() * matchingIndices.length)];
+            } else {
+                winningIndex = wheelSlices.findIndex(p => p.id === winningPrize.id);
+            }
             
             if (winningIndex === -1) {
                 // Fallback for logic mismatch
@@ -139,7 +156,7 @@ export default function LuckyWheelGame({ prizes }: { prizes: Prize[] }) {
     };
 
     return (
-        <div className="flex flex-col items-center gap-8 py-10">
+        <div id="lucky-wheel" className="flex flex-col items-center gap-8 py-10">
             <div className="relative w-[300px] h-[300px] md:w-[400px] md:h-[400px]">
                 {/* Pointer */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 z-20 w-8 h-10">
@@ -154,14 +171,14 @@ export default function LuckyWheelGame({ prizes }: { prizes: Prize[] }) {
                         transitionDuration: '5s'
                     }}
                 >
-                    {prizes.map((prize, idx) => {
+                    {wheelSlices.map((prize, idx) => {
                         const rotate = idx * sliceAngle;
                         // Skew is needed for cone slices if using background-image conic-gradient is harder logic.
                         // Im using conic-gradient for background and absolute div for text easiest?
                         // Let's use simple absolute positioning with rotation.
                         return (
                             <div 
-                                key={prize.id}
+                                key={`${prize.id}-${idx}`}
                                 className="absolute top-0 left-1/2 w-1/2 h-full origin-left"
                                 style={{ 
                                     transform: `rotate(${rotate}deg)`,
@@ -177,7 +194,7 @@ export default function LuckyWheelGame({ prizes }: { prizes: Prize[] }) {
                     
                     {/* SVG Wheel for easier slices */}
                     <svg viewBox="0 0 100 100" className="w-full h-full absolute top-0 left-0 -rotate-90">
-                        {prizes.map((prize, idx) => {
+                        {wheelSlices.map((prize, idx) => {
                             // Calculate SVG Path for slice
                             // x = r + r*cos(a)
                             // y = r + r*sin(a)
@@ -192,11 +209,14 @@ export default function LuckyWheelGame({ prizes }: { prizes: Prize[] }) {
                             
                             const largeArc = sliceAngle > 180 ? 1 : 0;
                             
-                            const pathData = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                            let pathData = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                            if (wheelSlices.length === 1) {
+                                pathData = `M 50 50 m -50, 0 a 50,50 0 1,0 100,0 a 50,50 0 1,0 -100,0`;
+                            }
 
                             return (
-                                <g key={prize.id}>
-                                    <path d={pathData} fill={COLORS[idx % COLORS.length]} stroke="white" strokeWidth="0.5" />
+                                <g key={`${prize.id}-${idx}`}>
+                                    <path d={pathData} fill={COLORS[(wheelSlices.findIndex(p => p.id === prize.id)) % COLORS.length]} stroke="white" strokeWidth="0.5" />
                                     {/* Text Label */}
                                     <text 
                                         x="50" 
@@ -206,7 +226,9 @@ export default function LuckyWheelGame({ prizes }: { prizes: Prize[] }) {
                                         fontWeight="bold"
                                         textAnchor="end"
                                         alignmentBaseline="middle"
-                                        transform={`rotate(${(idx * sliceAngle) + (sliceAngle/2)}, 50, 50) translate(45, 0)`}
+                                        transform={wheelSlices.length === 1 
+                                            ? `translate(45, 0)` 
+                                            : `rotate(${(idx * sliceAngle) + (sliceAngle/2)}, 50, 50) translate(45, 0)`}
                                     >
                                         {prize.name.substring(0, 15) + (prize.name.length>15?'...':'')}
                                     </text>

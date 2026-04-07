@@ -55,3 +55,30 @@ export async function deletePrize(id: string) {
     return { success: false, message: 'Delete fail' };
   }
 }
+
+export async function toggleUserLuckyWheel(userId: string, allowed: boolean) {
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { luckyWheelAllowed: allowed }
+    });
+    revalidatePath('/admin/lucky-wheel');
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { success: false, message: 'Update fail' };
+  }
+}
+
+export async function toggleAllUsersLuckyWheel(allowed: boolean) {
+  try {
+    await prisma.user.updateMany({
+      data: { luckyWheelAllowed: allowed }
+    });
+    revalidatePath('/admin/lucky-wheel');
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { success: false, message: 'Update fail' };
+  }
+}
