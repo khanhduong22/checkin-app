@@ -7,10 +7,10 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "LimArt Check In",
-  description: "Hệ thống chấm công & quản lý nội bộ LimArt",
+  description: "Hệ thống quản lý nội bộ",
   icons: {
-    icon: '/logo.png',
-    apple: '/logo.png',
+    icon: '/capybara_mascot.png',
+    apple: '/capybara_mascot.png',
   }
 };
 
@@ -23,9 +23,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <NextTopLoader color="#059669" shadow="0 0 10px #059669,0 0 5px #059669" showSpinner={false} />
-        {children} {/* Children must be below provider if any */}
+      {/* Thêm chút CSS nền Capybara cho toàn khung body nếu cần, hiện tại đang xài nền CSS background-color bên trong. Ta thêm watermark nhẹ */}
+      <body className={`${inter.className} bg-[url(/capybara_bg.png)] bg-fixed bg-cover bg-center before:absolute before:inset-0 before:-z-10 before:bg-white/85 dark:before:bg-black/90`}>
+        <NextTopLoader color="#EA580C" shadow="0 0 10px #EA580C,0 0 5px #EA580C" showSpinner={false} />
+        {children}
         <Toaster />
       </body>
     </html>

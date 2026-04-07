@@ -15,16 +15,25 @@ function LoginForm() {
     const isDev = process.env.NODE_ENV === 'development';
 
     return (
-        <div className="flex min-h-screen items-center justify-center p-4">
-            <div className="card w-full max-w-[400px] p-8 text-center">
+        <div 
+            className="flex min-h-screen items-center justify-center p-4 relative"
+            style={{
+                backgroundImage: 'url(/capybara_bg.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+            }}
+        >
+            <div className="absolute inset-0 bg-orange-50/60 backdrop-blur-sm dark:bg-black/60"></div>
+            
+            <div className="card w-full max-w-[400px] p-10 text-center relative z-10 bg-white/95 dark:bg-card/90 border border-orange-100 shadow-2xl rounded-3xl">
                 <div className="mb-6 flex justify-center">
-                    <div className="h-20 w-20 overflow-hidden rounded-xl bg-yellow-400 shadow-md border-2 border-yellow-500 p-1 flex items-center justify-center">
-                         <Image src="/logo.png" alt="Logo" width={96} height={96} className="h-[90%] w-[90%] object-contain rounded-lg" />
+                    <div className="h-28 w-28 overflow-hidden rounded-full bg-orange-100 shadow-xl border-4 border-orange-300 flex items-center justify-center">
+                         <Image src="/capybara_mascot.png" alt="Bé Capybara ngoại giao" width={120} height={120} className="w-full h-full object-cover" />
                     </div>
                 </div>
                 
-                <h1 className="mb-2 text-xl font-semibold text-gray-900">Đăng nhập</h1>
-                <p className="mb-8 text-sm text-gray-500">Chấm công nội bộ</p>
+                <h1 className="mb-2 text-2xl font-bold text-orange-950 dark:text-orange-100 font-sans">Boop Boop!</h1>
+                <p className="mb-8 text-sm text-orange-800/70 font-medium">Bạn hãy đăng nhập nhé 🍊</p>
 
                 {error && (
                     <div className="mb-6 rounded-md bg-red-50 p-3 text-sm text-red-600 border border-red-100">
