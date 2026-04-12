@@ -44,8 +44,8 @@ export default function AdminNavLinks({
                     href={link.href}
                 >
                     <span className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/60 shadow-sm border border-orange-100 flex items-center justify-center p-0.5 group-hover:scale-110 transition-transform">
-                            <Image src={link.icon} alt={link.label} width={32} height={32} className="w-full h-full object-cover" />
+                        <div className="w-10 h-10 flex items-center justify-center group-hover:scale-110 transition-transform drop-shadow-sm">
+                            <Image src={link.icon} alt={link.label} width={40} height={40} className="w-full h-full object-contain" />
                         </div>
                         {link.label}
                     </span>
