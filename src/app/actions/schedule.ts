@@ -187,10 +187,11 @@ export async function importWeeklySchedule(shiftsParam: ParsedShiftItem[], overr
       for (const shift of shiftsParam) {
           const shiftDate = new Date(shift.dateIso);
           const start = new Date(shiftDate);
-          start.setHours(shift.startHour, 0, 0, 0);
+          // Explicitly set time in UTC using the GMT+7 offset
+          start.setUTCHours(shift.startHour - 7, 0, 0, 0);
 
           const end = new Date(shiftDate);
-          end.setHours(shift.endHour, 0, 0, 0);
+          end.setUTCHours(shift.endHour - 7, 0, 0, 0);
 
           for (let name of shift.names) {
               name = name.trim();

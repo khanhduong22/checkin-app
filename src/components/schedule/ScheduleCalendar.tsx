@@ -37,15 +37,26 @@ interface CalendarEvent {
 }
 
 export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false, defaultDate = new Date(), users = [] }: { initialEvents: any[], userId: string, isAdmin?: boolean, defaultDate?: Date, users?: any[] }) {
-    const [events, setEvents] = useState<CalendarEvent[]>(initialEvents.map(e => ({
-        id: e.id,
-        title: e.title || 'Staff',
-        start: new Date(e.start),
-        end: new Date(e.end),
-        resource: e,
-        isOwner: e.userId === userId || isAdmin,
-        employmentType: e.employmentType || 'PART_TIME', 
-    })));
+    const [events, setEvents] = useState<CalendarEvent[]>(initialEvents.map(e => {
+        let parsedStart = new Date(e.start);
+        let parsedEnd = new Date(e.end);
+        
+        // Prevent react-big-calendar from treating midnight ends as multi-day (all-day event)
+        if (parsedEnd.getHours() === 0 && parsedEnd.getMinutes() === 0 && (parsedEnd.getTime() - parsedStart.getTime()) > 0) {
+             // By subtracting 1 millisecond, it remains on the same calendar day visually
+             parsedEnd = new Date(parsedEnd.getTime() - 1);
+        }
+
+        return {
+            id: e.id,
+            title: e.title || 'Staff',
+            start: parsedStart,
+            end: parsedEnd,
+            resource: e,
+            isOwner: e.userId === userId || isAdmin,
+            employmentType: e.employmentType || 'PART_TIME', 
+        };
+    }));
 
     const [hideFullTime, setHideFullTime] = useState(true);
 
@@ -253,7 +264,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 step={30} 
                 timeslots={2}
                 min={new Date(0, 0, 0, 7, 0, 0)} 
-                max={new Date(0, 0, 0, 21, 0, 0)} 
+                max={new Date(0, 0, 0, 23, 59, 59)} 
                 selectable
                 resizable
                 onEventDrop={handleEventUpdate}
