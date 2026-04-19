@@ -6,7 +6,7 @@ import moment from 'moment'
 import 'moment/locale/vi'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from "sonner";
 import { registerShift, deleteShift, updateShift } from "@/app/actions/schedule"; 
 import { Switch } from "@/components/ui/switch"
@@ -37,14 +37,14 @@ interface CalendarEvent {
 }
 
 export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false, defaultDate = new Date(), users = [] }: { initialEvents: any[], userId: string, isAdmin?: boolean, defaultDate?: Date, users?: any[] }) {
-    const [events, setEvents] = useState<CalendarEvent[]>(initialEvents.map(e => {
+    const mapEvents = (serverEvents: any[]) => serverEvents.map(e => {
         let parsedStart = new Date(e.start);
         let parsedEnd = new Date(e.end);
         
         // Prevent react-big-calendar from treating midnight ends as multi-day (all-day event)
         if (parsedEnd.getHours() === 0 && parsedEnd.getMinutes() === 0 && (parsedEnd.getTime() - parsedStart.getTime()) > 0) {
-             // By subtracting 1 millisecond, it remains on the same calendar day visually
-             parsedEnd = new Date(parsedEnd.getTime() - 1);
+             // By subtracting 1 minute (60000ms), it safely remains on the same calendar block and avoids moment.js rounding
+             parsedEnd = new Date(parsedEnd.getTime() - 60000);
         }
 
         return {
@@ -54,9 +54,17 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
             end: parsedEnd,
             resource: e,
             isOwner: e.userId === userId || isAdmin,
-            employmentType: e.employmentType || 'PART_TIME', 
+            employmentType: e.employmentType || 'PART_TIME',
+            allDay: false,
         };
-    }));
+    });
+
+    const [events, setEvents] = useState<CalendarEvent[]>(mapEvents(initialEvents));
+
+    // Sync state if server data changes (e.g., after upload)
+    useEffect(() => {
+        setEvents(mapEvents(initialEvents));
+    }, [initialEvents]);
 
     const [hideFullTime, setHideFullTime] = useState(true);
 
@@ -265,6 +273,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 timeslots={2}
                 min={new Date(0, 0, 0, 7, 0, 0)} 
                 max={new Date(0, 0, 0, 23, 59, 59)} 
+                showMultiDayTimes={true}
                 selectable
                 resizable
                 onEventDrop={handleEventUpdate}
