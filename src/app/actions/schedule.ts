@@ -138,3 +138,113 @@ export async function updateShift(shiftId: number, start: Date, end: Date) {
   revalidatePath('/admin/schedule');
   return { success: true };
 }
+
+export type ParsedShiftItem = {
+    dateIso: string;
+    startHour: number;
+    endHour: number;
+    names: string[];
+};
+
+export async function importWeeklySchedule(shiftsParam: ParsedShiftItem[], overrideExisting: boolean = true) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) return { success: false, error: 'Unauthorized' };
+
+  const adminEmail = session.user.email;
+  const admin = await prisma.user.findUnique({ where: { email: adminEmail! } });
+  if (!admin || admin.role !== 'ADMIN') return { success: false, error: 'Forbidden. Chỉ Admin mới có quyền tải lịch.' };
+
+  if (!shiftsParam || shiftsParam.length === 0) {
+      return { success: false, error: 'File không có dữ liệu lịch làm.' };
+  }
+
+  try {
+      // 1. Fetch all users to map names
+      const allUsers = await prisma.user.findMany({ select: { id: true, name: true, email: true } });
+      const createdShifts = [];
+      const unrecognizedNames = new Set<string>();
+
+      // Distinct dates to clear old data if overrideExisting is true
+      const distinctDateStrings = Array.from(new Set(shiftsParam.map(s => s.dateIso)));
+      
+      if (overrideExisting && distinctDateStrings.length > 0) {
+          // Xóa tất cả ca làm việc trong các ngày được upload
+          for (const ds of distinctDateStrings) {
+              const dtStart = new Date(ds); // expected midnight: 00:00:00
+              const dtEnd = new Date(dtStart.getTime());
+              dtEnd.setDate(dtEnd.getDate() + 1); // Up to next day midnight
+
+              // Ignore Admin's own full-day shifts maybe? No, typically WorkShift contains everyone's shifts
+              await prisma.workShift.deleteMany({
+                  where: {
+                      start: { gte: dtStart, lt: dtEnd }
+                  }
+              });
+          }
+      }
+
+      // 2. Prepare array for insert
+      for (const shift of shiftsParam) {
+          const shiftDate = new Date(shift.dateIso);
+          const start = new Date(shiftDate);
+          start.setHours(shift.startHour, 0, 0, 0);
+
+          const end = new Date(shiftDate);
+          end.setHours(shift.endHour, 0, 0, 0);
+
+          for (let name of shift.names) {
+              name = name.trim();
+              if (!name) continue;
+
+              // Find closest match user (fuzzy search by substring in name)
+              const lowerName = name.toLowerCase();
+              let matchedUser = allUsers.find(u => {
+                   if (u.name) {
+                       const un = u.name.toLowerCase();
+                       return un === lowerName || un.includes(lowerName);
+                   }
+                   return false;
+              });
+
+              if (!matchedUser) {
+                  // Fallback: try email prefix if no name
+                  matchedUser = allUsers.find(u => u.email && u.email.split('@')[0].toLowerCase().includes(lowerName));
+              }
+
+              if (matchedUser) {
+                  createdShifts.push({
+                      userId: matchedUser.id,
+                      start: start,
+                      end: end,
+                      status: 'APPROVED'
+                  });
+              } else {
+                  unrecognizedNames.add(name);
+              }
+          }
+      }
+
+      // 3. Bulk insert
+      if (createdShifts.length > 0) {
+          await prisma.workShift.createMany({
+              data: createdShifts
+          });
+      }
+
+      revalidatePath('/schedule');
+      revalidatePath('/admin/schedule');
+
+      if (unrecognizedNames.size > 0) {
+          return { 
+              success: true, 
+              message: `Đã xếp ${createdShifts.length} ca. Tuy nhiên không tìm thấy nhân viên: ${Array.from(unrecognizedNames).join(', ')}` 
+          };
+      }
+
+      return { success: true, message: `Thành công! Đã lên lịch tự động ${createdShifts.length} ca làm.` };
+
+  } catch (error: any) {
+      console.error("Excel import error:", error);
+      return { success: false, error: error?.message || 'Có lỗi server khi import!' };
+  }
+}

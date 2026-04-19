@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import ScheduleCalendar from "@/components/schedule/ScheduleCalendar";
+import UploadScheduleButton from "@/components/schedule/UploadScheduleButton";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -42,12 +43,12 @@ export default async function AdminSchedulePage() {
 
     return (
         <div className="space-y-6">
-             <div className="flex justify-between items-center">
+             <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                  <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Quản lý Lịch làm việc</h2>
-                    <p className="text-muted-foreground">Xem và quản lý lịch làm của toàn bộ nhân viên.</p>
+                    <h2 className="text-2xl font-bold tracking-tight text-emerald-900">Quản lý Lịch làm việc</h2>
+                    <p className="text-muted-foreground">Xem, quản lý và tải lên file Excel lịch làm hàng tuần.</p>
                  </div>
-                 {/* Maybe Export Button? */}
+                 <UploadScheduleButton />
              </div>
 
              <ScheduleCalendar 
