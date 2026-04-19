@@ -177,7 +177,11 @@ export async function importWeeklySchedule(shiftsParam: ParsedShiftItem[], overr
               // Ignore Admin's own full-day shifts maybe? No, typically WorkShift contains everyone's shifts
               await prisma.workShift.deleteMany({
                   where: {
-                      start: { gte: dtStart, lt: dtEnd }
+                      start: { gte: dtStart, lt: dtEnd },
+                      OR: [
+                        { shiftType: null },
+                        { shiftType: { not: 'FIXED' } }
+                      ]
                   }
               });
           }
