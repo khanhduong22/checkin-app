@@ -23,10 +23,11 @@ export default async function RewardsPage() {
         .sort((a, b) => b.totalHours - a.totalHours)
         .slice(0, 3);
 
-    // Top 3 Overtime
+    // Top 3 Overtime (Average per day)
     const topOvertime = [...payroll]
-        .filter((p: any) => p.totalOvertimeHours && p.totalOvertimeHours > 0)
-        .sort((a, b) => b.totalOvertimeHours - a.totalOvertimeHours)
+        .filter((p: any) => p.totalOvertimeHours && p.totalOvertimeHours > 0 && p.daysWorked > 0)
+        .map((p: any) => ({ ...p, avgOvertime: p.totalOvertimeHours / p.daysWorked }))
+        .sort((a, b) => b.avgOvertime - a.avgOvertime)
         .slice(0, 3);
 
     // Leaderboard Vua Đóng Hàng
@@ -108,32 +109,35 @@ export default async function RewardsPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Top Check-in Sớm */}
-                    <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200 shadow-sm">
+                    {/* Top Kỷ Luật */}
+                    <Card className="bg-gradient-to-br from-teal-50 to-emerald-50 border-emerald-200 shadow-sm">
                         <CardHeader>
-                             <CardTitle className="flex items-center gap-2 text-blue-700">
-                                🌅 Top Check-in Sớm
+                             <CardTitle className="flex items-center gap-2 text-emerald-700">
+                                🌟 Top Kỷ Luật
                             </CardTitle>
-                            <CardDescription>Tổng thời gian đi làm sớm nhiều nhất tháng</CardDescription>
+                            <CardDescription>Tỷ lệ đi làm đúng giờ cao nhất</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <div className="space-y-4">
-                                {report.topEarlyBird.map((u: any, idx: number) => (
-                                    <div key={u.user.id} className="flex items-center justify-between bg-white/60 p-3 rounded-lg shadow-sm border border-blue-100">
+                                {report.topDiscipline.map((u: any, idx: number) => (
+                                    <div key={u.user.id} className="flex items-center justify-between bg-white/60 p-3 rounded-lg shadow-sm border border-emerald-100">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold overflow-hidden border border-blue-200">
+                                            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold overflow-hidden border border-emerald-200">
                                                {u.user.image ? (
                                                     <Image src={u.user.image} alt={u.user.name} width={32} height={32} className="w-full h-full object-cover" />
                                                 ) : (u.user.name?.[0])}
                                             </div>
-                                            <div className="font-bold text-gray-800">{u.user.name}</div>
+                                            <div>
+                                                <div className="font-bold text-gray-800">{u.user.name}</div>
+                                                <div className="text-xs text-muted-foreground">{u.totalScheduledCheckins} ca làm</div>
+                                            </div>
                                         </div>
-                                         <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200">
-                                            {formatDuration(u.totalEarlyMinutes)}
+                                         <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200">
+                                            {u.punctualityRate.toFixed(1)}%
                                          </Badge>
                                     </div>
                                 ))}
-                                {report.topEarlyBird.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa ai check-in sớm.</div>}
+                                {report.topDiscipline.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có dữ liệu.</div>}
                             </div>
                         </CardContent>
                     </Card>
@@ -144,7 +148,7 @@ export default async function RewardsPage() {
                             <CardTitle className="flex items-center gap-2 text-pink-700">
                                 🔥 Top Cày Cuốc (OT)
                             </CardTitle>
-                            <CardDescription>Nhân viên có số giờ làm thêm (OT) cao nhất</CardDescription>
+                            <CardDescription>Trung bình giờ làm thêm (OT) mỗi ca cao nhất</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
@@ -159,7 +163,10 @@ export default async function RewardsPage() {
                                                 <div className="text-xs text-muted-foreground">{u.daysWorked} ngày công</div>
                                             </div>
                                         </div>
-                                        <div className="text-xl font-bold text-pink-600">{u.totalOvertimeHours.toFixed(1)}h</div>
+                                        <div className="text-right">
+                                            <div className="text-xl font-bold text-pink-600">{u.avgOvertime.toFixed(1)}h<span className="text-sm font-normal">/ca</span></div>
+                                            <div className="text-xs text-muted-foreground">Tổng: {u.totalOvertimeHours.toFixed(1)}h</div>
+                                        </div>
                                     </div>
                                 ))}
                                 {topOvertime.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có ai làm OT.</div>}

@@ -69,17 +69,22 @@ export async function getMonthlyReport(month: number, year: number) {
         shouldCheck = true;
       }
 
-      // Check Late
-      if (shouldCheck && isLate(timeVal, expectedStart)) {
-        stats.lateCount++;
-        const lateMins = Math.floor((timeVal - expectedStart) * 60);
-        stats.totalLateMinutes += lateMins;
-      }
+      if (shouldCheck) {
+        stats.totalScheduledCheckins = (stats.totalScheduledCheckins || 0) + 1;
+        // Check Late
+        if (isLate(timeVal, expectedStart)) {
+          stats.lateCount++;
+          const lateMins = Math.floor((timeVal - expectedStart) * 60);
+          stats.totalLateMinutes += lateMins;
+        } else {
+          stats.onTimeCount = (stats.onTimeCount || 0) + 1;
+        }
 
-      // Check Early Bird (Total early minutes)
-      if (shouldCheck && timeVal < expectedStart) {
-        const earlyMins = Math.round((expectedStart - timeVal) * 60);
-        stats.totalEarlyMinutes += earlyMins;
+        // Check Early Bird (Total early minutes)
+        if (timeVal < expectedStart) {
+          const earlyMins = Math.round((expectedStart - timeVal) * 60);
+          stats.totalEarlyMinutes += earlyMins;
+        }
       }
     }
     else if (c.type === 'checkout') {
@@ -101,10 +106,19 @@ export async function getMonthlyReport(month: number, year: number) {
     }
   });
 
-  const report = Object.values(userStats);
+  const report = Object.values(userStats).map((u: any) => {
+    u.punctualityRate = u.totalScheduledCheckins ? ((u.onTimeCount || 0) / u.totalScheduledCheckins) * 100 : 0;
+    return u;
+  });
 
   return {
     topLate: report.sort((a, b) => b.totalLateMinutes - a.totalLateMinutes),
-    topEarlyBird: report.filter((u: any) => u.totalEarlyMinutes > 0).sort((a: any, b: any) => b.totalEarlyMinutes - a.totalEarlyMinutes).slice(0, 3)
+    topEarlyBird: report.filter((u: any) => u.totalEarlyMinutes > 0).sort((a: any, b: any) => b.totalEarlyMinutes - a.totalEarlyMinutes).slice(0, 3),
+    topDiscipline: report.filter((u: any) => u.totalScheduledCheckins > 0).sort((a: any, b: any) => {
+      if (b.punctualityRate === a.punctualityRate) {
+        return b.totalScheduledCheckins - a.totalScheduledCheckins;
+      }
+      return b.punctualityRate - a.punctualityRate;
+    }).slice(0, 3)
   };
 }
