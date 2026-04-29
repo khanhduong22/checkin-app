@@ -24,8 +24,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         .slice(0, 3);
 
     const topOvertime = [...payroll]
-        .filter((p: any) => p.totalOvertimeHours && p.totalOvertimeHours > 0)
-        .sort((a, b) => b.totalOvertimeHours - a.totalOvertimeHours)
+        .filter((p: any) => p.totalOvertimeHours && p.totalOvertimeHours > 0 && p.daysWorked > 0)
+        .map((p: any) => ({ ...p, avgOvertime: p.totalOvertimeHours / p.daysWorked }))
+        .sort((a, b) => b.avgOvertime - a.avgOvertime)
         .slice(0, 3);
 
     // Leaderboard Vua Đóng Hàng
@@ -125,19 +126,19 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                     </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+                <Card className="bg-gradient-to-br from-teal-50 to-emerald-50 border-emerald-200">
                     <CardHeader>
-                         <CardTitle className="flex items-center gap-2 text-blue-700">
-                            🌅 Top Check-in Sớm
+                         <CardTitle className="flex items-center gap-2 text-emerald-700">
+                            🌟 Top Kỷ Luật
                         </CardTitle>
-                        <CardDescription>Nhân viên đi làm sớm nhiều nhất</CardDescription>
+                        <CardDescription>Tỷ lệ đi làm đúng giờ cao nhất</CardDescription>
                     </CardHeader>
                     <CardContent>
                          <div className="space-y-4">
-                            {report.topEarlyBird.map((u: any, idx: number) => (
+                            {report.topDiscipline.map((u: any, idx: number) => (
                                 <div key={u.user.id} className="flex items-center justify-between bg-white/60 p-3 rounded-lg shadow-sm">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold overflow-hidden">
+                                        <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold overflow-hidden">
                                            {u.user.image ? (
                                                 <Image
                                                     src={u.user.image}
@@ -150,18 +151,21 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                                                 u.user.name?.[0]
                                             )}
                                         </div>
-                                        <div className="font-medium">
-                                            <Link href={`/admin/employees/${u.user.id}`} className="hover:underline">
-                                                {u.user.name}
-                                            </Link>
+                                        <div>
+                                            <div className="font-bold">
+                                                <Link href={`/admin/employees/${u.user.id}`} className="hover:underline">
+                                                    {u.user.name}
+                                                </Link>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">{u.totalScheduledCheckins} ca làm</div>
                                         </div>
                                     </div>
-                                     <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                                        {formatDuration(u.totalEarlyMinutes)}
+                                     <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+                                        {u.punctualityRate.toFixed(1)}%
                                      </Badge>
                                 </div>
                             ))}
-                            {report.topEarlyBird.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có ai check-in.</div>}
+                            {report.topDiscipline.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có ai đi làm.</div>}
                         </div>
                     </CardContent>
                 </Card>
@@ -171,7 +175,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                         <CardTitle className="flex items-center gap-2 text-pink-700">
                             🔥 Top Cày Cuốc (OT)
                         </CardTitle>
-                        <CardDescription>Nhân viên có số giờ làm thêm cao nhất</CardDescription>
+                        <CardDescription>Trung bình giờ làm thêm (OT) mỗi ca cao nhất</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
@@ -193,7 +197,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                                             <div className="text-xs text-muted-foreground">{u.daysWorked} ngày công</div>
                                         </div>
                                     </div>
-                                    <div className="text-xl font-bold text-pink-600">{u.totalOvertimeHours.toFixed(1)}h</div>
+                                    <div className="text-right">
+                                        <div className="text-xl font-bold text-pink-600">{u.avgOvertime.toFixed(1)}h<span className="text-sm font-normal">/ca</span></div>
+                                        <div className="text-xs text-muted-foreground">Tổng: {u.totalOvertimeHours.toFixed(1)}h</div>
+                                    </div>
                                 </div>
                             ))}
                             {topOvertime.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có ai làm thêm giờ.</div>}
