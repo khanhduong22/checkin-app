@@ -2,7 +2,6 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle2, XCircle, AlertCircle, Clock, DollarSign, Calendar, Gift } from "lucide-react";
 
 function formatVND(amount: number) {
@@ -80,16 +79,40 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                 )}
             </div>
 
-            <Tabs defaultValue="shifts" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="shifts">Chi tiết Ca làm việc</TabsTrigger>
-                    <TabsTrigger value="adjustments">Thưởng / Phạt</TabsTrigger>
-                </TabsList>
+            <div className="space-y-6 pt-2">
+                {/* Lịch sử Thưởng/Phạt Card */}
+                <Card className="overflow-hidden">
+                    <div className="p-4 bg-gray-50/50 border-b">
+                        <h3 className="font-bold text-gray-900">Lịch sử Thưởng/Phạt</h3>
+                    </div>
+                    <div className="p-4">
+                        {stats.adjustments.length === 0 ? (
+                            <div className="py-8 text-center text-sm text-muted-foreground">Không có khoản thưởng/phạt nào.</div>
+                        ) : (
+                            <div className="space-y-4">
+                                {stats.adjustments.map((adj: any) => (
+                                    <div key={adj.id} className="flex justify-between items-start border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                                        <div>
+                                            <p className="font-medium text-sm text-gray-800">{adj.reason}</p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">{new Date(adj.date).toLocaleDateString('vi-VN')}</p>
+                                        </div>
+                                        <div className={`font-bold text-sm ${adj.amount > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                            {adj.amount > 0 ? '+' : ''}{formatVND(adj.amount).replace('₫', 'đ')}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </Card>
 
-                {/* SHIFTS TAB */}
-                <TabsContent value="shifts" className="space-y-4 pt-4">
-                    <div className="rounded-md border">
-                        <div className="grid grid-cols-5 gap-2 p-3 font-medium text-sm bg-muted/50 border-b">
+                {/* Chi tiết Ca làm việc Card */}
+                <Card className="overflow-hidden">
+                    <div className="p-4 bg-gray-50/50 border-b">
+                        <h3 className="font-bold text-gray-900">Chi tiết Ca làm việc</h3>
+                    </div>
+                    <div>
+                        <div className="grid grid-cols-5 gap-2 p-3 font-medium text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b">
                             <div className="col-span-1">Ngày</div>
                             <div className="col-span-1 text-center">Giờ vào</div>
                             <div className="col-span-1 text-center">Giờ ra</div>
@@ -97,64 +120,38 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                             <div className="col-span-1 text-right">Lương</div>
                         </div>
                         {stats.dailyDetails.length === 0 ? (
-                            <div className="p-8 text-center text-muted-foreground">Chưa có dữ liệu chấm công tháng này.</div>
+                            <div className="p-8 text-center text-sm text-muted-foreground">Chưa có dữ liệu chấm công tháng này.</div>
                         ) : (
-                            stats.dailyDetails.map((day: any, idx: number) => (
-                                <div key={idx} className="grid grid-cols-5 gap-2 p-3 text-sm border-b last:border-0 hover:bg-gray-50 items-center">
-                                    <div className="col-span-1 font-medium">
-                                        {new Date(day.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
-                                        {!day.isValid && (
-                                            <div className="text-[10px] text-red-500 flex items-center gap-1 mt-0.5">
-                                                <AlertCircle className="h-3 w-3" /> {day.error}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="col-span-1 text-center text-muted-foreground">
-                                        {day.checkIn ? new Date(day.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                                    </div>
-                                    <div className="col-span-1 text-center text-muted-foreground">
-                                        {day.checkOut ? new Date(day.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                                    </div>
-                                    <div className="col-span-1 text-center font-mono">
-                                        {day.hours > 0 ? day.hours.toFixed(1) + 'h' : '-'}
-                                    </div>
-                                    <div className="col-span-1 text-right font-medium text-emerald-600">
-                                        {day.salary > 0 ? formatVND(day.salary) : '-'}
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </TabsContent>
-
-                {/* ADJUSTMENTS TAB */}
-                <TabsContent value="adjustments" className="space-y-4 pt-4">
-                    <div className="rounded-md border">
-                        {stats.adjustments.length === 0 ? (
-                            <div className="p-8 text-center text-muted-foreground">Không có khoản thưởng/phạt nào.</div>
-                        ) : (
-                            stats.adjustments.map((adj: any) => (
-                                <div key={adj.id} className="flex items-center justify-between p-4 border-b last:border-0 hover:bg-gray-50">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${adj.amount >= 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                                            {adj.amount >= 0 ? '+' : '-'}
+                            <div className="max-h-[600px] overflow-auto">
+                                {stats.dailyDetails.map((day: any, idx: number) => (
+                                    <div key={idx} className="grid grid-cols-5 gap-2 p-3 text-sm border-b last:border-0 hover:bg-gray-50 items-center">
+                                        <div className="col-span-1 font-medium text-xs">
+                                            {new Date(day.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                                            {!day.isValid && (
+                                                <div className="text-[10px] text-red-500 flex items-center gap-1 mt-0.5">
+                                                    <AlertCircle className="h-3 w-3" /> {day.error}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div>
-                                            <p className="font-medium">{adj.reason}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {new Date(adj.date).toLocaleDateString('vi-VN')}
-                                            </p>
+                                        <div className="col-span-1 text-center text-muted-foreground text-xs">
+                                            {day.checkIn ? new Date(day.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                        </div>
+                                        <div className="col-span-1 text-center text-muted-foreground text-xs">
+                                            {day.checkOut ? new Date(day.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                        </div>
+                                        <div className="col-span-1 text-center font-mono text-xs">
+                                            {day.hours > 0 ? day.hours.toFixed(1) + 'h' : '-'}
+                                        </div>
+                                        <div className="col-span-1 text-right font-medium text-emerald-600 text-xs">
+                                            {day.salary > 0 ? formatVND(day.salary) : '-'}
                                         </div>
                                     </div>
-                                    <div className={`font-bold ${adj.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {adj.amount > 0 ? '+' : ''}{formatVND(adj.amount)}
-                                    </div>
-                                </div>
-                            ))
+                                ))}
+                            </div>
                         )}
                     </div>
-                </TabsContent>
-            </Tabs>
+                </Card>
+            </div>
         </div>
     );
 }
