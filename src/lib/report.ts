@@ -38,6 +38,7 @@ export async function getMonthlyReport(month: number, year: number) {
         user: c.user,
         totalLateMinutes: 0,
         lateCount: 0,
+        strictLateCount: 0,
         earlyLeaveCount: 0,
         checkinCount: 0,
         totalEarlyMinutes: 0 // For Top Early Bird
@@ -80,6 +81,12 @@ export async function getMonthlyReport(month: number, year: number) {
           stats.onTimeCount = (stats.onTimeCount || 0) + 1;
         }
 
+        // Strict Late Check (0 grace period, > 0 minutes late)
+        // timeVal and expectedStart only have minute precision, so timeVal > expectedStart means diffMins > 0
+        if (timeVal > expectedStart) {
+            stats.strictLateCount = (stats.strictLateCount || 0) + 1;
+        }
+
         // Check Early Bird (Total early minutes)
         if (timeVal < expectedStart) {
           const earlyMins = Math.round((expectedStart - timeVal) * 60);
@@ -114,7 +121,7 @@ export async function getMonthlyReport(month: number, year: number) {
   return {
     topLate: report.sort((a, b) => b.totalLateMinutes - a.totalLateMinutes),
     topEarlyBird: report.filter((u: any) => u.totalEarlyMinutes > 0).sort((a: any, b: any) => b.totalEarlyMinutes - a.totalEarlyMinutes).slice(0, 3),
-    topDiscipline: report.filter((u: any) => u.totalScheduledCheckins > 0).sort((a: any, b: any) => {
+    topDiscipline: report.filter((u: any) => u.totalScheduledCheckins > 0 && u.strictLateCount === 0).sort((a: any, b: any) => {
       if (b.punctualityRate === a.punctualityRate) {
         if (b.totalEarlyMinutes === a.totalEarlyMinutes) {
           return b.totalScheduledCheckins - a.totalScheduledCheckins;
