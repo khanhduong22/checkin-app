@@ -28,9 +28,18 @@ export default async function RewardsPage() {
         .sort((a, b) => b.totalHours - a.totalHours)
         .slice(0, 3);
 
+    const isCurrentMonth = now.getMonth() + 1 === month && now.getFullYear() === year;
+    const referenceDay = isCurrentMonth ? now.getDate() : 31;
+    let minDays = 1;
+    if (referenceDay >= 22) {
+        minDays = 16;
+    } else if (referenceDay >= 8) {
+        minDays = 8;
+    }
+
     // Top 3 Overtime (Average per day)
     const topOvertime = [...activePayroll]
-        .filter((p: any) => p.totalOvertimeHours && p.totalOvertimeHours > 0 && p.daysWorked > 0)
+        .filter((p: any) => p.totalOvertimeHours && p.totalOvertimeHours > 0 && p.daysWorked >= minDays)
         .map((p: any) => ({ ...p, avgOvertime: p.totalOvertimeHours / p.daysWorked }))
         .sort((a, b) => b.avgOvertime - a.avgOvertime)
         .slice(0, 3);
