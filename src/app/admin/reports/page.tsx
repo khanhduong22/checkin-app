@@ -259,7 +259,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             <Card id="report-violations" className="border-red-100 shadow-md">
                  <CardHeader className="border-b bg-red-50/30">
                     <CardTitle className="text-red-700 flex items-center gap-2">
-                        🚨 Báo cáo Vi Phạm (Đi muộn / Về sớm)
+                        🚨 Báo cáo Vi Phạm (Đi muộn)
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -269,12 +269,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                                 <th className="px-6 py-3">Nhân viên</th>
                                 <th className="px-6 py-3 text-center">Số lần đi muộn</th>
                                 <th className="px-6 py-3 text-center">Tổng phút muộn</th>
-                                <th className="px-6 py-3 text-center">Về sớm (lần)</th>
                                 <th className="px-6 py-3 text-right">Đánh giá</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {report.topLate.filter((u: any) => u.lateCount > 0 || u.earlyLeaveCount > 0).map((u: any) => (
+                            {report.topLate.filter((u: any) => u.lateCount > 0).map((u: any) => (
                                 <tr key={u.user.id} className="hover:bg-red-50/20 transition-colors">
                                     <td className="px-6 py-4 font-medium flex items-center gap-3">
                                         <span className="text-red-500 font-bold">⚠️</span>
@@ -288,9 +287,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                                     <td className="px-6 py-4 text-center">
                                         <span className="text-red-600 font-mono">{u.totalLateMinutes}p</span>
                                     </td>
-                                    <td className="px-6 py-4 text-center text-orange-600">
-                                        {u.earlyLeaveCount}
-                                    </td>
                                     <td className="px-6 py-4 text-right">
                                         {u.lateCount > 5 ? (
                                             <Badge variant="destructive">Cảnh báo đỏ</Badge>
@@ -300,9 +296,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                                     </td>
                                 </tr>
                             ))}
-                            {report.topLate.filter((u: any) => u.lateCount > 0 || u.earlyLeaveCount > 0).length === 0 && (
+                            {report.topLate.filter((u: any) => u.lateCount > 0).length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground italic">
+                                    <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground italic">
                                         👏 Tuyệt vời! Tháng này chưa có ai vi phạm.
                                     </td>
                                 </tr>
