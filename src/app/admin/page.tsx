@@ -80,8 +80,9 @@ export default async function AdminDashboard() {
         if (!match) return null; // No matching shift found (Unscheduled work?)
         
         const targetTime = checkin.type === 'checkin' ? new Date(match.start).getTime() : new Date(match.end).getTime();
-        const diffMs = new Date(checkin.timestamp).getTime() - targetTime;
-        const diffMins = Math.round(diffMs / 60000);
+        const checkinTime = new Date(checkin.timestamp).getTime();
+        // Truncate seconds by using Math.floor on minutes since epoch
+        const diffMins = Math.floor(checkinTime / 60000) - Math.floor(targetTime / 60000);
 
         // Ignore if within grace period
         if (Math.abs(diffMins) <= GRACE_PERIOD_MINUTES) return null;
