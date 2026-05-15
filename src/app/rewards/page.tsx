@@ -17,14 +17,19 @@ export default async function RewardsPage() {
     const report = await getMonthlyReport(month, year);
     const payroll = await calculatePayroll(month, year);
 
+    // Filter out inactive users who have quit
+    const excludedNames = ['Nía'];
+    const activePayroll = payroll.filter((p: any) => !excludedNames.includes(p.name));
+    report.topDiscipline = report.topDiscipline.filter((u: any) => !excludedNames.includes(u.user.name));
+
     // Top 3 Hardworking (Part-time only, by hours)
-    const topHardworking = [...payroll]
+    const topHardworking = [...activePayroll]
         .filter((p: any) => p.employmentType !== 'FULL_TIME')
         .sort((a, b) => b.totalHours - a.totalHours)
         .slice(0, 3);
 
     // Top 3 Overtime (Average per day)
-    const topOvertime = [...payroll]
+    const topOvertime = [...activePayroll]
         .filter((p: any) => p.totalOvertimeHours && p.totalOvertimeHours > 0 && p.daysWorked > 0)
         .map((p: any) => ({ ...p, avgOvertime: p.totalOvertimeHours / p.daysWorked }))
         .sort((a, b) => b.avgOvertime - a.avgOvertime)
@@ -52,6 +57,7 @@ export default async function RewardsPage() {
     }
 
     const topPacking = Object.values(userPointsMap)
+        .filter(u => !excludedNames.includes(u.name))
         .sort((a, b) => b.points - a.points)
         .slice(0, 3);
 

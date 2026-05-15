@@ -116,7 +116,10 @@ export async function getMonthlyReport(month: number, year: number) {
     topEarlyBird: report.filter((u: any) => u.totalEarlyMinutes > 0).sort((a: any, b: any) => b.totalEarlyMinutes - a.totalEarlyMinutes).slice(0, 3),
     topDiscipline: report.filter((u: any) => u.totalScheduledCheckins > 0).sort((a: any, b: any) => {
       if (b.punctualityRate === a.punctualityRate) {
-        return b.totalScheduledCheckins - a.totalScheduledCheckins;
+        if (b.totalEarlyMinutes === a.totalEarlyMinutes) {
+          return b.totalScheduledCheckins - a.totalScheduledCheckins;
+        }
+        return b.totalEarlyMinutes - a.totalEarlyMinutes;
       }
       return b.punctualityRate - a.punctualityRate;
     }).slice(0, 3)
