@@ -29,7 +29,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         .sort((a, b) => b.totalHours - a.totalHours)
         .slice(0, 3);
 
-    const now = new Date();
     const isCurrentMonth = now.getMonth() + 1 === month && now.getFullYear() === year;
     const referenceDay = isCurrentMonth ? now.getDate() : 31;
     let minDays = 1;
