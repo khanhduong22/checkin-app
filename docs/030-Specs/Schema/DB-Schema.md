@@ -23,6 +23,7 @@ The **Checkin App** uses PostgreSQL managed by Prisma ORM.
 - **CheckIn**: Records timestamp, type (`IN`/`OUT`/`LUNCH_IN`...), and IP address.
 - **WorkShift**: Assigned shifts for users. Supports swapping (`isOpenForSwap`).
 - **AllowedIP**: Whitelisted IP prefixes for valid check-ins.
+- **StaffTask**: Isolated tasks assigned to staff. Tracks status (`TODO`, `DOING`, `DONE`, `APPROVED`, `REJECTED`), assignee, creator, and feedback/revision notes.
 
 ### Tasks (Marketplace)
 - **TaskDefinition**: Template for a task (e.g., "Write Blog Post", base reward).
@@ -54,6 +55,8 @@ erDiagram
     User ||--o{ Request : makes
     User ||--o{ UserTask : performs
     User ||--o{ TaskItem : assigned_to
+    User ||--o{ StaffTask : assigned_to
+    User ||--o{ StaffTask : created_by
 
     TaskDefinition ||--o{ TaskItem : defines
     TaskDefinition ||--o{ UserTask : based_on
@@ -73,6 +76,7 @@ erDiagram
 | `employmentType` | `EmploymentType` | `FULL_TIME` or `PART_TIME`. Impacts payroll. |
 | `hourlyRate` | `Float` | For part-time calculation. |
 | `monthlySalary` | `Float` | For full-time calculation. |
+| `staffTasksAllowed` | `Boolean` | True if the employee is allowed to access and be assigned staff tasks & KPI tracking. |
 
 ### TaskItem (Marketplace)
 | Field | Type | Description |
@@ -85,3 +89,13 @@ erDiagram
 | :--- | :--- | :--- |
 | `evidenceLink` | `String?` | URL to proof of work. |
 | `finalAmount` | `Float?` | Actual amount paid (can differ from base reward). |
+
+### StaffTask
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `status` | `String` | `TODO`, `DOING`, `DONE`, `APPROVED`, `REJECTED`. |
+| `assigneeId` | `String` | Foreign key to the User assigned to the task. |
+| `createdById` | `String` | Foreign key to the Admin who created and assigned the task. |
+| `adminNote` | `String?` | Comments or feedback given by admin (e.g. rejection reason). |
+| `submittedAt` | `DateTime?` | When the staff marked the task as `DONE` for approval. |
+| `completedAt` | `DateTime?` | When the admin marked the task as `APPROVED`. |

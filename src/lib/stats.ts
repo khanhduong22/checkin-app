@@ -153,6 +153,26 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   const user = await fetchUserData(userId, startDate, endDate);
   if (!user) throw new Error("User not found");
 
+  const isThuKpiSalary = (user.email === 'cuccung123456789@gmail.com' || user.name === 'Thư') && (vnYear > 2026 || (vnYear === 2026 && vnMonth >= 5));
+  let completionRate = 1.0;
+  let totalTasksCount = 0;
+  let approvedTasksCount = 0;
+
+  if (isThuKpiSalary) {
+    const monthlyTasks = await prisma.staffTask.findMany({
+      where: {
+        assigneeId: userId,
+        OR: [
+          { createdAt: { gte: startDate, lte: endDate } },
+          { deadline: { gte: startDate, lte: endDate } }
+        ]
+      }
+    });
+    totalTasksCount = monthlyTasks.length;
+    approvedTasksCount = monthlyTasks.filter(t => t.status === 'APPROVED').length;
+    completionRate = totalTasksCount === 0 ? 1.0 : approvedTasksCount / totalTasksCount;
+  }
+
   const { checkins, shifts, allRequests, holidays } = await fetchPeriodData(userId, startDate, endDate);
 
   // 2. Process Requests & Maps
@@ -339,7 +359,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     projectedSalary = (user.monthlySalary || 0) + totalAdjustments - latePenaltyAmount;
   }
 
-  return {
+  let statsResult = {
     totalHours,
     totalOvertimeHours,
     daysWorked: daysWorked.size,
@@ -362,6 +382,33 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     latePenaltyHours,
     latePenaltyAmount
   };
+
+  if (isThuKpiSalary) {
+    const finalBaseSalary = 3000000 + (completionRate * 3000000);
+    const finalDeduction = 3000000 - (completionRate * 3000000);
+    const finalTotalSalary = finalBaseSalary + totalAdjustments;
+
+    statsResult = {
+      ...statsResult,
+      baseSalary: finalBaseSalary,
+      deduction: finalDeduction,
+      totalSalary: finalTotalSalary,
+      projectedSalary: finalTotalSalary,
+      employmentType: 'FULL_TIME' as any,
+      monthlySalary: 6000000,
+      latePenaltyHours: 0,
+      latePenaltyAmount: 0,
+      // @ts-ignore
+      isThuKpiSalary: true,
+      kpiCompletionRate: completionRate,
+      kpiTasksTotal: totalTasksCount,
+      kpiTasksApproved: approvedTasksCount,
+      fixedBaseSalary: 3000000,
+      kpiSalary: 3000000 * completionRate
+    } as any;
+  }
+
+  return statsResult;
 }
 
 function formatTime(date: Date) {

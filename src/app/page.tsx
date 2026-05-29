@@ -339,6 +339,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                                     </Button>
                                 </a>
                             </div>
+
+                            {(user?.staffTasksAllowed || user?.role === 'ADMIN') && (
+                                <div className="mt-3">
+                                    <a href="/staff-tasks" className="block w-full">
+                                        <Button variant="default" className="w-full h-11 text-sm font-bold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md transition-all hover:scale-[1.01]">
+                                            🎯 Công việc và KPI
+                                        </Button>
+                                    </a>
+                                </div>
+                            )}
                         </div>
                         {/* Admin Link... */}
                         {user?.role === 'ADMIN' && (

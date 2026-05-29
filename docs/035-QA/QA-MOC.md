@@ -21,6 +21,8 @@ updated: 2026-03-03
 | [carrying-bonus.test.ts](../../tests/unit/carrying-bonus.test.ts) | `runCarryingBonus` | 100% |
 | [packing-bonus.test.ts](../../tests/unit/packing-bonus.test.ts) | `runPackingBonus` | 100% |
 | [ip-utils.test.ts](../../tests/unit/ip-utils.test.ts) | `normalizeIP`, `isIPMatch` | 100% |
+| [staff-task.test.ts](../../tests/unit/staff-task.test.ts) | `getStaffTasks`, `createStaffTask`, `updateStaffTask`, `toggleUserStaffTasksAllowed`, `getStaffTaskPerformanceStats` | 100% |
+| [thu-payroll.test.ts](../../tests/unit/thu-payroll.test.ts) | `isThuKpiSalary`, Thư base/KPI salary calculations & revenue bonus overrides | 100% |
 
 ### E2E Tests (Playwright)
 | File | Flow |

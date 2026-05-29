@@ -59,7 +59,8 @@ export default function PayrollAdminClient({
     const totalWithBonus = isClosed 
         ? filteredData.reduce((sum, u) => sum + (u.stats.finalNet || u.stats.totalSalary), 0)
         : filteredData.reduce((sum, u) => {
-            const shouldApply = bonusTargets.includes(u.stats.employmentType) && !excludedUsers.includes(u.id);
+            const isThuKpiSalary = (u.email === 'cuccung123456789@gmail.com' || u.name === 'Thư') && (year > 2026 || (year === 2026 && month >= 6));
+            const shouldApply = (bonusTargets.includes(u.stats.employmentType) || (isThuKpiSalary && bonusTargets.includes('PART_TIME'))) && !excludedUsers.includes(u.id);
             const bonus = shouldApply ? (u.stats.baseSalary * bonusPercent / 100) : 0;
             return sum + u.stats.totalSalary + bonus;
         }, 0);
@@ -301,7 +302,8 @@ export default function PayrollAdminClient({
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
                             {filteredData.map((user) => {
-                                const shouldApply = !isClosed && bonusTargets.includes(user.stats.employmentType) && !excludedUsers.includes(user.id);
+                                const isThuKpiSalary = (user.email === 'cuccung123456789@gmail.com' || user.name === 'Thư') && (year > 2026 || (year === 2026 && month >= 6));
+                                const shouldApply = !isClosed && (bonusTargets.includes(user.stats.employmentType) || (isThuKpiSalary && bonusTargets.includes('PART_TIME'))) && !excludedUsers.includes(user.id);
                                 const bonusAmount = isClosed
                                     ? (user.stats.bonusAmount || 0)
                                     : (shouldApply ? (user.stats.baseSalary * bonusPercent / 100) : 0);

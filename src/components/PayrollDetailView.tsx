@@ -79,6 +79,34 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                 )}
             </div>
 
+            {stats.isThuKpiSalary && (
+                <Card className="p-5 bg-indigo-50/50 border-indigo-200/80 shadow-sm">
+                    <div className="flex items-center gap-2 text-indigo-700 mb-3">
+                        <span className="text-xl">🎯</span>
+                        <span className="text-sm font-bold uppercase tracking-wide">Chi tiết lương hiệu suất & KPI</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-indigo-900">
+                        <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-2xs">
+                            <p className="text-[11px] text-indigo-500 font-medium uppercase tracking-wider">Lương cứng WFH</p>
+                            <p className="text-xl font-bold text-indigo-950 mt-1">{formatVND(stats.fixedBaseSalary)}</p>
+                            <p className="text-[10px] text-indigo-400 mt-0.5">Không phụ thuộc vào số giờ làm</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-2xs">
+                            <p className="text-[11px] text-indigo-500 font-medium uppercase tracking-wider font-semibold">Lương hiệu suất KPI (Đạt {(stats.kpiCompletionRate * 100).toFixed(0)}%)</p>
+                            <p className="text-xl font-bold text-indigo-950 mt-1">{formatVND(stats.kpiSalary)}</p>
+                            <p className="text-[10px] text-indigo-500 font-medium mt-0.5">
+                                Hoàn thành: {stats.kpiTasksApproved}/{stats.kpiTasksTotal} công việc
+                            </p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-red-100 shadow-2xs">
+                            <p className="text-[11px] text-red-500 font-medium uppercase tracking-wider">Khấu trừ KPI chưa đạt</p>
+                            <p className="text-xl font-bold text-red-700 mt-1">-{formatVND(3000000 - stats.kpiSalary)}</p>
+                            <p className="text-[10px] text-red-400 mt-0.5">Bị trừ do chưa hoàn thành 100% việc</p>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
             <div className="space-y-6 pt-2">
                 {/* Lịch sử Thưởng/Phạt Card */}
                 <Card className="overflow-hidden">

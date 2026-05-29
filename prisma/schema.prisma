@@ -68,6 +68,9 @@ model User {
   payslips              Payslip[]
   managerTasksCreated   ManagerTask[] @relation("ManagerTaskCreator")
   managerTasksAssigned  ManagerTask[] @relation("ManagerTaskAssignee")
+  staffTasksAllowed     Boolean             @default(false)
+  staffTasksCreated     StaffTask[]         @relation("StaffTaskCreator")
+  staffTasksAssigned    StaffTask[]         @relation("StaffTaskAssignee")
 }
 
 model WorkShift {
@@ -326,4 +329,23 @@ model ManagerTask {
   createdBy User          @relation("ManagerTaskCreator", fields: [createdById], references: [id])
   parent    ManagerTask?  @relation("ManagerTaskSubtasks", fields: [parentId], references: [id], onDelete: SetNull)
   subtasks  ManagerTask[] @relation("ManagerTaskSubtasks")
+}
+
+model StaffTask {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("TODO") // TODO, DOING, DONE, APPROVED, REJECTED
+  assigneeId  String
+  createdById String
+  startDate   DateTime?
+  deadline    DateTime?
+  submittedAt DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  adminNote   String?
+
+  assignee  User @relation("StaffTaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+  createdBy User @relation("StaffTaskCreator", fields: [createdById], references: [id])
 }

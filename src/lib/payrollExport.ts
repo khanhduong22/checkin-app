@@ -91,7 +91,8 @@ function buildSummarySheet(
   ];
 
   const rows = users.map(u => {
-    const shouldApply = !isClosed && bonusTargets.includes(u.stats.employmentType);
+    const isThuKpiSalary = (u.email === 'cuccung123456789@gmail.com' || u.name === 'Thư') && (year > 2026 || (year === 2026 && month >= 6));
+    const shouldApply = !isClosed && (bonusTargets.includes(u.stats.employmentType) || (isThuKpiSalary && bonusTargets.includes('PART_TIME')));
     const bonusAmt = isClosed
       ? VND(u.stats.bonusAmount || 0)
       : VND(shouldApply ? (u.stats.baseSalary * bonusPercent / 100) : 0);
@@ -118,7 +119,8 @@ function buildSummarySheet(
 
   // Totals row
   const totalFinalNet = users.reduce((sum, u) => {
-    const shouldApply = !isClosed && bonusTargets.includes(u.stats.employmentType);
+    const isThuKpiSalary = (u.email === 'cuccung123456789@gmail.com' || u.name === 'Thư') && (year > 2026 || (year === 2026 && month >= 6));
+    const shouldApply = !isClosed && (bonusTargets.includes(u.stats.employmentType) || (isThuKpiSalary && bonusTargets.includes('PART_TIME')));
     const bonusAmt = isClosed
       ? VND(u.stats.bonusAmount || 0)
       : VND(shouldApply ? (u.stats.baseSalary * bonusPercent / 100) : 0);
@@ -130,7 +132,8 @@ function buildSummarySheet(
     parseFloat(users.reduce((s, u) => s + u.stats.totalHours, 0).toFixed(1)),
     VND(users.reduce((s, u) => s + u.stats.baseSalary, 0)),
     VND(users.reduce((s, u) => {
-      const should = !isClosed && bonusTargets.includes(u.stats.employmentType);
+      const isThuKpiSalary = (u.email === 'cuccung123456789@gmail.com' || u.name === 'Thư') && (year > 2026 || (year === 2026 && month >= 6));
+      const should = !isClosed && (bonusTargets.includes(u.stats.employmentType) || (isThuKpiSalary && bonusTargets.includes('PART_TIME')));
       return s + (isClosed ? (u.stats.bonusAmount || 0) : (should ? u.stats.baseSalary * bonusPercent / 100 : 0));
     }, 0)),
     VND(users.reduce((s, u) => s + u.stats.totalAdjustments, 0)),
@@ -171,7 +174,8 @@ function buildEmployeeDetailSheet(
   bonusPercent: number,
   bonusTargets: string[]
 ): XLSX.WorkSheet {
-  const shouldApplyBonus = !isClosed && bonusTargets.includes(user.stats.employmentType);
+  const isThuKpiSalary = (user.email === 'cuccung123456789@gmail.com' || user.name === 'Thư') && (year > 2026 || (year === 2026 && month >= 6));
+  const shouldApplyBonus = !isClosed && (bonusTargets.includes(user.stats.employmentType) || (isThuKpiSalary && bonusTargets.includes('PART_TIME')));
   const bonusAmt = isClosed
     ? VND(user.stats.bonusAmount || 0)
     : VND(shouldApplyBonus ? (user.stats.baseSalary * bonusPercent / 100) : 0);

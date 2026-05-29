@@ -1,6 +1,7 @@
 'use client';
 
 import { updateUserRole, updateUserRate, updateUserMonthlySalary, deleteUser, createUser } from '@/app/admin/actions';
+import { toggleUserStaffTasksAllowed } from '@/actions/staff-task-actions';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -141,6 +142,16 @@ function UserItem({ user }: { user: any }) {
         setLoading(false);
     };
 
+    const handleToggleStaffTasksAllowed = async () => {
+        setLoading(true);
+        const nextAllowed = !user.staffTasksAllowed;
+        const res = await toggleUserStaffTasksAllowed(user.id, nextAllowed);
+        setLoading(false);
+        if (!res.success) {
+            alert(res.error || "Gặp lỗi cập nhật quyền.");
+        }
+    };
+
     const toggleRole = async () => {
         const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
         if (confirm(`Bạn có chắc muốn đổi quyền của ${user.name} thành ${newRole}?`)) {
@@ -259,6 +270,16 @@ function UserItem({ user }: { user: any }) {
                             </>
                         )}
                     </div>
+
+                    <Button 
+                        variant={user.staffTasksAllowed ? "default" : "outline"} 
+                        size="sm" 
+                        onClick={handleToggleStaffTasksAllowed}
+                        className={user.staffTasksAllowed ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"}
+                        disabled={loading}
+                    >
+                        {user.staffTasksAllowed ? 'Gỡ quyền KPI' : 'Cấp quyền KPI'}
+                    </Button>
 
                     <Button variant="outline" size="sm" onClick={toggleRole}>
                         {user.role === 'ADMIN' ? 'Gỡ Admin' : 'Cấp Admin'}
