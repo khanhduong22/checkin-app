@@ -241,21 +241,29 @@ export async function getStaffTaskPerformanceStats(userId: string) {
     // 3. Compute stats
     const computeStats = (tasks: any[]) => {
       const total = tasks.length;
-      const approved = tasks.filter(t => t.status === "APPROVED").length;
       const doing = tasks.filter(t => t.status === "DOING").length;
       const pendingReview = tasks.filter(t => t.status === "DONE").length;
       const todo = tasks.filter(t => t.status === "TODO").length;
       const rejected = tasks.filter(t => t.status === "REJECTED").length;
 
-      const overdue = tasks.filter(t => 
-        t.status !== "APPROVED" && 
-        t.deadline && 
-        new Date(t.deadline) < now
+      const kpiAchieved = tasks.filter(t => 
+        t.status === "APPROVED" || 
+        t.status === "DONE" || 
+        (t.status === "REJECTED" && (now.getTime() - new Date(t.updatedAt).getTime()) <= 24 * 60 * 60 * 1000)
       ).length;
 
-      const completionRate = total === 0 ? 1.0 : approved / total;
+      const overdue = tasks.filter(t => {
+        if (t.status === "APPROVED" || t.status === "DONE") return false;
+        if (t.status === "REJECTED") {
+          const diffHours = (now.getTime() - new Date(t.updatedAt).getTime()) / (1000 * 60 * 60);
+          if (diffHours <= 24) return false;
+        }
+        return t.deadline && new Date(t.deadline) < now;
+      }).length;
 
-      return { total, approved, doing, pendingReview, todo, rejected, overdue, completionRate };
+      const completionRate = total === 0 ? 1.0 : kpiAchieved / total;
+
+      return { total, approved: kpiAchieved, doing, pendingReview, todo, rejected, overdue, completionRate };
     };
 
     return {

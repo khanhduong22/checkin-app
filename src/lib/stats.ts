@@ -169,7 +169,15 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
       }
     });
     totalTasksCount = monthlyTasks.length;
-    approvedTasksCount = monthlyTasks.filter(t => t.status === 'APPROVED').length;
+    const now = new Date();
+    approvedTasksCount = monthlyTasks.filter(t => {
+      if (t.status === 'APPROVED' || t.status === 'DONE') return true;
+      if (t.status === 'REJECTED') {
+        const diffHours = (now.getTime() - new Date(t.updatedAt).getTime()) / (1000 * 60 * 60);
+        return diffHours <= 24;
+      }
+      return false;
+    }).length;
     completionRate = totalTasksCount === 0 ? 1.0 : approvedTasksCount / totalTasksCount;
   }
 

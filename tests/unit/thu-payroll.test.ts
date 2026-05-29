@@ -101,8 +101,8 @@ describe("Thư Special KPI Payroll Logic (June 2026+)", () => {
     
     // 2 tasks: 1 APPROVED, 1 DOING (so 50% completion)
     mockStaffTaskFindMany.mockResolvedValue([
-      { id: "task-1", status: "APPROVED" },
-      { id: "task-2", status: "DOING" }
+      { id: "task-1", status: "APPROVED", updatedAt: new Date() },
+      { id: "task-2", status: "DOING", updatedAt: new Date() }
     ]);
 
     const stats = await getUserMonthlyStats(mockUserRecord.id, targetDateJune);
@@ -114,6 +114,40 @@ describe("Thư Special KPI Payroll Logic (June 2026+)", () => {
     expect(stats.baseSalary).toBe(4500000); // 3M base + 1.5M KPI
     expect(stats.deduction).toBe(1500000); // 3M - 1.5M missing KPI
     expect(stats.employmentType).toBe("FULL_TIME");
+  });
+
+  it("calculates special KPI-based salary in June 2026 counting DONE and grace-period REJECTED as completed", async () => {
+    mockUserFindUnique.mockResolvedValue(mockUserRecord);
+    mockCheckInFindMany.mockResolvedValue([]);
+    mockShiftFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+    mockHolidayFindMany.mockResolvedValue([]);
+
+    const now = new Date();
+    const recentRejectedDate = new Date(now.getTime() - 10 * 60 * 1000); // 10 mins ago
+    const oldRejectedDate = new Date(now.getTime() - 25 * 60 * 60 * 1000); // 25 hours ago
+
+    // 4 tasks:
+    // 1. APPROVED
+    // 2. DONE (counts as completed)
+    // 3. REJECTED (within 24h, counts as completed)
+    // 4. REJECTED (over 24h, counts as not completed)
+    // Total completed = 3/4 = 75%
+    mockStaffTaskFindMany.mockResolvedValue([
+      { id: "t1", status: "APPROVED", updatedAt: now },
+      { id: "t2", status: "DONE", updatedAt: now },
+      { id: "t3", status: "REJECTED", updatedAt: recentRejectedDate },
+      { id: "t4", status: "REJECTED", updatedAt: oldRejectedDate }
+    ]);
+
+    const stats = await getUserMonthlyStats(mockUserRecord.id, targetDateJune);
+
+    expect(stats.isThuKpiSalary).toBe(true);
+    expect(stats.kpiCompletionRate).toBe(0.75);
+    expect(stats.fixedBaseSalary).toBe(3000000);
+    expect(stats.kpiSalary).toBe(2250000); // 75% of 3M
+    expect(stats.baseSalary).toBe(5250000); // 3M base + 2.25M KPI
+    expect(stats.deduction).toBe(750000); // 3M - 2.25M missing KPI
   });
 
   it("includes adjustments correctly in Thư's totalSalary", async () => {

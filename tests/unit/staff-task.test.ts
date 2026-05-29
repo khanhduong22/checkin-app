@@ -171,18 +171,26 @@ describe("Staff Tasks Actions", () => {
   });
 
   describe("getStaffTaskPerformanceStats", () => {
-    it("calculates correct statistics based on task list", async () => {
+    it("calculates correct statistics based on task list, including DONE and grace-period REJECTED", async () => {
+      const now = new Date();
+      const recentRejectedDate = new Date(now.getTime() - 10 * 60 * 1000); // 10 mins ago
+      const oldRejectedDate = new Date(now.getTime() - 25 * 60 * 60 * 1000); // 25 hours ago
+
       mockTaskFindMany.mockResolvedValue([
-        { id: "t1", status: "APPROVED" },
-        { id: "t2", status: "DOING" },
-        { id: "t3", status: "TODO" }
+        { id: "t1", status: "APPROVED", updatedAt: now },
+        { id: "t2", status: "DOING", updatedAt: now },
+        { id: "t3", status: "TODO", updatedAt: now },
+        { id: "t4", status: "DONE", updatedAt: now }, // Should count as KPI achieved
+        { id: "t5", status: "REJECTED", updatedAt: recentRejectedDate }, // Within 24h - should count as KPI achieved
+        { id: "t6", status: "REJECTED", updatedAt: oldRejectedDate } // Over 24h - should NOT count
       ]);
 
       const res = await getStaffTaskPerformanceStats("staff-1");
       expect(res.success).toBe(true);
-      expect(res.data?.monthly.total).toBe(3);
-      expect(res.data?.monthly.approved).toBe(1);
-      expect(res.data?.monthly.completionRate).toBe(1/3);
+      expect(res.data?.monthly.total).toBe(6);
+      // t1 (APPROVED), t4 (DONE), and t5 (REJECTED within 24h) count as KPI completed
+      expect(res.data?.monthly.approved).toBe(3); 
+      expect(res.data?.monthly.completionRate).toBe(3/6);
     });
   });
 });
