@@ -62,7 +62,10 @@ export function AvailableTasksList({ tasks }: AvailableTasksListProps) {
       const result = await resp.json();
 
       if (result.success) {
-        toast.success("Khai báo Đóng Gói thành công! Đơn đang chờ duyệt.");
+        const msg = submittingTask.unit === 'điểm-bưng'
+          ? "Khai báo bưng hàng thành công! Đơn đang chờ duyệt."
+          : "Khai báo Đóng Gói thành công! Đơn đang chờ duyệt.";
+        toast.success(msg);
         setSubmittingTask(null);
         setQuantity(1);
         setNote("");
@@ -78,7 +81,7 @@ export function AvailableTasksList({ tasks }: AvailableTasksListProps) {
   };
 
   const onBtnClick = (task: TaskDefinition) => {
-    if (task.unit === 'điểm') {
+    if (task.unit === 'điểm' || task.unit === 'điểm-bưng') {
       setSubmittingTask(task);
       setQuantity(1);
       setNote("");
@@ -94,43 +97,60 @@ export function AvailableTasksList({ tasks }: AvailableTasksListProps) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tasks.map((task) => (
-          <Card key={task.id} className="flex flex-col hover:border-primary/50 transition-colors shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">{task.name}</CardTitle>
-              <CardDescription className="text-emerald-600 font-medium">
-                {task.baseReward.toLocaleString()} đ / {task.unit}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 pb-3">
-                <p className="text-sm text-muted-foreground">
-                    {task.description || "Chưa có mô tả báo cáo."}
-                </p>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                className="w-full shadow-sm" 
-                variant={task.unit === 'điểm' ? 'default' : 'secondary'}
-                onClick={() => onBtnClick(task)}
-              >
-                  {task.unit === 'điểm' ? (
-                    <><PackageOpen className="mr-2 h-4 w-4" /> Khai báo ngay</>
-                  ) : (
-                    <><Play className="mr-2 h-4 w-4" /> Nhận Job</>
-                  )}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+        {tasks.map((task) => {
+          const isDirect = task.unit === 'điểm' || task.unit === 'điểm-bưng';
+          return (
+            <Card key={task.id} className="flex flex-col hover:border-primary/50 transition-colors shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">{task.name}</CardTitle>
+                <CardDescription className="text-emerald-600 font-medium">
+                  {task.unit === 'điểm-bưng'
+                    ? `+${task.baseReward} điểm bưng / lượt`
+                    : task.unit === 'điểm'
+                      ? `+${task.baseReward} điểm đóng / thùng`
+                      : `${task.baseReward.toLocaleString()} đ / ${task.unit}`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 pb-3">
+                  <p className="text-sm text-muted-foreground">
+                      {task.description || "Chưa có mô tả báo cáo."}
+                  </p>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className={`w-full shadow-sm ${
+                    task.unit === 'điểm-bưng'
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                      : task.unit === 'điểm'
+                        ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                        : ''
+                  }`}
+                  variant={isDirect ? 'default' : 'secondary'}
+                  onClick={() => onBtnClick(task)}
+                >
+                    {isDirect ? (
+                      <><PackageOpen className="mr-2 h-4 w-4" /> Khai báo ngay</>
+                    ) : (
+                      <><Play className="mr-2 h-4 w-4" /> Nhận Job</>
+                    )}
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Direct Submit Dialog for Packing */}
+      {/* Direct Submit Dialog for Packing & Carrying */}
       <Dialog open={!!submittingTask} onOpenChange={(open) => !open && setSubmittingTask(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Khai báo Đóng Gói</DialogTitle>
+            <DialogTitle>
+              {submittingTask?.unit === 'điểm-bưng' ? "Khai báo bưng hàng" : "Khai báo Đóng Gói"}
+            </DialogTitle>
             <DialogDescription>
-              Khai báo số lượng <b>{submittingTask?.name}</b> mà bạn vừa đóng xong. Không cần hình ảnh rườm rà.
+              {submittingTask?.unit === 'điểm-bưng'
+                ? <>Khai báo số lượng <b>{submittingTask?.name}</b> mà bạn vừa bưng lên lầu xong. Không cần hình ảnh rườm rà.</>
+                : <>Khai báo số lượng <b>{submittingTask?.name}</b> mà bạn vừa đóng xong. Không cần hình ảnh rườm rà.</>}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -145,7 +165,9 @@ export function AvailableTasksList({ tasks }: AvailableTasksListProps) {
                   onChange={(e) => setQuantity(Number(e.target.value))}
                   className="w-24"
                 />
-                <span className="text-sm text-emerald-600 font-medium">{submittingTask?.unit}</span>
+                <span className="text-sm text-emerald-600 font-medium">
+                  {submittingTask?.unit === 'điểm-bưng' ? "lượt bưng" : submittingTask?.unit}
+                </span>
               </div>
             </div>
 
@@ -153,7 +175,7 @@ export function AvailableTasksList({ tasks }: AvailableTasksListProps) {
               <Label htmlFor="note" className="text-right">Ghi chú</Label>
               <Textarea
                 id="note"
-                placeholder="Ví dụ: Đơn Tiki ID #12345 (Nếu cần thiết)..."
+                placeholder={submittingTask?.unit === 'điểm-bưng' ? "Ghi chú nếu có (Ví dụ: bưng cùng nhóm)..." : "Ví dụ: Đơn Tiki ID #12345 (Nếu cần thiết)..."}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 className="col-span-3 min-h-[80px]"
@@ -161,7 +183,15 @@ export function AvailableTasksList({ tasks }: AvailableTasksListProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleDirectSubmit} disabled={isSubmitting} className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white">
+            <Button 
+              onClick={handleDirectSubmit} 
+              disabled={isSubmitting} 
+              className={`w-full sm:w-auto text-white ${
+                submittingTask?.unit === 'điểm-bưng'
+                  ? 'bg-amber-600 hover:bg-amber-700'
+                  : 'bg-purple-600 hover:bg-purple-700'
+              }`}
+            >
               {isSubmitting ? "Đang gửi đi..." : "Gửi lên mây ☁️"}
             </Button>
           </DialogFooter>

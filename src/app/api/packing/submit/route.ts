@@ -40,6 +40,7 @@ export async function POST(req: Request) {
     });
 
     revalidatePath("/packing");
+    revalidatePath("/carrying");
     revalidatePath("/tasks");
     revalidatePath("/admin/tasks");
 

@@ -297,8 +297,8 @@ export async function startTask(taskDefId: string, taskItemId?: string) {
     }
 
     // General Task (WFH): must be checked out from office first
-    // Exception: point tasks (packing) can be done anytime.
-    if (taskDef.unit !== 'điểm') {
+    // Exception: point tasks (packing) and carrying tasks can be done anytime.
+    if (taskDef.unit !== 'điểm' && taskDef.unit !== 'điểm-bưng') {
       const lastCheckIn = await prisma.checkIn.findFirst({
         where: { userId: session.user.id },
         orderBy: { timestamp: 'desc' }
@@ -441,7 +441,7 @@ export async function reviewTask(userTaskId: string, decision: "APPROVED" | "REJ
       const taskName = task.taskItem?.title || task.taskDefinition?.name || "Unknown Task";
       const noteSuffix = task.note ? ` (${task.note})` : "";
       
-      if (task.taskDefinition?.unit !== 'điểm') {
+      if (task.taskDefinition?.unit !== 'điểm' && task.taskDefinition?.unit !== 'điểm-bưng') {
         await prisma.payrollAdjustment.create({
           data: {
             userId: task.userId,

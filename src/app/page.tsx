@@ -80,6 +80,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
     const { runPackingBonus } = await import("@/lib/packing-bonus");
     await runPackingBonus();
 
+    // Auto-run carrying bonus (safe: duplicate-checked per month)
+    const { runCarryingBonus } = await import("@/lib/carrying-bonus");
+    await runCarryingBonus();
+
     const notes = await prisma.stickyNote.findMany({
         orderBy: { createdAt: 'desc' },
         take: 6,
@@ -316,14 +320,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                                         📝 Xin giải trình
                                     </Button>
                                 </a>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2 mt-3">
                                 <a href="/tasks" className="block w-full">
-                                    <Button variant="default" className="w-full text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
+                                    <Button variant="default" className="w-full text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-1">
                                         💼 Job WFH
                                     </Button>
                                 </a>
                                 <a href="/packing" className="block w-full">
-                                    <Button variant="default" className="w-full text-xs bg-purple-600 hover:bg-purple-700 text-white">
-                                        📦 Ghi nhận Đóng gói
+                                    <Button variant="default" className="w-full text-xs bg-purple-600 hover:bg-purple-700 text-white px-1">
+                                        📦 Đóng gói
+                                    </Button>
+                                </a>
+                                <a href="/carrying" className="block w-full">
+                                    <Button variant="default" className="w-full text-xs bg-amber-600 hover:bg-amber-700 text-white px-1">
+                                        🛗 Bưng lầu
                                     </Button>
                                 </a>
                             </div>

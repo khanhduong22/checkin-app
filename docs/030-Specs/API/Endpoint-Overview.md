@@ -39,3 +39,11 @@ The application primarily uses **Server Actions** for data mutations and interac
 
 ### `/api/admin/...`
 - **Description**: Administrative endpoints for specific data retrieval or operations not handled by Server Actions (e.g., specific reporting or bulk updates).
+
+### `/api/cron/packing-bonus`
+- **Method**: `GET`
+- **Description**: Automated job to run packing bonus checks and award Top 1 bonus.
+
+### `/api/cron/carrying-bonus`
+- **Method**: `GET`
+- **Description**: Automated job to run carrying bonus check and award Top 1 bonus.

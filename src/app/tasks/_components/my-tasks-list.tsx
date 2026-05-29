@@ -56,8 +56,8 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
   const handleSubmit = async () => {
     if (!submittingTask || isSubmitting) return;
 
-    const isPacking = submittingTask.taskDefinition?.unit === 'điểm';
-    if (!isPacking && !evidenceLink) {
+    const isDirect = submittingTask.taskDefinition?.unit === 'điểm' || submittingTask.taskDefinition?.unit === 'điểm-bưng';
+    if (!isDirect && !evidenceLink) {
       toast.error("Evidence link is required");
       return;
     }
@@ -157,9 +157,11 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
                 <p className="text-sm text-muted-foreground">Submitted: {task.submittedAt ? format(new Date(task.submittedAt), "dd/MM HH:mm") : "-"}</p>
               </CardHeader>
               <CardContent>
-                <p>Quantity: {task.quantity} {task.taskDefinition.unit}</p>
-                {task.note && <p className="text-sm text-emerald-700 mt-1 font-medium">Ghi chú: {task.note}</p>}
-                <p className="text-sm text-muted-foreground truncate mt-1">Ref: {task.evidenceLink}</p>
+                 <p>Quantity: {task.quantity} {task.taskDefinition.unit === 'điểm-bưng' ? 'lượt bưng' : task.taskDefinition.unit}</p>
+                 {task.note && <p className="text-sm text-emerald-700 mt-1 font-medium">Ghi chú: {task.note}</p>}
+                 {task.taskDefinition.unit !== 'điểm' && task.taskDefinition.unit !== 'điểm-bưng' && (
+                   <p className="text-sm text-muted-foreground truncate mt-1">Ref: {task.evidenceLink}</p>
+                 )}
               </CardContent>
             </Card>
           ))}
@@ -237,7 +239,7 @@ export function MyTasksList({ initialTasks }: MyTasksListProps) {
               </div>
             </div>
 
-            {submittingTask?.taskDefinition?.unit !== 'điểm' && (
+            {submittingTask?.taskDefinition?.unit !== 'điểm' && submittingTask?.taskDefinition?.unit !== 'điểm-bưng' && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="link" className="text-right">Evidence Link</Label>
                 <Input

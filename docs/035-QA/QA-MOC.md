@@ -18,6 +18,8 @@ updated: 2026-03-03
 | [stats.test.ts](../../tests/unit/stats.test.ts) | `calculateLatePenalty` | 100% |
 | [streak.test.ts](../../tests/unit/streak.test.ts) | `calculateStreak` | 100% |
 | [birthday-bonus.test.ts](../../tests/unit/birthday-bonus.test.ts) | `runBirthdayBonus` | 100% |
+| [carrying-bonus.test.ts](../../tests/unit/carrying-bonus.test.ts) | `runCarryingBonus` | 100% |
+| [packing-bonus.test.ts](../../tests/unit/packing-bonus.test.ts) | `runPackingBonus` | 100% |
 | [ip-utils.test.ts](../../tests/unit/ip-utils.test.ts) | `normalizeIP`, `isIPMatch` | 100% |
 
 ### E2E Tests (Playwright)

@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 
 /**
- * Runs packing bonus logic: gives +100,000 VND to the Top 1 employee in packing points.
- * Triggers at 18:00 on the last day of the month, or catches up in the first 5 days of the next month.
+ * Runs carrying bonus logic: gives +200,000 VND to the Top 1 employee in carrying points.
+ * Triggers at 18:00 on the last day of the month.
  * Safe to call multiple times - idempotency is handled via checking the existing PayrollAdjustment reason.
  */
-export async function runPackingBonus(): Promise<void> {
+export async function runCarryingBonus(): Promise<void> {
     try {
         const now = new Date();
         const vnNow = new Date(now.getTime() + 7 * 60 * 60 * 1000); // UTC+7 buffer
@@ -21,7 +21,7 @@ export async function runPackingBonus(): Promise<void> {
         
         let shouldCheck = false;
         
-        // Case 1: Today is the last day and time is >= 18:00
+        // Today is the last day and time is >= 18:00
         if (isLastDay && isPast6PM) {
             shouldCheck = true;
         } 
@@ -29,7 +29,7 @@ export async function runPackingBonus(): Promise<void> {
         if (!shouldCheck) return;
 
         // Create a unique reason key for the specific month to guarantee it's only awarded once.
-        const reasonKey = `Thưởng Vua Đóng Hàng (Top 1 T${targetMonth + 1}/${targetYear})`;
+        const reasonKey = `Thưởng Chiến Thần Bưng Hàng (Top 1 T${targetMonth + 1}/${targetYear})`;
 
         const existing = await prisma.payrollAdjustment.findFirst({
             where: { reason: reasonKey }
@@ -37,7 +37,7 @@ export async function runPackingBonus(): Promise<void> {
 
         if (existing) return; // Already awarded this month
 
-        // Find the top 1 packer for the target month
+        // Find the top 1 carrying person for the target month
         const startDate = new Date(targetYear, targetMonth, 1);
         const endDate = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59, 999);
 
@@ -46,7 +46,7 @@ export async function runPackingBonus(): Promise<void> {
             where: {
                 status: "APPROVED",
                 updatedAt: { gte: startDate, lte: endDate },
-                taskDefinition: { unit: 'điểm' }
+                taskDefinition: { unit: 'điểm-bưng' }
             }
         });
 
@@ -63,10 +63,10 @@ export async function runPackingBonus(): Promise<void> {
 
         const top1UserId = sortedUsers[0];
 
-        // Ensure we don't grant bonus if their total score is 0
-        if (userPoints[top1UserId] <= 0) return;
-
         const score = userPoints[top1UserId];
+        // Ensure we don't grant bonus if their total score is less than 10 points
+        if (score < 10) return;
+
         const amount = score > 50 ? 200000 : 100000;
 
         // Award dynamic bonus
@@ -79,8 +79,8 @@ export async function runPackingBonus(): Promise<void> {
             }
         });
 
-        console.log(`[Packing Bonus] +${amount.toLocaleString()} VND granted to user ${top1UserId} - ${reasonKey}`);
+        console.log(`[Carrying Bonus] +${amount.toLocaleString()} VND granted to user ${top1UserId} - ${reasonKey}`);
     } catch (err) {
-        console.error("[Packing Bonus] Error running packing bonus:", err);
+        console.error("[Carrying Bonus] Error running carrying bonus:", err);
     }
 }

@@ -69,12 +69,63 @@ const tasks = [
     unit: "banner",
     baseReward: 20000,
     description: "Đúng concept từng shop."
+  },
+  {
+    name: "Chiến thần bưng hàng - Thùng nhỏ nhẹ",
+    unit: "điểm-bưng",
+    baseReward: 1,
+    description: "Bưng hàng lên lầu: Thùng nhỏ nhẹ (1 điểm)."
+  },
+  {
+    name: "Chiến thần bưng hàng - Thùng nhỏ nặng",
+    unit: "điểm-bưng",
+    baseReward: 2,
+    description: "Bưng hàng lên lầu: Thùng nhỏ nặng (2 điểm)."
+  },
+  {
+    name: "Chiến thần bưng hàng - Thùng vừa nhẹ",
+    unit: "điểm-bưng",
+    baseReward: 2,
+    description: "Bưng hàng lên lầu: Thùng vừa nhẹ (2 điểm)."
+  },
+  {
+    name: "Chiến thần bưng hàng - Thùng vừa nặng",
+    unit: "điểm-bưng",
+    baseReward: 3,
+    description: "Bưng hàng lên lầu: Thùng vừa nặng (3 điểm)."
+  },
+  {
+    name: "Chiến thần bưng hàng - Thùng to nhẹ",
+    unit: "điểm-bưng",
+    baseReward: 3,
+    description: "Bưng hàng lên lầu: Thùng to nhẹ (3 điểm)."
+  },
+  {
+    name: "Chiến thần bưng hàng - Thùng to nặng",
+    unit: "điểm-bưng",
+    baseReward: 4,
+    description: "Bưng hàng lên lầu: Thùng to nặng (4 điểm)."
+  },
+  {
+    name: "Chiến thần bưng hàng - Thùng cực to",
+    unit: "điểm-bưng",
+    baseReward: 5,
+    description: "Bưng hàng lên lầu: Thùng cực to (5 điểm)."
   }
 ]
 
 async function main() {
   console.log(`Start seeding tasks...`)
   for (const t of tasks) {
+    const existing = await prisma.taskDefinition.findFirst({
+      where: { name: t.name }
+    });
+
+    if (existing) {
+      console.log(`Task already exists: ${t.name}`);
+      continue;
+    }
+
     const task = await prisma.taskDefinition.create({
       data: {
         name: t.name,

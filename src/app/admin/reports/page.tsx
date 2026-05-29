@@ -70,6 +70,29 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         .sort((a, b) => b.points - a.points)
         .slice(0, 3);
 
+    // Leaderboard Chiến Thần Bưng Hàng
+    const carryingTasks = await prisma.userTask.findMany({
+        where: {
+            status: "APPROVED",
+            updatedAt: { gte: startDate, lte: endDate },
+            taskDefinition: { unit: 'điểm-bưng' }
+        },
+        include: { user: true }
+    });
+
+    const userCarryingMap: Record<string, { id: string, name: string, points: number }> = {};
+    for (const ct of carryingTasks) {
+        if (!userCarryingMap[ct.userId]) {
+            userCarryingMap[ct.userId] = { id: ct.user.id, name: ct.user.name || '', points: 0 };
+        }
+        userCarryingMap[ct.userId].points += (ct.finalAmount || 0);
+    }
+
+    const topCarrying = Object.values(userCarryingMap)
+        .filter(u => !excludedNames.includes(u.name) && u.points >= 10)
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 3);
+
     // Format duration helper (125 -> 2h 5p)
     const formatDuration = (mins: number) => {
         if (!mins) return '0p';
@@ -229,36 +252,82 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                         <CardTitle className="flex items-center gap-2 text-purple-700">
                             📦 Vua Đóng Hàng
                         </CardTitle>
-                        <CardDescription>Điểm đóng gói lớn (Top 1 được 100K)</CardDescription>
+                        <CardDescription>Điểm đóng gói lớn (Top 1 được 100K, &gt;50đ được 200K)</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {topPacking.map((u, idx) => (
-                                <div key={u.id} className="flex items-center justify-between bg-white/60 p-3 rounded-lg shadow-sm relative overflow-hidden">
-                                    {idx === 0 && (
-                                        <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg whitespace-nowrap">
-                                            +100K VND
-                                        </div>
-                                    )}
-                                    <div className="flex items-center gap-3">
-                                        <div className={`
-                                            flex items-center justify-center w-8 h-8 rounded-full font-bold text-white
-                                            ${idx === 0 ? 'bg-purple-500' : idx === 1 ? 'bg-gray-400' : 'bg-purple-900'}
-                                        `}>
-                                            {idx + 1}
-                                        </div>
-                                        <div>
-                                            <div className="font-bold">
-                                                <Link href={`/admin/employees/${u.id}`} className="hover:underline">
-                                                    {u.name}
-                                                </Link>
+                            {topPacking.map((u, idx) => {
+                                const prize = u.points > 50 ? "200K" : "100K";
+                                return (
+                                    <div key={u.id} className="flex items-center justify-between bg-white/60 p-3 rounded-lg shadow-sm relative overflow-hidden">
+                                        {idx === 0 && (
+                                            <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg whitespace-nowrap">
+                                                +{prize} VND
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-3">
+                                            <div className={`
+                                                flex items-center justify-center w-8 h-8 rounded-full font-bold text-white
+                                                ${idx === 0 ? 'bg-purple-500' : idx === 1 ? 'bg-gray-400' : 'bg-purple-900'}
+                                            `}>
+                                                {idx + 1}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold">
+                                                    <Link href={`/admin/employees/${u.id}`} className="hover:underline">
+                                                        {u.name}
+                                                    </Link>
+                                                </div>
                                             </div>
                                         </div>
+                                        <div className="text-xl font-bold text-purple-600">{u.points}đ</div>
                                     </div>
-                                    <div className="text-xl font-bold text-purple-600">{u.points}đ</div>
-                                </div>
-                            ))}
+                                );
+                            })}
                             {topPacking.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có ai đóng hàng bự.</div>}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Chiến Thần Bưng Hàng */}
+                <Card id="report-top-carrying" className="bg-gradient-to-br from-amber-50 to-orange-50 border-orange-200 md:col-span-2 lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-amber-700">
+                            🛗 Chiến Thần Bưng Hàng
+                        </CardTitle>
+                        <CardDescription>Điểm bưng hàng lên lầu (Tối thiểu 10đ, Top 1 100K, &gt;50đ 200K)</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {topCarrying.map((u, idx) => {
+                                const prize = u.points > 50 ? "200K" : "100K";
+                                return (
+                                    <div key={u.id} className="flex items-center justify-between bg-white/60 p-3 rounded-lg shadow-sm relative overflow-hidden">
+                                        {idx === 0 && (
+                                            <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg whitespace-nowrap">
+                                                +{prize} VND
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-3">
+                                            <div className={`
+                                                flex items-center justify-center w-8 h-8 rounded-full font-bold text-white
+                                                ${idx === 0 ? 'bg-amber-500' : idx === 1 ? 'bg-gray-400' : 'bg-amber-900'}
+                                            `}>
+                                                {idx + 1}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold">
+                                                    <Link href={`/admin/employees/${u.id}`} className="hover:underline">
+                                                        {u.name}
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-xl font-bold text-amber-600">{u.points}đ</div>
+                                    </div>
+                                );
+                            })}
+                            {topCarrying.length === 0 && <div className="text-sm italic text-muted-foreground">Chưa có ai bưng hàng.</div>}
                         </div>
                     </CardContent>
                 </Card>

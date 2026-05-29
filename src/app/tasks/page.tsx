@@ -17,9 +17,9 @@ export default async function TasksPage({ searchParams }: { searchParams?: Promi
   const availableItems = availableItemsRes.success ? availableItemsRes.data || [] : [];
   const userTasksAll = userTasksRes.success ? userTasksRes.data || [] : [];
 
-  const wfhTasks = availableTasks.filter((t: any) => t.unit !== 'điểm');
-  // Only show non-packing tasks in the WFH history
-  const userTasks = userTasksAll.filter((t: any) => t.taskDefinition?.unit !== 'điểm');
+  const wfhTasks = availableTasks.filter((t: any) => t.unit !== 'điểm' && t.unit !== 'điểm-bưng');
+  // Only show non-packing, non-carrying tasks in the WFH history
+  const userTasks = userTasksAll.filter((t: any) => t.taskDefinition?.unit !== 'điểm' && t.taskDefinition?.unit !== 'điểm-bưng');
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const defaultTab = resolvedSearchParams?.tab || "market";
