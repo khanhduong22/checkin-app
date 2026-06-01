@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import PayrollMonthSelector from "@/components/PayrollMonthSelector";
 
 export const dynamic = 'force-dynamic';
 
@@ -106,11 +107,25 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     const totalHoursAll = payroll.reduce((sum: number, p: any) => sum + p.totalHours, 0);
     const totalEmployeeCount = payroll.length;
 
+    const monthOptions = [];
+    for (let i = 0; i < 6; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthOptions.push({
+            value: `${d.getFullYear()}-${d.getMonth() + 1}`,
+            label: `Tháng ${d.getMonth() + 1}/${d.getFullYear()}`
+        });
+    }
+
     return (
         <div className="space-y-8">
-            <div>
-                 <h2 className="text-3xl font-bold tracking-tight">Bảng Thành Tích & Báo Cáo</h2>
-                 <p className="text-muted-foreground">Tháng {month}/{year}</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                     <h2 className="text-3xl font-bold tracking-tight">Bảng Thành Tích & Báo Cáo</h2>
+                     <p className="text-muted-foreground">Tháng {month}/{year}</p>
+                </div>
+                <div className="w-full md:w-48 bg-white p-2 rounded-lg shadow-sm border">
+                    <PayrollMonthSelector current={`${year}-${month}`} options={monthOptions} baseUrl="/admin/reports" />
+                </div>
             </div>
 
              {/* 📊 SUMMARY STATS */}

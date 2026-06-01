@@ -6,13 +6,15 @@ import { getMonthlyReport } from "@/lib/report";
 import { calculatePayroll } from "@/lib/payroll";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
+import PayrollMonthSelector from "@/components/PayrollMonthSelector";
 
 export const dynamic = 'force-dynamic';
 
-export default async function RewardsPage() {
+export default async function RewardsPage({ searchParams }: { searchParams: Promise<{ month?: string, year?: string }> }) {
     const now = new Date();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
+    const resolvedParams = await searchParams;
+    const month = resolvedParams.month ? parseInt(resolvedParams.month) : now.getMonth() + 1;
+    const year = resolvedParams.year ? parseInt(resolvedParams.year) : now.getFullYear();
 
     const report = await getMonthlyReport(month, year);
     const payroll = await calculatePayroll(month, year);
@@ -101,10 +103,19 @@ export default async function RewardsPage() {
         return `${m}p`;
     }
 
+    const monthOptions = [];
+    for (let i = 0; i < 6; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthOptions.push({
+            value: `${d.getFullYear()}-${d.getMonth() + 1}`,
+            label: `Tháng ${d.getMonth() + 1}/${d.getFullYear()}`
+        });
+    }
+
     return (
         <main className="min-h-screen bg-gray-50/50 p-4 pb-12 flex justify-center">
              <div className="w-full max-w-4xl space-y-8 animate-in fade-in zoom-in duration-500">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                      <div>
                         <h1 className="text-3xl font-bold flex items-center gap-2">
                              <Trophy className="h-8 w-8 text-yellow-500" />
@@ -112,9 +123,14 @@ export default async function RewardsPage() {
                         </h1>
                         <p className="text-muted-foreground mt-1">Cập nhật theo thời gian thực - Tháng {month}/{year}</p>
                      </div>
-                     <a href="/">
-                        <Button variant="outline" size="sm">← Trang chủ</Button>
-                     </a>
+                     <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="w-40 md:w-48 bg-white p-2 rounded-lg shadow-sm border">
+                            <PayrollMonthSelector current={`${year}-${month}`} options={monthOptions} baseUrl="/rewards" />
+                        </div>
+                        <a href="/">
+                            <Button variant="outline" size="sm">← Trang chủ</Button>
+                        </a>
+                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
