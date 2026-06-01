@@ -61,25 +61,28 @@ export async function runCarryingBonus(): Promise<void> {
         const sortedUsers = Object.keys(userPoints).sort((a, b) => userPoints[b] - userPoints[a]);
         if (sortedUsers.length === 0) return; // No points accumulated by anyone
 
-        const top1UserId = sortedUsers[0];
-
-        const score = userPoints[top1UserId];
+        const topScore = userPoints[sortedUsers[0]];
         // Ensure we don't grant bonus if their total score is less than 10 points
-        if (score < 10) return;
+        if (topScore < 10) return;
 
-        const amount = score > 50 ? 200000 : 100000;
+        // Find all users who are tied with the top score
+        const tiedUsers = Object.keys(userPoints).filter(uid => userPoints[uid] === topScore);
+        const tieCount = tiedUsers.length;
 
-        // Award dynamic bonus
-        await prisma.payrollAdjustment.create({
-            data: {
-                userId: top1UserId,
-                amount: amount,
-                reason: reasonKey,
-                date: now
-            }
-        });
+        const baseAmount = topScore > 50 ? 200000 : 100000;
+        const splitAmount = Math.round(baseAmount / tieCount);
 
-        console.log(`[Carrying Bonus] +${amount.toLocaleString()} VND granted to user ${top1UserId} - ${reasonKey}`);
+        for (const uid of tiedUsers) {
+            await prisma.payrollAdjustment.create({
+                data: {
+                    userId: uid,
+                    amount: splitAmount,
+                    reason: reasonKey,
+                    date: now
+                }
+            });
+            console.log(`[Carrying Bonus] +${splitAmount.toLocaleString()} VND granted to user ${uid} (Split top 1) - ${reasonKey}`);
+        }
     } catch (err) {
         console.error("[Carrying Bonus] Error running carrying bonus:", err);
     }
