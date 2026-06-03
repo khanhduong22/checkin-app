@@ -164,11 +164,9 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
         assigneeId: userId,
         OR: [
           { startDate: { gte: startDate, lte: endDate } },
-          { deadline: { gte: startDate, lte: endDate } },
           {
             AND: [
               { startDate: null },
-              { deadline: null },
               { createdAt: { gte: startDate, lte: endDate } }
             ]
           }

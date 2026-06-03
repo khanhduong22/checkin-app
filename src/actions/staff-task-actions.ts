@@ -223,11 +223,9 @@ export async function getStaffTaskPerformanceStats(userId: string) {
           assigneeId: userId,
           OR: [
             { startDate: { gte: monthStart, lte: monthEnd } },
-            { deadline: { gte: monthStart, lte: monthEnd } },
             {
               AND: [
                 { startDate: null },
-                { deadline: null },
                 { createdAt: { gte: monthStart, lte: monthEnd } }
               ]
             }
@@ -239,11 +237,9 @@ export async function getStaffTaskPerformanceStats(userId: string) {
           assigneeId: userId,
           OR: [
             { startDate: { gte: weekStart, lte: weekEnd } },
-            { deadline: { gte: weekStart, lte: weekEnd } },
             {
               AND: [
                 { startDate: null },
-                { deadline: null },
                 { createdAt: { gte: weekStart, lte: weekEnd } }
               ]
             }

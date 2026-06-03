@@ -183,13 +183,12 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
 
           const filteredTasksByWeek = tasks.filter(t => {
             const taskStart = t.startDate ? new Date(t.startDate) : new Date(t.createdAt);
-            const taskEnd = t.deadline ? new Date(t.deadline) : taskStart;
             
             if (selectedWeekFilter === "THIS_WEEK") {
-              return taskStart <= thisWeekEnd && taskEnd >= thisWeekStart;
+              return taskStart >= thisWeekStart && taskStart <= thisWeekEnd;
             }
             if (selectedWeekFilter === "NEXT_WEEK") {
-              return taskStart <= nextWeekEnd && taskEnd >= nextWeekStart;
+              return taskStart >= nextWeekStart && taskStart <= nextWeekEnd;
             }
             return true;
           });
