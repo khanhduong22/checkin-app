@@ -234,12 +234,14 @@ export default function AdminStaffTaskClient({
     }
     
     // 2. Week Filter
-    const taskDate = t.deadline ? new Date(t.deadline) : new Date(t.createdAt);
+    const taskStart = t.startDate ? new Date(t.startDate) : new Date(t.createdAt);
+    const taskEnd = t.deadline ? new Date(t.deadline) : taskStart;
+    
     if (selectedWeekFilter === "THIS_WEEK") {
-      return taskDate >= thisWeekStart && taskDate <= thisWeekEnd;
+      return taskStart <= thisWeekEnd && taskEnd >= thisWeekStart;
     }
     if (selectedWeekFilter === "NEXT_WEEK") {
-      return taskDate >= nextWeekStart && taskDate <= nextWeekEnd;
+      return taskStart <= nextWeekEnd && taskEnd >= nextWeekStart;
     }
     return true;
   });
