@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 export default function StaffTaskClient({ initialTasks, userId }: { initialTasks: StaffTask[]; userId: string }) {
   const [tasks, setTasks] = useState<StaffTask[]>(initialTasks);
+  const [selectedWeekFilter, setSelectedWeekFilter] = useState<"THIS_WEEK" | "NEXT_WEEK" | "ALL">("THIS_WEEK");
   const [selectedTask, setSelectedTask] = useState<StaffTask | null>(null);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<{
@@ -137,10 +138,61 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
         </div>
       )}
 
+      {/* Week Selector Tab/Dropdown */}
+      <div className="flex justify-end bg-white p-3 rounded-xl border shadow-xs items-center gap-3">
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+          <Calendar className="h-4 w-4 text-indigo-500" /> Xem theo tuần:
+        </div>
+        <select
+          value={selectedWeekFilter}
+          onChange={e => setSelectedWeekFilter(e.target.value as any)}
+          className="border rounded-lg text-xs px-3 py-1.5 bg-white outline-hidden focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-700"
+        >
+          <option value="THIS_WEEK">Tuần này</option>
+          <option value="NEXT_WEEK">Tuần sau</option>
+          <option value="ALL">Tất cả thời gian</option>
+        </select>
+      </div>
+
       {/* Kanban Board columns */}
       <div className="flex gap-4 overflow-x-auto pb-6 pt-2">
         {COLUMNS.map(col => {
-          const colTasks = tasks.filter(t => t.status === col.id);
+          // Weekly range boundary calculations (Mon-Sun in Vietnam time)
+          const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+          const now = new Date();
+          const vnNow = new Date(now.getTime() + VN_OFFSET_MS);
+
+          const currentDay = vnNow.getUTCDay(); // 0 = Sun, 1 = Mon... 6 = Sat
+          const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+
+          const thisWeekStartLocal = new Date(vnNow);
+          thisWeekStartLocal.setUTCDate(vnNow.getUTCDate() + diffToMonday);
+          thisWeekStartLocal.setUTCHours(0, 0, 0, 0);
+          const thisWeekStart = new Date(thisWeekStartLocal.getTime() - VN_OFFSET_MS);
+
+          const thisWeekEndLocal = new Date(thisWeekStartLocal);
+          thisWeekEndLocal.setUTCDate(thisWeekStartLocal.getUTCDate() + 6);
+          thisWeekEndLocal.setUTCHours(23, 59, 59, 999);
+          const thisWeekEnd = new Date(thisWeekEndLocal.getTime() - VN_OFFSET_MS);
+
+          const nextWeekStart = new Date(thisWeekStart);
+          nextWeekStart.setDate(thisWeekStart.getDate() + 7);
+
+          const nextWeekEnd = new Date(thisWeekEnd);
+          nextWeekEnd.setDate(thisWeekEnd.getDate() + 7);
+
+          const filteredTasksByWeek = tasks.filter(t => {
+            const taskDate = t.deadline ? new Date(t.deadline) : new Date(t.createdAt);
+            if (selectedWeekFilter === "THIS_WEEK") {
+              return taskDate >= thisWeekStart && taskDate <= thisWeekEnd;
+            }
+            if (selectedWeekFilter === "NEXT_WEEK") {
+              return taskDate >= nextWeekStart && taskDate <= nextWeekEnd;
+            }
+            return true;
+          });
+
+          const colTasks = filteredTasksByWeek.filter(t => t.status === col.id);
           return (
             <div key={col.id} className="flex-shrink-0 w-72 flex flex-col" style={{ width: 290 }}>
               <div className="bg-gray-100/90 border border-b-0 rounded-t-xl px-4 py-2.5 flex items-center justify-between shadow-2xs">

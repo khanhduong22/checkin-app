@@ -38,6 +38,7 @@ export default function AdminStaffTaskClient({
 
   const [tasks, setTasks] = useState<StaffTask[]>(initialTasks);
   const [selectedUserFilter, setSelectedUserFilter] = useState<string>("ALL");
+  const [selectedWeekFilter, setSelectedWeekFilter] = useState<"THIS_WEEK" | "NEXT_WEEK" | "ALL">("THIS_WEEK");
   const [selectedTask, setSelectedTask] = useState<StaffTask | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -202,9 +203,46 @@ export default function AdminStaffTaskClient({
     }
   };
 
-  const filteredTasks = selectedUserFilter === "ALL" 
-    ? tasks 
-    : tasks.filter(t => t.assigneeId === selectedUserFilter);
+  // Weekly range boundary calculations (Mon-Sun in Vietnam time)
+  const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const now = new Date();
+  const vnNow = new Date(now.getTime() + VN_OFFSET_MS);
+
+  const currentDay = vnNow.getUTCDay(); // 0 = Sun, 1 = Mon... 6 = Sat
+  const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+
+  const thisWeekStartLocal = new Date(vnNow);
+  thisWeekStartLocal.setUTCDate(vnNow.getUTCDate() + diffToMonday);
+  thisWeekStartLocal.setUTCHours(0, 0, 0, 0);
+  const thisWeekStart = new Date(thisWeekStartLocal.getTime() - VN_OFFSET_MS);
+
+  const thisWeekEndLocal = new Date(thisWeekStartLocal);
+  thisWeekEndLocal.setUTCDate(thisWeekStartLocal.getUTCDate() + 6);
+  thisWeekEndLocal.setUTCHours(23, 59, 59, 999);
+  const thisWeekEnd = new Date(thisWeekEndLocal.getTime() - VN_OFFSET_MS);
+
+  const nextWeekStart = new Date(thisWeekStart);
+  nextWeekStart.setDate(thisWeekStart.getDate() + 7);
+
+  const nextWeekEnd = new Date(thisWeekEnd);
+  nextWeekEnd.setDate(thisWeekEnd.getDate() + 7);
+
+  const filteredTasks = tasks.filter(t => {
+    // 1. User Filter
+    if (selectedUserFilter !== "ALL" && t.assigneeId !== selectedUserFilter) {
+      return false;
+    }
+    
+    // 2. Week Filter
+    const taskDate = t.deadline ? new Date(t.deadline) : new Date(t.createdAt);
+    if (selectedWeekFilter === "THIS_WEEK") {
+      return taskDate >= thisWeekStart && taskDate <= thisWeekEnd;
+    }
+    if (selectedWeekFilter === "NEXT_WEEK") {
+      return taskDate >= nextWeekStart && taskDate <= nextWeekEnd;
+    }
+    return true;
+  });
 
   const fPercent = (val: number) => `${Math.round((val || 0) * 100)}%`;
 
@@ -225,6 +263,19 @@ export default function AdminStaffTaskClient({
             {allowedUsers.map(u => (
               <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
             ))}
+          </select>
+
+          <div className="flex items-center gap-2 text-sm text-slate-500 font-medium ml-0 md:ml-4">
+            <Calendar className="h-4 w-4 text-indigo-500" /> Lọc thời gian:
+          </div>
+          <select
+            value={selectedWeekFilter}
+            onChange={e => setSelectedWeekFilter(e.target.value as any)}
+            className="border rounded-lg text-sm px-3 py-2 bg-white outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700"
+          >
+            <option value="THIS_WEEK">Tuần này</option>
+            <option value="NEXT_WEEK">Tuần sau</option>
+            <option value="ALL">Tất cả thời gian</option>
           </select>
         </div>
 

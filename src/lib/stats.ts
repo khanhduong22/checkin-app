@@ -163,8 +163,13 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
       where: {
         assigneeId: userId,
         OR: [
-          { createdAt: { gte: startDate, lte: endDate } },
-          { deadline: { gte: startDate, lte: endDate } }
+          { deadline: { gte: startDate, lte: endDate } },
+          {
+            AND: [
+              { deadline: null },
+              { createdAt: { gte: startDate, lte: endDate } }
+            ]
+          }
         ]
       }
     });
