@@ -2,6 +2,13 @@
     "alias": [
         "checkin-lim-art.vercel.app"
     ],
+    "redirects": [
+        {
+            "source": "/:path*",
+            "destination": "https://limart.khanhdp.com/:path*",
+            "permanent": true
+        }
+    ],
     "crons": [
         {
             "path": "/api/cron/birthday-bonus",
