@@ -23,12 +23,12 @@ description: Rule for managing VPS deployment, database migrations, and environm
   - Connection string in local `.env` and `.env.local` remains Neon.
   - This prevents local testing/vibe coding from altering production data.
 
-## 3. Database Schema Changes & Migrations
-- **Safe Migrations only**: NEVER run `prisma db push` on production.
+## 3. Database Schema Changes & Sync
+- **Schema Management via DB Push**: The project does not use Prisma migrations (there is no `prisma/migrations` folder). Instead, schema changes are synchronized directly using `prisma db push`.
 - **Workflow**:
-  1. The developer runs `npx prisma migrate dev` locally to generate migration files against the Neon DB sandbox.
-  2. The developer commits and pushes the migration files (inside `prisma/migrations/`) to the `main` branch.
-  3. The GitHub Actions CI/CD pipeline automatically deploys the code and runs `npx prisma migrate deploy` inside the running `checkin-app` container on the VPS to apply changes safely without resetting data.
+  1. The developer runs `npx prisma db push` locally against the Neon DB sandbox to apply local schema edits.
+  2. The developer commits and pushes the updated `prisma/schema.prisma` file to the `main` branch.
+  3. The GitHub Actions CI/CD pipeline automatically deploys the code and runs `npx prisma@5.9.1 db push --skip-generate` inside the running `checkin-app` container on the VPS to safely apply the schema changes to the production database.
 
 ## 4. Environment Variables & Secret Management
 - **GitHub Secrets Managed**: Production environment variables are managed securely via **GitHub Actions Repository Secrets** (and NOT manually edited on the VPS).

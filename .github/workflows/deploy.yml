@@ -80,7 +80,7 @@ jobs:
             # Build and deploy with docker-compose
             docker compose up -d --build
             
-            # Run database migrations
-            docker compose exec -T checkin-app npx prisma migrate deploy
+            # Sync database schema using prisma db push
+            docker compose exec -T checkin-app npx prisma@5.9.1 db push --skip-generate
             
             echo "Deployment successful!"
