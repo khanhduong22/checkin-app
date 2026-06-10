@@ -9,9 +9,28 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    depends_on:
+      - checkin-db
+    networks:
+      - ops_bridge
+
+  checkin-db:
+    image: pgvector/pgvector:pg17
+    container_name: checkin-db
+    restart: unless-stopped
+    shm_size: 256mb
+    environment:
+      POSTGRES_DB: checkin_db
+      POSTGRES_USER: kido
+      POSTGRES_PASSWORD: KidoVPS2026!
+    volumes:
+      - checkin_pgdata:/var/lib/postgresql/data
     networks:
       - ops_bridge
 
 networks:
   ops_bridge:
     external: true
+
+volumes:
+  checkin_pgdata:

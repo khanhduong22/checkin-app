@@ -16,9 +16,9 @@ description: Rule for managing VPS deployment, database migrations, and environm
 - **Infrastructure Code**: Declared in `kido-infra` Terraform files.
 
 ## 2. Database Configuration
-- **Production Database**: Hosted inside the shared `postgres` container on the VPS (Database name: `checkin_db`, Port: `5432`).
-  - Connection string: `DATABASE_URL="postgresql://kido:KidoVPS2026!@postgres:5432/checkin_db?sslmode=disable"`
-  - Shared postgres is automatically backed up using the existing `pgbackrest` setup on the VPS.
+- **Production Database**: Hosted inside its own dedicated `checkin-db` container (Database name: `checkin_db`, Port: `5432`).
+  - Connection string: `DATABASE_URL="postgresql://kido:KidoVPS2026!@checkin-db:5432/checkin_db?sslmode=disable"`
+  - It runs isolated from the shared database container to prevent resource sharing conflicts and allow independent database restores.
 - **Local Development Database**: Points to **Neon Postgres** cloud database:
   - Connection string in local `.env` and `.env.local` remains Neon.
   - This prevents local testing/vibe coding from altering production data.
