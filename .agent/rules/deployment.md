@@ -30,9 +30,14 @@ description: Rule for managing VPS deployment, database migrations, and environm
   2. The developer commits and pushes the migration files (inside `prisma/migrations/`) to the `main` branch.
   3. The GitHub Actions CI/CD pipeline automatically deploys the code and runs `npx prisma migrate deploy` inside the running `checkin-app` container on the VPS to apply changes safely without resetting data.
 
-## 4. Environment Variables
-- Environment variables for production are kept in `/opt/checkin-app/.env` on the VPS.
-- If a new environment variable is added to the application code, it must be added manually to `/opt/checkin-app/.env` on the VPS. It must not be committed to GitHub.
+## 4. Environment Variables & Secret Management
+- **GitHub Secrets Managed**: Production environment variables are managed securely via **GitHub Actions Repository Secrets** (and NOT manually edited on the VPS).
+- **Automatic .env Generation**: The CI/CD pipeline automatically reads the secrets, generates the production `.env` file on the fly, and transfers it to the VPS during deployment.
+- **Adding New Variables**: If a new environment variable is introduced, the developer or AI agent can add it directly to GitHub Secrets using the `gh` CLI:
+  ```bash
+  gh secret set NEW_VAR_NAME --body "secret_value"
+  ```
+  And then add it to `.github/workflows/deploy.yml` in the `env` and `envs` list to ensure it is written to the VPS `.env` file.
 
 ## 5. CI/CD Deployment
 - Pushing to the `main` branch automatically triggers the GitHub Actions pipeline.
