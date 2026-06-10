@@ -36,10 +36,21 @@ jobs:
     steps:
       - name: SSH into VPS and Deploy
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: DATABASE_URL,NEXTAUTH_URL,NEXTAUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GEMINI_API_KEY,GOOGLE_GENERATIVE_AI_API_KEY,RESEND_API_KEY,EMAIL_FROM
           script: |
             cd /opt/checkin-app
             
@@ -50,6 +61,21 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             git clean -fd
+            
+            # Re-generate .env file from GitHub Actions secrets
+            cat << EOF > .env
+            DATABASE_URL="$DATABASE_URL"
+            NEXTAUTH_URL="$NEXTAUTH_URL"
+            NEXTAUTH_SECRET="$NEXTAUTH_SECRET"
+            GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
+            GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET"
+            NODE_ENV="production"
+            GEMINI_API_KEY="$GEMINI_API_KEY"
+            GOOGLE_GENERATIVE_AI_API_KEY="$GOOGLE_GENERATIVE_AI_API_KEY"
+            RESEND_API_KEY="$RESEND_API_KEY"
+            EMAIL_FROM="$EMAIL_FROM"
+            PORT=3000
+            EOF
             
             # Build and deploy with docker-compose
             docker compose up -d --build
