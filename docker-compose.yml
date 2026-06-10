@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  checkin-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: checkin-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - ops_bridge
+
+networks:
+  ops_bridge:
+    external: true
