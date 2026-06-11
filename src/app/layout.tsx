@@ -11,7 +11,16 @@ export const metadata: Metadata = {
   icons: {
     icon: '/capybara_mascot.png',
     apple: '/capybara_mascot.png',
-  }
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "LimArt",
+  },
+};
+
+export const viewport = {
+  themeColor: "#0f172a",
 };
 
 import NextTopLoader from 'nextjs-toploader';
@@ -28,6 +37,24 @@ export default function RootLayout({
         <NextTopLoader color="#EA580C" shadow="0 0 10px #EA580C,0 0 5px #EA580C" showSpinner={false} />
         {children}
         <Toaster />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(registration) {
+                      console.log('ServiceWorker registration successful');
+                    },
+                    function(err) {
+                      console.log('ServiceWorker registration failed: ', err);
+                    }
+                  );
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
