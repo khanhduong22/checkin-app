@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Calendar, User, Plus, Edit2, Trash2, Check, RotateCcw, Filter, UserCheck, AlertCircle } from "lucide-react";
+import { Calendar, User, Plus, Edit2, Trash2, Check, RotateCcw, Filter, UserCheck, AlertCircle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -595,6 +595,34 @@ export default function AdminStaffTaskClient({
                   {selectedTask.description || <span className="text-muted-foreground italic">Không có mô tả chi tiết.</span>}
                 </div>
               </div>
+
+              {/* Evidence Submission Info */}
+              {(selectedTask.evidenceLink || selectedTask.evidenceNote) && (
+                <div className="space-y-2">
+                  <h5 className="font-bold text-gray-700 text-xs uppercase tracking-wide">Thông tin báo cáo hoàn thành</h5>
+                  <div className="bg-emerald-50/20 border border-emerald-100 rounded-lg p-3 space-y-2">
+                    {selectedTask.evidenceLink && (
+                      <div className="text-xs">
+                        <span className="font-semibold text-emerald-800 block mb-0.5">Link chứng minh:</span>
+                        <a 
+                          href={selectedTask.evidenceLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-indigo-600 hover:text-indigo-800 font-bold underline break-all inline-flex items-center gap-1"
+                        >
+                          <FileText className="h-3.5 w-3.5" /> Mở link chứng minh
+                        </a>
+                      </div>
+                    )}
+                    {selectedTask.evidenceNote && (
+                      <div className="text-xs">
+                        <span className="font-semibold text-emerald-800 block mb-0.5">Ghi chú của nhân viên:</span>
+                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">"{selectedTask.evidenceNote}"</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Deadlines */}
               <div className="grid grid-cols-2 gap-4">

@@ -12,6 +12,8 @@ export interface StaffTask {
   createdAt: Date;
   updatedAt: Date;
   adminNote: string | null;
+  evidenceLink: string | null;
+  evidenceNote: string | null;
   assignee: {
     id: string;
     name: string | null;

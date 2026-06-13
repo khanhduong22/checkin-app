@@ -10,6 +10,9 @@ import { toast } from "sonner";
 import { Calendar, AlertCircle, FileText, CheckCircle2, Play, Send, RefreshCw, X } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function StaffTaskClient({ initialTasks, userId }: { initialTasks: StaffTask[]; userId: string }) {
   const [tasks, setTasks] = useState<StaffTask[]>(initialTasks);
@@ -20,6 +23,11 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
     monthly: StaffPerformanceStats;
     weekly: StaffPerformanceStats;
   } | null>(null);
+
+  // Submission form states
+  const [taskToSubmit, setTaskToSubmit] = useState<StaffTask | null>(null);
+  const [evidenceLink, setEvidenceLink] = useState("");
+  const [evidenceNote, setEvidenceNote] = useState("");
 
   // Fetch performance stats
   const fetchStats = async () => {
@@ -33,14 +41,24 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
     fetchStats();
   }, [tasks]);
 
-  const handleStatusChange = async (taskId: string, nextStatus: string) => {
+  const handleStatusChange = async (taskId: string, nextStatus: string, evLink?: string, evNote?: string) => {
     setLoading(true);
     const prevTasks = [...tasks];
     
     // Optimistic UI update
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: nextStatus, submittedAt: nextStatus === "DONE" ? new Date() : t.submittedAt } : t));
+    setTasks(prev => prev.map(t => t.id === taskId ? { 
+      ...t, 
+      status: nextStatus, 
+      submittedAt: nextStatus === "DONE" ? new Date() : t.submittedAt,
+      evidenceLink: nextStatus === "DONE" ? (evLink || null) : t.evidenceLink,
+      evidenceNote: nextStatus === "DONE" ? (evNote || null) : t.evidenceNote
+    } : t));
 
-    const res = await updateStaffTask(taskId, { status: nextStatus });
+    const res = await updateStaffTask(taskId, { 
+      status: nextStatus,
+      evidenceLink: nextStatus === "DONE" ? evLink : undefined,
+      evidenceNote: nextStatus === "DONE" ? evNote : undefined
+    });
     setLoading(false);
     
     if (res.success && res.data) {
@@ -248,7 +266,11 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
                             <Button 
                               size="sm" 
                               className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold h-7 text-[10px] gap-1"
-                              onClick={() => handleStatusChange(task.id, "DONE")}
+                              onClick={() => {
+                                setTaskToSubmit(task);
+                                setEvidenceLink("");
+                                setEvidenceNote("");
+                              }}
                               disabled={loading}
                             >
                               <Send className="h-2.5 w-2.5" /> Nộp báo cáo
@@ -298,6 +320,34 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
                   {selectedTask.description || <span className="text-muted-foreground italic">Không có mô tả chi tiết.</span>}
                 </div>
               </div>
+
+              {/* Evidence Submission Info */}
+              {(selectedTask.evidenceLink || selectedTask.evidenceNote) && (
+                <div className="space-y-2">
+                  <h5 className="font-bold text-gray-700 text-xs uppercase tracking-wide">Thông tin báo cáo hoàn thành</h5>
+                  <div className="bg-emerald-50/20 border border-emerald-100 rounded-lg p-3 space-y-2">
+                    {selectedTask.evidenceLink && (
+                      <div className="text-xs">
+                        <span className="font-semibold text-emerald-800 block mb-0.5">Link chứng minh:</span>
+                        <a 
+                          href={selectedTask.evidenceLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-indigo-600 hover:text-indigo-800 font-bold underline break-all inline-flex items-center gap-1"
+                        >
+                          <FileText className="h-3.5 w-3.5" /> Mở link chứng minh
+                        </a>
+                      </div>
+                    )}
+                    {selectedTask.evidenceNote && (
+                      <div className="text-xs">
+                        <span className="font-semibold text-emerald-800 block mb-0.5">Ghi chú của bạn:</span>
+                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">"{selectedTask.evidenceNote}"</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Deadlines */}
               <div className="grid grid-cols-2 gap-4">
@@ -365,7 +415,12 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
               {selectedTask.status === "DOING" && (
                 <Button 
                   className="bg-amber-500 hover:bg-amber-600 text-white font-bold"
-                  onClick={() => handleStatusChange(selectedTask.id, "DONE")}
+                  onClick={() => {
+                    setTaskToSubmit(selectedTask);
+                    setEvidenceLink("");
+                    setEvidenceNote("");
+                    setSelectedTask(null);
+                  }}
                   disabled={loading}
                 >
                   <Send className="h-3 w-3 mr-1" /> Nộp báo cáo
@@ -381,6 +436,54 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
                 </Button>
               )}
             </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
+      {/* Task Submission Modal */}
+      <Dialog open={!!taskToSubmit} onOpenChange={(v) => { if (!v) setTaskToSubmit(null); }}>
+        {taskToSubmit && (
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold">Nộp báo cáo hoàn thành</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Vui lòng điền thông tin chứng minh để gửi báo cáo công việc cho Admin duyệt.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              await handleStatusChange(taskToSubmit.id, "DONE", evidenceLink, evidenceNote);
+              setTaskToSubmit(null);
+            }} className="space-y-4 text-sm pt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="submit-link" className="font-bold text-gray-700">Link chứng minh (nếu có)</Label>
+                <Input 
+                  id="submit-link"
+                  type="url"
+                  value={evidenceLink}
+                  onChange={e => setEvidenceLink(e.target.value)}
+                  placeholder="Ví dụ: Link bài viết FB/Tiktok, link drive hình ảnh..."
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="submit-note" className="font-bold text-gray-700">Ghi chú nộp bài</Label>
+                <Textarea 
+                  id="submit-note"
+                  value={evidenceNote}
+                  onChange={e => setEvidenceNote(e.target.value)}
+                  placeholder="Mô tả kết quả công việc hoặc thông tin gửi tới Admin..."
+                  rows={3}
+                />
+              </div>
+
+              <DialogFooter className="gap-2 pt-2">
+                <Button type="button" variant="ghost" onClick={() => setTaskToSubmit(null)}>Hủy</Button>
+                <Button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white font-bold" disabled={loading}>
+                  {loading ? "Đang gửi..." : "Xác nhận nộp"}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         )}
       </Dialog>

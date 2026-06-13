@@ -133,6 +133,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
         orderBy: { start: 'asc' } // Should prioritize earliest shift if multiple? Or last? Usually earliest.
     }) : null;
 
+    const rejectedTasksCount = user ? await prisma.staffTask.count({
+        where: {
+            assigneeId: user.id,
+            status: "REJECTED"
+        }
+    }) : 0;
+
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
             <div className="w-full max-w-md space-y-4 animate-in fade-in zoom-in duration-500">
@@ -159,6 +166,28 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                 <div id="home-announcement">
                     <AnnouncementBar announcements={announcements} />
                 </div>
+
+                {/* Rejected Tasks Alert */}
+                {rejectedTasksCount > 0 && (
+                    <div className="border border-rose-200 bg-rose-50/90 rounded-xl p-4 flex items-start gap-3 shadow-xs animate-in fade-in slide-in-from-top-3 duration-300">
+                        <div className="p-2 bg-rose-100 rounded-full text-rose-700 leading-none">
+                            <span className="text-base">⚠️</span>
+                        </div>
+                        <div className="flex-grow space-y-1">
+                            <h3 className="text-sm font-bold text-rose-800">Yêu cầu sửa đổi công việc</h3>
+                            <p className="text-xs text-rose-700 leading-relaxed">
+                                Bạn có <span className="font-extrabold text-rose-900">{rejectedTasksCount}</span> công việc khoán/KPI bị Admin từ chối và yêu cầu sửa đổi.
+                            </p>
+                            <div className="pt-1.5">
+                                <Link href="/staff-tasks">
+                                    <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white font-bold h-7 text-xs px-3 shadow-xs">
+                                        Xem chi tiết & sửa ngay
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="rounded-xl border bg-card text-card-foreground shadow-sm relative overflow-hidden">
                     {/* Streak Badge */}
@@ -343,8 +372,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                             {(user?.staffTasksAllowed || user?.role === 'ADMIN') && (
                                 <div className="mt-3">
                                     <a href="/staff-tasks" className="block w-full">
-                                        <Button variant="default" className="w-full h-11 text-sm font-bold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md transition-all hover:scale-[1.01]">
+                                        <Button variant="default" className="w-full h-11 text-sm font-bold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md transition-all hover:scale-[1.01] relative flex items-center justify-center gap-2">
                                             🎯 Công việc và KPI
+                                            {rejectedTasksCount > 0 && (
+                                                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-extrabold text-white animate-bounce shadow-sm border border-white">
+                                                    {rejectedTasksCount}
+                                                </span>
+                                            )}
                                         </Button>
                                     </a>
                                 </div>

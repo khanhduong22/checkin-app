@@ -13,6 +13,8 @@ type StaffTaskInput = {
   startDate?: Date | null;
   deadline?: Date | null;
   adminNote?: string | null;
+  evidenceLink?: string | null;
+  evidenceNote?: string | null;
 };
 
 async function requireAdmin() {
@@ -109,19 +111,27 @@ export async function updateStaffTask(id: string, data: Partial<StaffTaskInput>)
       if (task.assigneeId !== user.id) {
         return { success: false, error: "Không có quyền chỉnh sửa công việc này" };
       }
-      // Staff can only update task status (TODO -> DOING -> DONE)
-      if (data.status === undefined || Object.keys(data).length > 1) {
-        return { success: false, error: "Nhân viên chỉ có quyền cập nhật trạng thái công việc" };
-      }
       
       const newStatus = data.status;
+      if (newStatus === undefined) {
+        return { success: false, error: "Trạng thái công việc không được để trống" };
+      }
       if (!["TODO", "DOING", "DONE"].includes(newStatus)) {
         return { success: false, error: "Trạng thái không hợp lệ cho nhân viên" };
+      }
+
+      // Staff can only update task status (TODO -> DOING -> DONE) and evidence fields
+      const allowedKeys = ["status", "evidenceLink", "evidenceNote"];
+      const extraKeys = Object.keys(data).filter(k => !allowedKeys.includes(k));
+      if (extraKeys.length > 0) {
+        return { success: false, error: "Nhân viên chỉ được cập nhật trạng thái và thông tin chứng minh" };
       }
 
       const updateData: any = { status: newStatus };
       if (newStatus === "DONE") {
         updateData.submittedAt = new Date();
+        updateData.evidenceLink = data.evidenceLink || null;
+        updateData.evidenceNote = data.evidenceNote || null;
       }
 
       const updated = await prisma.staffTask.update({
@@ -138,6 +148,8 @@ export async function updateStaffTask(id: string, data: Partial<StaffTaskInput>)
 
     // Admin can update everything
     const updateData: any = { ...data };
+    const isRejecting = data.status === "REJECTED" && task.status !== "REJECTED";
+
     if (data.status === "APPROVED") {
       updateData.completedAt = new Date();
     }
@@ -150,6 +162,23 @@ export async function updateStaffTask(id: string, data: Partial<StaffTaskInput>)
         createdBy: { select: { id: true, name: true } },
       }
     });
+
+    // Send email notification on rejection
+    if (isRejecting && updated.assignee.email) {
+      try {
+        const { sendTaskRejectionEmail } = await import("@/lib/email");
+        const appUrl = process.env.NEXTAUTH_URL || "http://localhost:5000";
+        await sendTaskRejectionEmail({
+          employeeName: updated.assignee.name || "Nhân viên",
+          employeeEmail: updated.assignee.email,
+          taskTitle: updated.title,
+          adminNote: updated.adminNote || "Không có ghi chú chi tiết.",
+          taskUrl: `${appUrl}/staff-tasks`
+        });
+      } catch (err) {
+        console.error("Failed to send rejection email:", err);
+      }
+    }
 
     revalidatePath("/staff-tasks");
     revalidatePath("/admin/staff-tasks");

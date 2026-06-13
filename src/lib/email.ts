@@ -162,3 +162,91 @@ export async function sendPayslipEmail(data: PayslipEmailData) {
 
   return result;
 }
+
+export type TaskRejectionEmailData = {
+  employeeName: string;
+  employeeEmail: string;
+  taskTitle: string;
+  adminNote: string;
+  taskUrl: string;
+};
+
+function buildTaskRejectionHtml(data: TaskRejectionEmailData): string {
+  const { employeeName, taskTitle, adminNote, taskUrl } = data;
+  return `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yêu cầu sửa đổi công việc</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#e11d48 0%,#be123c 100%);padding:28px 32px;text-align:center;">
+            <h1 style="margin:0;color:#fff;font-size:22px;letter-spacing:-0.5px;">${APP_NAME}</h1>
+            <p style="margin:6px 0 0;color:#fecdd3;font-size:13px;">Yêu cầu sửa đổi công việc</p>
+          </td>
+        </tr>
+        <!-- Greeting -->
+        <tr>
+          <td style="padding:24px 32px 0;">
+            <p style="margin:0;font-size:15px;color:#374151;">Xin chào <b>${employeeName}</b>,</p>
+            <p style="margin:8px 0 0;font-size:14px;color:#6b7280;">
+              Một công việc của bạn đã bị Admin yêu cầu chỉnh sửa lại. Vui lòng xem thông tin chi tiết bên dưới:
+            </p>
+          </td>
+        </tr>
+        <!-- Info Table -->
+        <tr>
+          <td style="padding:20px 32px;">
+            <table width="100%" cellpadding="12" cellspacing="0" style="background:#fff5f5;border-radius:8px;border:1px solid #fee2e2;font-size:14px;color:#374151;border-collapse:collapse;">
+              <tr>
+                <td width="30%" style="font-weight:600;color:#991b1b;border-bottom:1px solid #fee2e2;padding:12px;">Công việc:</td>
+                <td style="border-bottom:1px solid #fee2e2;padding:12px;"><b>${taskTitle}</b></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:#991b1b;vertical-align:top;padding:12px;">Yêu cầu sửa đổi:</td>
+                <td style="color:#b91c1c;font-style:italic;padding:12px;">"${adminNote}"</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Action Button -->
+        <tr>
+          <td align="center" style="padding:0 32px 24px;">
+            <a href="${taskUrl}" style="display:inline-block;background:#e11d48;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;font-size:14px;box-shadow:0 2px 4px rgba(225,29,72,0.2);">
+              Xem & Sửa công việc trên App
+            </a>
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td style="padding:20px 32px 28px;border-top:1px solid #f1f5f9;text-align:center;">
+            <p style="margin:0;font-size:12px;color:#94a3b8;">
+              Email này được gửi tự động từ hệ thống ${APP_NAME}.<br/>
+              Vui lòng không reply trực tiếp email này.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendTaskRejectionEmail(data: TaskRejectionEmailData) {
+  const html = buildTaskRejectionHtml(data);
+  const result = await getResend().emails.send({
+    from: `${APP_NAME} <${FROM}>`,
+    to: data.employeeEmail,
+    subject: `[${APP_NAME}] Yêu cầu chỉnh sửa công việc: ${data.taskTitle}`,
+    html,
+  });
+  return result;
+}
