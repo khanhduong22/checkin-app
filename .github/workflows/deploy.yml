@@ -1,0 +1,86 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run Tests
+        run: npm run test
+
+      - name: Build Check
+        run: npm run build
+
+  deploy:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH into VPS and Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: DATABASE_URL,NEXTAUTH_URL,NEXTAUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GEMINI_API_KEY,GOOGLE_GENERATIVE_AI_API_KEY,RESEND_API_KEY,EMAIL_FROM
+          script: |
+            cd /opt/checkin-app
+            
+            # Stash any local modifications to prevent conflicts
+            git stash
+            
+            # Pull latest code
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
+            
+            # Re-generate .env file from GitHub Actions secrets
+            cat << EOF > .env
+            DATABASE_URL="$DATABASE_URL"
+            NEXTAUTH_URL="$NEXTAUTH_URL"
+            NEXTAUTH_SECRET="$NEXTAUTH_SECRET"
+            GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
+            GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET"
+            NODE_ENV="production"
+            GEMINI_API_KEY="$GEMINI_API_KEY"
+            GOOGLE_GENERATIVE_AI_API_KEY="$GOOGLE_GENERATIVE_AI_API_KEY"
+            RESEND_API_KEY="$RESEND_API_KEY"
+            EMAIL_FROM="$EMAIL_FROM"
+            PORT=3000
+            EOF
+            
+            # Build and deploy with docker-compose
+            docker compose up -d --build
+            
+            # Sync database schema using prisma db push
+            docker compose exec -T checkin-app npx prisma@5.9.1 db push --skip-generate
+            
+            echo "Deployment successful!"
