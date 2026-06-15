@@ -83,27 +83,38 @@ jobs:
             # Sync database schema using prisma db push
             docker compose exec -T checkin-app npx prisma@5.9.1 db push --skip-generate
 
-            echo "=== Checking Sync Script ==="
+            # Gather diagnostics on the VPS host
+            DIAG_FILE="/tmp/vps-diag.txt"
+            echo "=== VPS HOST DIAGNOSTICS ===" > $DIAG_FILE
+            echo "Timestamp: \$(date)" >> $DIAG_FILE
+            echo "" >> $DIAG_FILE
+
+            echo "=== Checking Sync Script ===" >> $DIAG_FILE
             if [ -f /opt/checkin-app/scripts/sync-db.sh ]; then
-              cat /opt/checkin-app/scripts/sync-db.sh
-              echo "=== Executing Sync Script ==="
-              bash /opt/checkin-app/scripts/sync-db.sh
+              cat /opt/checkin-app/scripts/sync-db.sh >> \$DIAG_FILE
+              echo "" >> \$DIAG_FILE
+              echo "=== Executing Sync Script ===" >> \$DIAG_FILE
+              bash /opt/checkin-app/scripts/sync-db.sh >> \$DIAG_FILE 2>&1
             else
-              echo "sync-db.sh not found at /opt/checkin-app/scripts/sync-db.sh"
+              echo "sync-db.sh not found at /opt/checkin-app/scripts/sync-db.sh" >> \$DIAG_FILE
             fi
-            echo "============================"
+            echo "" >> \$DIAG_FILE
 
-            echo "=== Checking Cron Jobs ==="
-            crontab -l || echo "No crontab for current user"
-            echo "==========================="
+            echo "=== Checking Cron Jobs ===" >> \$DIAG_FILE
+            crontab -l >> \$DIAG_FILE 2>&1 || echo "No crontab for current user" >> \$DIAG_FILE
+            echo "" >> \$DIAG_FILE
 
-            echo "=== Checking Cron Logs ==="
-            tail -n 50 /var/log/cron || journalctl -u cron -n 50 || echo "Cannot read cron logs"
-            echo "=========================="
+            echo "=== Checking Cron Logs ===" >> \$DIAG_FILE
+            tail -n 50 /var/log/cron >> \$DIAG_FILE 2>&1 || journalctl -u cron -n 50 >> \$DIAG_FILE 2>&1 || echo "Cannot read cron logs" >> \$DIAG_FILE
+            echo "" >> \$DIAG_FILE
 
-            echo "=== VPS Database Tasks Query ==="
-            docker compose exec -T checkin-app node scratch/check_stats_query.js
-            echo "================================"
+            echo "=== VPS Database Tasks Query ===" >> \$DIAG_FILE
+            docker compose exec -T checkin-app node scratch/check_stats_query.js >> \$DIAG_FILE 2>&1
+            echo "" >> \$DIAG_FILE
+
+            # Copy file to running checkin-app container
+            docker cp \$DIAG_FILE checkin-app:/app/public/vps-diag.txt
+            rm -f \$DIAG_FILE
             
             echo "Deployment successful!"
 
