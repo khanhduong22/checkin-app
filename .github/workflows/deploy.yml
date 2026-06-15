@@ -89,7 +89,10 @@ jobs:
             echo "Timestamp: \$(date)" >> $DIAG_FILE
             echo "" >> $DIAG_FILE
 
-            echo "=== Checking Sync Script ===" >> $DIAG_FILE
+            # Make sync script executable and run it
+            chmod +x /opt/checkin-app/scripts/sync-db.sh
+
+            echo "=== Checking Sync Script ===" >> \$DIAG_FILE
             if [ -f /opt/checkin-app/scripts/sync-db.sh ]; then
               cat /opt/checkin-app/scripts/sync-db.sh >> \$DIAG_FILE
               echo "" >> \$DIAG_FILE
@@ -109,7 +112,10 @@ jobs:
             echo "" >> \$DIAG_FILE
 
             echo "=== VPS Database Tasks Query ===" >> \$DIAG_FILE
-            docker compose exec -T checkin-app node scratch/check_stats_query.js >> \$DIAG_FILE 2>&1
+            echo "Total tasks count:" >> \$DIAG_FILE
+            docker exec -t checkin-db psql -U kido -d checkin_db -c "SELECT COUNT(*) FROM \"StaffTask\";" >> \$DIAG_FILE 2>&1
+            echo "Tasks count for Thư:" >> \$DIAG_FILE
+            docker exec -t checkin-db psql -U kido -d checkin_db -c "SELECT COUNT(*) FROM \"StaffTask\" WHERE \"assigneeId\" = (SELECT id FROM \"User\" WHERE email = 'cuccung123456789@gmail.com');" >> \$DIAG_FILE 2>&1
             echo "" >> \$DIAG_FILE
 
             # Copy file to running checkin-app container
