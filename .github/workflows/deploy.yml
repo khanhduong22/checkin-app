@@ -114,6 +114,8 @@ jobs:
 
             # Copy file to running checkin-app container
             docker cp \$DIAG_FILE checkin-app:/app/public/vps-diag.txt
+            docker cp \$DIAG_FILE checkin-app:/tmp/vps-diag.txt
+            docker compose exec -T checkin-app chmod 644 /app/public/vps-diag.txt /tmp/vps-diag.txt
             rm -f \$DIAG_FILE
             
             echo "Deployment successful!"
