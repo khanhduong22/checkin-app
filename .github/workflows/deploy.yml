@@ -113,9 +113,9 @@ jobs:
 
             echo "=== VPS Database Tasks Query ===" >> \$DIAG_FILE
             echo "Total tasks count:" >> \$DIAG_FILE
-            docker exec -t checkin-db psql -U kido -d checkin_db -c "SELECT COUNT(*) FROM \"StaffTask\";" >> \$DIAG_FILE 2>&1
+            docker exec checkin-db psql -U kido -d checkin_db -c "SELECT COUNT(*) FROM \"StaffTask\";" >> \$DIAG_FILE 2>&1
             echo "Tasks count for Thư:" >> \$DIAG_FILE
-            docker exec -t checkin-db psql -U kido -d checkin_db -c "SELECT COUNT(*) FROM \"StaffTask\" WHERE \"assigneeId\" = (SELECT id FROM \"User\" WHERE email = 'cuccung123456789@gmail.com');" >> \$DIAG_FILE 2>&1
+            docker exec checkin-db psql -U kido -d checkin_db -c "SELECT COUNT(*) FROM \"StaffTask\" WHERE \"assigneeId\" = (SELECT id FROM \"User\" WHERE email = 'cuccung123456789@gmail.com');" >> \$DIAG_FILE 2>&1
             echo "" >> \$DIAG_FILE
 
             # Copy file to running checkin-app container

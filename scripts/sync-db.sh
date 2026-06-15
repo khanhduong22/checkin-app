@@ -13,14 +13,14 @@ echo "Time: $(date)"
 
 # 1. Dump Neon DB from within the checkin-db container
 echo "1. Dumping Neon database..."
-docker exec -t checkin-db pg_dump "$NEON_DB_URL" -F c -b -v -f /tmp/neon_dump.dump
+docker exec checkin-db pg_dump "$NEON_DB_URL" -F c -b -v -f /tmp/neon_dump.dump
 
 # 2. Restore to VPS Local DB
 echo "2. Restoring dump to local VPS database..."
 # Clean the public schema first to prevent duplicate/key conflicts
-docker exec -t checkin-db psql -U "$LOCAL_DB_USER" -d "$LOCAL_DB_NAME" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO public;"
+docker exec checkin-db psql -U "$LOCAL_DB_USER" -d "$LOCAL_DB_NAME" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO public;"
 # Restore the database schema and data
-docker exec -t checkin-db pg_restore -U "$LOCAL_DB_USER" -d "$LOCAL_DB_NAME" -v /tmp/neon_dump.dump
+docker exec checkin-db pg_restore -U "$LOCAL_DB_USER" -d "$LOCAL_DB_NAME" -v /tmp/neon_dump.dump
 
 # 3. Clean up the dump file
 echo "3. Cleaning up..."
