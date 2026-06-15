@@ -82,5 +82,10 @@ jobs:
             
             # Sync database schema using prisma db push
             docker compose exec -T checkin-app npx prisma@5.9.1 db push --skip-generate
+
+            echo "=== VPS Database Tasks Query ==="
+            docker compose exec -T checkin-app node scratch/check_stats_query.js
+            echo "================================"
             
             echo "Deployment successful!"
+
