@@ -83,6 +83,24 @@ jobs:
             # Sync database schema using prisma db push
             docker compose exec -T checkin-app npx prisma@5.9.1 db push --skip-generate
 
+            echo "=== Checking Sync Script ==="
+            if [ -f /opt/checkin-app/scripts/sync-db.sh ]; then
+              cat /opt/checkin-app/scripts/sync-db.sh
+              echo "=== Executing Sync Script ==="
+              bash /opt/checkin-app/scripts/sync-db.sh
+            else
+              echo "sync-db.sh not found at /opt/checkin-app/scripts/sync-db.sh"
+            fi
+            echo "============================"
+
+            echo "=== Checking Cron Jobs ==="
+            crontab -l || echo "No crontab for current user"
+            echo "==========================="
+
+            echo "=== Checking Cron Logs ==="
+            tail -n 50 /var/log/cron || journalctl -u cron -n 50 || echo "Cannot read cron logs"
+            echo "=========================="
+
             echo "=== VPS Database Tasks Query ==="
             docker compose exec -T checkin-app node scratch/check_stats_query.js
             echo "================================"
