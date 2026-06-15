@@ -112,19 +112,19 @@ export async function updateStaffTask(id: string, data: Partial<StaffTaskInput>)
         return { success: false, error: "Không có quyền chỉnh sửa công việc này" };
       }
       
+      // Staff can only update task status (TODO -> DOING -> DONE) and evidence fields
+      const allowedKeys = ["status", "evidenceLink", "evidenceNote"];
+      const extraKeys = Object.keys(data).filter(k => !allowedKeys.includes(k));
+      if (extraKeys.length > 0) {
+        return { success: false, error: "Nhân viên chỉ có quyền cập nhật trạng thái công việc" };
+      }
+
       const newStatus = data.status;
       if (newStatus === undefined) {
         return { success: false, error: "Trạng thái công việc không được để trống" };
       }
       if (!["TODO", "DOING", "DONE"].includes(newStatus)) {
         return { success: false, error: "Trạng thái không hợp lệ cho nhân viên" };
-      }
-
-      // Staff can only update task status (TODO -> DOING -> DONE) and evidence fields
-      const allowedKeys = ["status", "evidenceLink", "evidenceNote"];
-      const extraKeys = Object.keys(data).filter(k => !allowedKeys.includes(k));
-      if (extraKeys.length > 0) {
-        return { success: false, error: "Nhân viên chỉ được cập nhật trạng thái và thông tin chứng minh" };
       }
 
       const updateData: any = { status: newStatus };
