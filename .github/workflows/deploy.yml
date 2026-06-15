@@ -85,9 +85,9 @@ jobs:
 
             # Gather diagnostics on the VPS host
             DIAG_FILE="/tmp/vps-diag.txt"
-            echo "=== VPS HOST DIAGNOSTICS ===" > $DIAG_FILE
-            echo "Timestamp: \$(date)" >> $DIAG_FILE
-            echo "" >> $DIAG_FILE
+            echo "=== VPS HOST DIAGNOSTICS ===" > \$DIAG_FILE
+            echo "Timestamp: \$(date)" >> \$DIAG_FILE
+            echo "" >> \$DIAG_FILE
 
             # Make sync script executable and run it
             chmod +x /opt/checkin-app/scripts/sync-db.sh
