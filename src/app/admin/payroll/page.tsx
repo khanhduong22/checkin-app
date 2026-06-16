@@ -52,28 +52,28 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
                 }
             }
         });
-
         const { getUserMonthlyStats } = await import("@/lib/stats");
         const targetDate = new Date(year, month - 1, 15);
 
-        payrollData = [];
-        for (const u of users) {
-            const stats = await getUserMonthlyStats(u.id, targetDate);
-            payrollData.push({
-                id: u.id,
-                name: u.name,
-                email: u.email,
-                stats,
-                recentAdjustments: u.adjustments.map((a: any) => ({
-                    id: a.id,
-                    amount: a.amount,
-                    reason: a.reason,
-                    date: a.date.toISOString()
-                })),
-                isSnapshot: false,
-                emailSentAt: null,
-            });
-        }
+        payrollData = await Promise.all(
+            users.map(async (u) => {
+                const stats = await getUserMonthlyStats(u.id, targetDate);
+                return {
+                    id: u.id,
+                    name: u.name,
+                    email: u.email,
+                    stats,
+                    recentAdjustments: u.adjustments.map((a: any) => ({
+                        id: a.id,
+                        amount: a.amount,
+                        reason: a.reason,
+                        date: a.date.toISOString()
+                    })),
+                    isSnapshot: false,
+                    emailSentAt: null,
+                };
+            })
+        );
     }
 
     return (

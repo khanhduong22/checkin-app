@@ -71,19 +71,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
 
     const { getSpecialDayUsers } = await import("@/lib/special-days");
     const specialUsers = await getSpecialDayUsers();
-
-    // Auto-run birthday bonus (safe: duplicate-checked per day)
-    const { runBirthdayBonus } = await import("@/lib/birthday-bonus");
-    await runBirthdayBonus();
-
-    // Auto-run packing bonus (safe: duplicate-checked per month)
-    const { runPackingBonus } = await import("@/lib/packing-bonus");
-    await runPackingBonus();
-
-    // Auto-run carrying bonus (safe: duplicate-checked per month)
-    const { runCarryingBonus } = await import("@/lib/carrying-bonus");
-    await runCarryingBonus();
-
     const notes = await prisma.stickyNote.findMany({
         orderBy: { createdAt: 'desc' },
         take: 6,
