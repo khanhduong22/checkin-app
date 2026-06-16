@@ -32,9 +32,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only intercept GET requests, and skip API, Auth, and Web Development hot-reloading routes
+  // Only intercept GET requests with http/https schemes, and skip API, Auth, and Web Development hot-reloading routes
   if (
     event.request.method !== 'GET' ||
+    (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) ||
     event.request.url.includes('/api/') ||
     event.request.url.includes('/_next/') ||
     event.request.url.includes('hot-update')
