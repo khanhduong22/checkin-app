@@ -17,8 +17,8 @@ docker exec checkin-db pg_dump "$NEON_DB_URL" -F c -b -v -f /tmp/neon_dump.dump
 
 # 2. Restore to VPS Local DB
 echo "2. Restoring dump to local VPS database..."
-# Clean the public schema first to prevent duplicate/key conflicts
-docker exec checkin-db psql -U "$LOCAL_DB_USER" -d "$LOCAL_DB_NAME" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO public;"
+# Clean schemas first to prevent duplicate/key conflicts (including neon_auth schema if it exists)
+docker exec checkin-db psql -U "$LOCAL_DB_USER" -d "$LOCAL_DB_NAME" -c "DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS neon_auth CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO public;"
 # Restore the database schema and data
 docker exec checkin-db pg_restore -U "$LOCAL_DB_USER" -d "$LOCAL_DB_NAME" -v /tmp/neon_dump.dump
 

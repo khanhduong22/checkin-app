@@ -82,47 +82,6 @@ jobs:
             
             # Sync database schema using prisma db push
             docker compose exec -T checkin-app npx prisma@5.9.1 db push --skip-generate
-
-            # Gather diagnostics on the VPS host
-            DIAG_FILE="/tmp/vps-diag.txt"
-            echo "=== VPS HOST DIAGNOSTICS ===" > \$DIAG_FILE
-            echo "Timestamp: \$(date)" >> \$DIAG_FILE
-            echo "" >> \$DIAG_FILE
-
-            # Make sync script executable and run it
-            chmod +x /opt/checkin-app/scripts/sync-db.sh
-
-            echo "=== Checking Sync Script ===" >> \$DIAG_FILE
-            if [ -f /opt/checkin-app/scripts/sync-db.sh ]; then
-              cat /opt/checkin-app/scripts/sync-db.sh >> \$DIAG_FILE
-              echo "" >> \$DIAG_FILE
-              echo "=== Executing Sync Script ===" >> \$DIAG_FILE
-              bash /opt/checkin-app/scripts/sync-db.sh >> \$DIAG_FILE 2>&1
-            else
-              echo "sync-db.sh not found at /opt/checkin-app/scripts/sync-db.sh" >> \$DIAG_FILE
-            fi
-            echo "" >> \$DIAG_FILE
-
-            echo "=== Checking Cron Jobs ===" >> \$DIAG_FILE
-            crontab -l >> \$DIAG_FILE 2>&1 || echo "No crontab for current user" >> \$DIAG_FILE
-            echo "" >> \$DIAG_FILE
-
-            echo "=== Checking Cron Logs ===" >> \$DIAG_FILE
-            tail -n 50 /var/log/cron >> \$DIAG_FILE 2>&1 || journalctl -u cron -n 50 >> \$DIAG_FILE 2>&1 || echo "Cannot read cron logs" >> \$DIAG_FILE
-            echo "" >> \$DIAG_FILE
-
-            echo "=== VPS Database Tasks Query ===" >> \$DIAG_FILE
-            echo "Total tasks count:" >> \$DIAG_FILE
-            docker exec checkin-db psql -U kido -d checkin_db -c "SELECT COUNT(*) FROM \"StaffTask\";" >> \$DIAG_FILE 2>&1
-            echo "Tasks count for Thư:" >> \$DIAG_FILE
-            docker exec checkin-db psql -U kido -d checkin_db -c "SELECT COUNT(*) FROM \"StaffTask\" WHERE \"assigneeId\" = (SELECT id FROM \"User\" WHERE email = 'cuccung123456789@gmail.com');" >> \$DIAG_FILE 2>&1
-            echo "" >> \$DIAG_FILE
-
-            # Copy file to running checkin-app container
-            docker cp \$DIAG_FILE checkin-app:/app/public/vps-diag.txt
-            docker cp \$DIAG_FILE checkin-app:/tmp/vps-diag.txt
-            docker compose exec -T checkin-app chmod 644 /app/public/vps-diag.txt /tmp/vps-diag.txt
-            rm -f \$DIAG_FILE
             
             echo "Deployment successful!"
 
