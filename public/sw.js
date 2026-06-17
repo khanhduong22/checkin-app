@@ -87,7 +87,7 @@ self.addEventListener('fetch', (event) => {
         // Return cached version immediately, update cache in background
         fetch(event.request)
           .then((networkResponse) => {
-            if (networkResponse.status === 200) {
+            if (networkResponse.status === 200 || networkResponse.status === 0) {
               caches.open(CACHE_NAME).then((cache) => {
                 cache.put(event.request, networkResponse);
               });
@@ -99,16 +99,21 @@ self.addEventListener('fetch', (event) => {
 
       return fetch(event.request)
         .then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200) {
+          if (!networkResponse || (networkResponse.status !== 200 && networkResponse.status !== 0)) {
             return networkResponse;
           }
 
           // Cache static images, fonts, scripts, stylesheets
+          const isImageOrFont = event.request.destination === 'image' || event.request.destination === 'font';
           const isStaticAsset = 
             url.pathname.match(/\.(png|jpg|jpeg|gif|webp|svg|ico|woff2|css|js)$/) ||
             url.pathname.includes('/_next/static/');
 
-          if (isStaticAsset && networkResponse.type === 'basic') {
+          const shouldCache = 
+            (isStaticAsset && networkResponse.type === 'basic') ||
+            (isImageOrFont && (networkResponse.type === 'cors' || networkResponse.type === 'opaque' || networkResponse.type === 'basic' || networkResponse.status === 200 || networkResponse.status === 0));
+
+          if (shouldCache) {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, responseToCache);
