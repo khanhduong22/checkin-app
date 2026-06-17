@@ -88,6 +88,7 @@ model WorkShift {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, start])
+  @@index([start])
 }
 
 model Request {
@@ -101,6 +102,7 @@ model Request {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([date])
 }
 
 model Announcement {
@@ -133,6 +135,7 @@ model PayrollAdjustment {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([date])
 }
 
 model LuckyWheelPrize {
@@ -310,6 +313,7 @@ model Payslip {
   
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([userId, month, year])
+  @@index([month, year])
 }
 
 model Document {

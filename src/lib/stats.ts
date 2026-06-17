@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isLate as checkIsLate } from "@/lib/utils";
-import { User, EmploymentType, Request, WorkShift, CheckIn, Holiday, PayrollAdjustment } from "@prisma/client";
+import { User, EmploymentType, Request, WorkShift, CheckIn, Holiday, PayrollAdjustment, StaffTask } from "@prisma/client";
 
 // --- Interfaces ---
 
@@ -136,7 +136,20 @@ function calculateFullTimeMetrics(user: User, vnYear: number, vnMonth: number, l
 
 // --- Main Function ---
 
-export async function getUserMonthlyStats(userId: string, targetDate: Date = new Date()): Promise<MonthlyStats> {
+export interface PrefetchedStatsData {
+  user?: User & { adjustments?: PayrollAdjustment[] };
+  checkins?: CheckIn[];
+  shifts?: WorkShift[];
+  allRequests?: Request[];
+  holidays?: Holiday[];
+  staffTasks?: StaffTask[];
+}
+
+export async function getUserMonthlyStats(
+  userId: string,
+  targetDate: Date = new Date(),
+  prefetched?: PrefetchedStatsData
+): Promise<MonthlyStats> {
   // Use Vietnam timezone (UTC+7) for month boundaries
   // Convert targetDate to VN local time to get correct year/month
   const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -150,7 +163,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   const endDate = new Date(Date.UTC(vnYear, vnMonth + 1, 0, 23, 59, 59, 999) - VN_OFFSET_MS);
 
   // 1. Fetch Data
-  const user = await fetchUserData(userId, startDate, endDate);
+  const user = prefetched?.user || await fetchUserData(userId, startDate, endDate);
   if (!user) throw new Error("User not found");
 
   const isThuKpiSalary = (user.email === 'cuccung123456789@gmail.com' || user.name === 'Thư') && (vnYear > 2026 || (vnYear === 2026 && vnMonth >= 5));
@@ -159,7 +172,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   let approvedTasksCount = 0;
 
   if (isThuKpiSalary) {
-    const monthlyTasks = await prisma.staffTask.findMany({
+    const monthlyTasks = prefetched?.staffTasks || await prisma.staffTask.findMany({
       where: {
         assigneeId: userId,
         OR: [
@@ -186,7 +199,23 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     completionRate = totalTasksCount === 0 ? 1.0 : approvedTasksCount / totalTasksCount;
   }
 
-  const { checkins, shifts, allRequests, holidays } = await fetchPeriodData(userId, startDate, endDate);
+  let checkins: CheckIn[];
+  let shifts: WorkShift[];
+  let allRequests: Request[];
+  let holidays: Holiday[];
+
+  if (prefetched) {
+    checkins = prefetched.checkins || [];
+    shifts = prefetched.shifts || [];
+    allRequests = prefetched.allRequests || [];
+    holidays = prefetched.holidays || [];
+  } else {
+    const periodData = await fetchPeriodData(userId, startDate, endDate);
+    checkins = periodData.checkins;
+    shifts = periodData.shifts;
+    allRequests = periodData.allRequests;
+    holidays = periodData.holidays;
+  }
 
   // 2. Process Requests & Maps
   const leaves = allRequests.filter(r => r.type === 'LEAVE' && r.status === 'APPROVED');
@@ -358,7 +387,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   // Both FULL_TIME and PART_TIME sum daily salaries so holiday multipliers are included.
   let baseSalary = dailyDetails.reduce((sum, day) => sum + (day.salary || 0), 0);
 
-  const totalAdjustments = user.adjustments.reduce((sum, adj) => sum + adj.amount, 0);
+  const totalAdjustments = (user.adjustments || []).reduce((sum, adj) => sum + adj.amount, 0);
 
   // Late penalty: deduct (lateCount - 3) hours of salary starting from the 4th late occurrence
   const lateCount = dailyDetails.filter(d => d.isLate).length;
@@ -382,7 +411,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     totalSalary,
     projectedSalary,
     dailyDetails,
-    adjustments: user.adjustments,
+    adjustments: user.adjustments || [],
     hourlyRate: user.hourlyRate,
     dynamicHourlyRate,
     employmentType: user.employmentType,

@@ -43,6 +43,15 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
         });
     } else {
         // LIVE CALCULATION
+        const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+        const targetDate = new Date(year, month - 1, 15);
+        const vnDate = new Date(targetDate.getTime() + VN_OFFSET_MS);
+        const vnYear = vnDate.getUTCFullYear();
+        const vnMonth = vnDate.getUTCMonth();
+
+        const startDate = new Date(Date.UTC(vnYear, vnMonth, 1) - VN_OFFSET_MS);
+        const endDate = new Date(Date.UTC(vnYear, vnMonth + 1, 0, 23, 59, 59, 999) - VN_OFFSET_MS);
+
         const users = await prisma.user.findMany({
             orderBy: { name: 'asc' },
             include: {
@@ -52,12 +61,88 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
                 }
             }
         });
+
+        const userIds = users.map(u => u.id);
+
+        const [checkins, shifts, allRequests, holidays, staffTasks] = await Promise.all([
+            prisma.checkIn.findMany({
+                where: {
+                    userId: { in: userIds },
+                    timestamp: { gte: startDate, lte: endDate }
+                },
+                orderBy: { timestamp: 'asc' }
+            }),
+            prisma.workShift.findMany({
+                where: {
+                    userId: { in: userIds },
+                    start: { gte: startDate, lte: endDate }
+                }
+            }),
+            prisma.request.findMany({
+                where: {
+                    userId: { in: userIds },
+                    type: { in: ['LEAVE', 'WFH', 'EARLY_LEAVE'] },
+                    date: { gte: startDate, lte: endDate }
+                }
+            }),
+            prisma.holiday.findMany({
+                where: {
+                    date: { gte: startDate, lte: endDate }
+                }
+            }),
+            prisma.staffTask.findMany({
+                where: {
+                    assigneeId: { in: userIds },
+                    OR: [
+                        { startDate: { gte: startDate, lte: endDate } },
+                        {
+                            AND: [
+                                { startDate: null },
+                                { createdAt: { gte: startDate, lte: endDate } }
+                            ]
+                        }
+                    ]
+                }
+            })
+        ]);
+
+        const checkinsByUser = new Map<string, any[]>();
+        const shiftsByUser = new Map<string, any[]>();
+        const requestsByUser = new Map<string, any[]>();
+        const staffTasksByUser = new Map<string, any[]>();
+
+        checkins.forEach(c => {
+            if (!checkinsByUser.has(c.userId)) checkinsByUser.set(c.userId, []);
+            checkinsByUser.get(c.userId)!.push(c);
+        });
+
+        shifts.forEach(s => {
+            if (!shiftsByUser.has(s.userId)) shiftsByUser.set(s.userId, []);
+            shiftsByUser.get(s.userId)!.push(s);
+        });
+
+        allRequests.forEach(r => {
+            if (!requestsByUser.has(r.userId)) requestsByUser.set(r.userId, []);
+            requestsByUser.get(r.userId)!.push(r);
+        });
+
+        staffTasks.forEach(t => {
+            if (!staffTasksByUser.has(t.assigneeId)) staffTasksByUser.set(t.assigneeId, []);
+            staffTasksByUser.get(t.assigneeId)!.push(t);
+        });
+
         const { getUserMonthlyStats } = await import("@/lib/stats");
-        const targetDate = new Date(year, month - 1, 15);
 
         payrollData = await Promise.all(
             users.map(async (u) => {
-                const stats = await getUserMonthlyStats(u.id, targetDate);
+                const stats = await getUserMonthlyStats(u.id, targetDate, {
+                    user: u,
+                    checkins: checkinsByUser.get(u.id) || [],
+                    shifts: shiftsByUser.get(u.id) || [],
+                    allRequests: requestsByUser.get(u.id) || [],
+                    holidays,
+                    staffTasks: staffTasksByUser.get(u.id) || []
+                });
                 return {
                     id: u.id,
                     name: u.name,
