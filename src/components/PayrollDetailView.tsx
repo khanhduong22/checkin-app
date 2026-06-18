@@ -203,7 +203,7 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                                                         {day.rawCheckOut ? new Date(day.rawCheckOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                                                     </td>
                                                     <td className="p-2 text-center font-mono text-gray-700 bg-gray-50/20">
-                                                        {day.rawHours && day.rawHours > 0 ? `${day.rawHours.toFixed(1)}h` : '-'}
+                                                        {day.rawHours && day.rawHours > 0 ? `${day.rawHours.toFixed(2)}h` : '-'}
                                                     </td>
                                                     <td className="p-2 text-right font-mono text-gray-600 border-r border-gray-100 bg-gray-50/20">
                                                         {day.rawSalary && day.rawSalary > 0 ? formatVND(day.rawSalary) : '-'}
@@ -217,7 +217,7 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                                                         {day.auditedCheckOut ? new Date(day.auditedCheckOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                                                     </td>
                                                     <td className="p-2 text-center font-mono font-bold text-blue-900 bg-blue-50/5">
-                                                        {day.hours > 0 ? `${day.hours.toFixed(1)}h` : '-'}
+                                                        {day.hours > 0 ? `${day.hours.toFixed(2)}h` : '-'}
                                                     </td>
                                                     <td className="p-2 text-right font-mono font-bold text-emerald-700 border-r border-gray-100 bg-blue-50/5">
                                                         {day.salary > 0 ? formatVND(day.salary) : '-'}
