@@ -255,6 +255,12 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                                                                     <span className="text-[10px] text-muted-foreground">Không làm việc</span>
                                                                 )
                                                             )}
+
+                                                            {day.hours > 0 && day.salary - (day.rawSalary || 0) !== 0 && (
+                                                                <span className={`text-[10px] font-bold mt-0.5 ${day.salary - (day.rawSalary || 0) > 0 ? 'text-blue-600' : 'text-rose-600'}`}>
+                                                                    {day.salary - (day.rawSalary || 0) > 0 ? '+' : ''}{formatVND(day.salary - (day.rawSalary || 0)).replace('₫', 'đ')}
+                                                                </span>
+                                                            )}
                                                             
                                                             {day.hours > 0 && (
                                                                 <Dialog>
@@ -295,9 +301,9 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                                                                                             <li>
                                                                                                 Có lịch làm việc cố định gán: <span className="font-semibold text-gray-800">{day.shift}</span>.
                                                                                             </li>
-                                                                                            {day.anomalies?.includes("Vào sớm (Làm tròn ca)") && (
+                                                                                            {day.anomalies?.includes("Vào sớm") && (
                                                                                                 <li>
-                                                                                                    <strong>Làm tròn check-in sớm:</strong> Do vào sớm hơn lịch bắt đầu, hệ thống làm tròn giờ tính công về <span className="font-semibold text-blue-700">bằng giờ bắt đầu của ca</span> để tránh ngoài giờ chưa duyệt.
+                                                                                                    <strong>Vào sớm:</strong> Bạn check-in sớm hơn giờ ca bắt đầu. Giờ làm việc tính từ lúc check-in thực tế.
                                                                                                 </li>
                                                                                             )}
                                                                                             {day.anomalies?.includes("Đi muộn") && (
@@ -346,6 +352,12 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                                                                                         <span>Lương tạm tính trong ngày:</span>
                                                                                         <span>{formatVND(day.salary)}</span>
                                                                                     </div>
+                                                                                    {day.salary - (day.rawSalary || 0) !== 0 && (
+                                                                                        <div className={`flex justify-between border-t border-dashed border-emerald-300 pt-1.5 font-bold text-sm ${day.salary - (day.rawSalary || 0) > 0 ? 'text-blue-750' : 'text-rose-750'}`}>
+                                                                                            <span>Chênh lệch đối soát:</span>
+                                                                                            <span>{day.salary - (day.rawSalary || 0) > 0 ? '+' : ''}{formatVND(day.salary - (day.rawSalary || 0))}</span>
+                                                                                        </div>
+                                                                                    )}
                                                                                 </div>
                                                                             </div>
                                                                         </div>
