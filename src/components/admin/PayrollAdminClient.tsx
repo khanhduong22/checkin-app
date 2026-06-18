@@ -320,7 +320,9 @@ export default function PayrollAdminClient({
                                                 {user.name?.[0] || '?'}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="font-semibold">{user.name}</span>
+                                                <Link href={`/admin/payroll/${user.id}`} className="hover:underline text-blue-600 font-semibold">
+                                                    {user.name}
+                                                </Link>
                                                 <span className="text-xs text-muted-foreground">{user.email}</span>
                                             </div>
                                         </div>

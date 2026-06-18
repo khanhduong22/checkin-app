@@ -17,6 +17,13 @@ interface DailyDetail {
   error?: string;
   checkInNote: string | null;
   checkOutNote: string | null;
+  rawCheckIn?: Date | null;
+  rawCheckOut?: Date | null;
+  rawHours?: number;
+  rawSalary?: number;
+  auditedCheckIn?: Date | null;
+  auditedCheckOut?: Date | null;
+  anomalies?: string[];
 }
 
 export interface MonthlyStats {
@@ -281,6 +288,9 @@ export async function getUserMonthlyStats(
     let multiplier = holidayMap.get(date) || 1;
 
     // Process check-in pairs
+    let tempRawHours = 0;
+    let anomalies: string[] = [];
+
     for (const event of dailyCheckins) {
       if (event.type === 'checkin') {
         lastCheckIn = event;
@@ -293,20 +303,29 @@ export async function getUserMonthlyStats(
           let startCalc = lastCheckIn.timestamp.getTime();
           let endCalc = event.timestamp.getTime();
 
+          tempRawHours += (endCalc - startCalc) / (1000 * 60 * 60);
+
           if (shift) {
             const shiftStart = shift.start.getTime();
             const shiftEnd = shift.end.getTime();
 
             // Shift Logic
-            if (startCalc < shiftStart) startCalc = shiftStart;
+            if (startCalc < shiftStart) {
+              startCalc = shiftStart;
+              anomalies.push("Vào sớm (Làm tròn ca)");
+            }
 
             // Early Leave Logic
             if (endCalc < shiftEnd) {
               const currentDateStr = toVNDateKey(event.timestamp);
               if (earlyLeaveApprovedMap.has(currentDateStr)) {
                 endCalc = shiftEnd;
+                anomalies.push("Về sớm (Đã duyệt)");
               } else if (earlyLeavePendingMap.has(currentDateStr)) {
                 errorMsg = errorMsg ? `${errorMsg}, Xin về sớm (Đang chờ duyệt)` : 'Xin về sớm (Đang chờ duyệt)';
+                anomalies.push("Về sớm (Chờ duyệt)");
+              } else {
+                anomalies.push("Về sớm");
               }
             }
           }
@@ -319,6 +338,7 @@ export async function getUserMonthlyStats(
         } else {
           isValidDay = false;
           errorMsg = 'Thiếu Check-in';
+          anomalies.push("Thiếu check-in");
         }
       }
     }
@@ -326,6 +346,7 @@ export async function getUserMonthlyStats(
     if (lastCheckIn) {
       isValidDay = false;
       errorMsg = 'Quên Check-out';
+      anomalies.push("Quên check-out");
     }
 
     let scheduledHours = user.employmentType === 'FULL_TIME' ? 8 : 0;
@@ -346,11 +367,14 @@ export async function getUserMonthlyStats(
     if (wfhMap.has(date)) {
       if (dayHours === 0) {
         dayHours = 8;
+        tempRawHours = 8;
         totalHours += 8;
         isValidDay = true;
         errorMsg = 'Làm việc từ xa (WFH)';
+        anomalies.push("Làm việc từ xa (WFH)");
       } else {
         errorMsg = errorMsg ? `${errorMsg} + WFH` : 'WFH + Check-in';
+        anomalies.push("WFH + Check-in");
       }
     }
 
@@ -358,12 +382,37 @@ export async function getUserMonthlyStats(
     if (shift && firstCheckIn) {
       if (checkIsLate(firstCheckIn, shift.start)) {
         isLate = true;
+        anomalies.push("Đi muộn");
       }
+    }
+
+    if (multiplier > 1) {
+      anomalies.push(`Ngày lễ (x${multiplier})`);
     }
 
     // Daily Salary Calculation
     const effectiveHours = user.employmentType === 'FULL_TIME' ? Math.min(dayHours, 8) : dayHours;
     const dailySalaryCalc = (effectiveHours * dynamicHourlyRate) * multiplier;
+
+    const rawEffectiveHours = user.employmentType === 'FULL_TIME' ? Math.min(tempRawHours, 8) : tempRawHours;
+    const rawSalaryCalc = (rawEffectiveHours * dynamicHourlyRate) * multiplier;
+
+    let auditedCheckInDate: Date | null = firstCheckIn;
+    if (firstCheckIn && shift) {
+      if (firstCheckIn.getTime() < shift.start.getTime()) {
+        auditedCheckInDate = shift.start;
+      }
+    }
+    
+    let auditedCheckOutDate: Date | null = lastCheckOut;
+    if (lastCheckOut && shift) {
+      if (lastCheckOut.getTime() < shift.end.getTime()) {
+        const currentDateStr = toVNDateKey(lastCheckOut);
+        if (earlyLeaveApprovedMap.has(currentDateStr)) {
+          auditedCheckOutDate = shift.end;
+        }
+      }
+    }
 
     dailyDetails.push({
       date: date,
@@ -378,6 +427,13 @@ export async function getUserMonthlyStats(
       error: errorMsg || (dayHours === 0 ? 'Không tính công' : undefined),
       checkInNote: firstCheckInEvent?.note || null,
       checkOutNote: lastCheckOutEvent?.note || null,
+      rawCheckIn: firstCheckIn,
+      rawCheckOut: lastCheckOut,
+      rawHours: tempRawHours,
+      rawSalary: rawSalaryCalc,
+      auditedCheckIn: auditedCheckInDate,
+      auditedCheckOut: auditedCheckOutDate,
+      anomalies: anomalies,
     });
   });
 

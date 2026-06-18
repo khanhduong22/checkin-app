@@ -68,7 +68,7 @@ export default async function EmployeeDetailPage({
                           month={month}
                           year={year}
                       />
-                      <Link href={`/admin/payroll`}>
+                      <Link href={`/admin/payroll/${userId}`}>
                           <Button variant="outline">💰 Xem Lương</Button>
                       </Link>
                       <Link href={`/admin/schedule`}>
