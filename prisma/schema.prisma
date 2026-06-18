@@ -101,7 +101,7 @@ model Request {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([userId, date])
   @@index([date])
 }
 
@@ -189,7 +189,7 @@ model CheckIn {
   note      String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([userId, timestamp])
   @@index([timestamp])
 }
 
@@ -283,6 +283,7 @@ model UserTask {
   @@index([userId])
   @@index([taskDefId])
   @@index([taskItemId])
+  @@index([status, updatedAt])
 }
 
 model PayrollPeriod {
@@ -381,6 +382,7 @@ model StaffTask {
   assignee  User @relation("StaffTaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
   createdBy User @relation("StaffTaskCreator", fields: [createdById], references: [id])
 
-  @@index([assigneeId])
+  @@index([assigneeId, startDate])
+  @@index([assigneeId, createdAt])
   @@index([createdById])
 }

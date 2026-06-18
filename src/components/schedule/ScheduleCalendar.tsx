@@ -36,7 +36,11 @@ interface CalendarEvent {
     employmentType?: string;
 }
 
-export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false, defaultDate = new Date(), users = [] }: { initialEvents: any[], userId: string, isAdmin?: boolean, defaultDate?: Date, users?: any[] }) {
+export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false, defaultDate, users = [] }: { initialEvents: any[], userId: string, isAdmin?: boolean, defaultDate?: Date, users?: any[] }) {
+    const [calDate] = useState(() => {
+        if (defaultDate) return defaultDate;
+        return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    });
     const mapEvents = (serverEvents: any[]) => serverEvents.map(e => {
         let parsedStart = new Date(e.start);
         let parsedEnd = new Date(e.end);
@@ -59,12 +63,13 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         };
     });
 
-    const [events, setEvents] = useState<CalendarEvent[]>(mapEvents(initialEvents));
+    const [prevInitialEvents, setPrevInitialEvents] = useState(initialEvents);
+    const [events, setEvents] = useState<CalendarEvent[]>(() => mapEvents(initialEvents));
 
-    // Sync state if server data changes (e.g., after upload)
-    useEffect(() => {
+    if (initialEvents !== prevInitialEvents) {
+        setPrevInitialEvents(initialEvents);
         setEvents(mapEvents(initialEvents));
-    }, [initialEvents]);
+    }
 
     const [hideFullTime, setHideFullTime] = useState(true);
 
@@ -267,7 +272,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 startAccessor={(event: any) => new Date(event.start)}
                 endAccessor={(event: any) => new Date(event.end)}
                 defaultView={Views.WEEK}
-                defaultDate={defaultDate}
+                defaultDate={calDate}
                 views={[Views.WEEK, Views.DAY]}
                 step={30} 
                 timeslots={2}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { type StaffTask, COLUMNS, type StaffPerformanceStats } from "./types";
 import { updateStaffTask, getStaffTaskPerformanceStats } from "@/actions/staff-task-actions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,16 +30,19 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
   const [evidenceNote, setEvidenceNote] = useState("");
 
   // Fetch performance stats
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     const res = await getStaffTaskPerformanceStats(userId);
     if (res.success && res.data) {
       setStats(res.data);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
-    fetchStats();
-  }, [tasks]);
+    const timer = setTimeout(() => {
+      fetchStats();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [tasks, fetchStats]);
 
   const handleStatusChange = async (taskId: string, nextStatus: string, evLink?: string, evNote?: string) => {
     setLoading(true);
@@ -342,7 +345,7 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
                     {selectedTask.evidenceNote && (
                       <div className="text-xs">
                         <span className="font-semibold text-emerald-800 block mb-0.5">Ghi chú của bạn:</span>
-                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">"{selectedTask.evidenceNote}"</p>
+                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">&ldquo;{selectedTask.evidenceNote}&rdquo;</p>
                       </div>
                     )}
                   </div>
@@ -386,7 +389,7 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
                   <div className="flex items-center gap-1.5 text-red-700 font-bold text-xs uppercase">
                     <AlertCircle className="h-4 w-4" /> Yêu cầu sửa đổi từ Admin
                   </div>
-                  <p className="text-sm text-red-900 mt-1 italic">"{selectedTask.adminNote}"</p>
+                  <p className="text-sm text-red-900 mt-1 italic">&ldquo;{selectedTask.adminNote}&rdquo;</p>
                 </div>
               )}
 
@@ -396,7 +399,7 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
                   <div className="flex items-center gap-1.5 text-emerald-700 font-bold text-xs uppercase">
                     <CheckCircle2 className="h-4 w-4" /> Ghi chú duyệt
                   </div>
-                  <p className="text-sm text-emerald-950 mt-1">"{selectedTask.adminNote}"</p>
+                  <p className="text-sm text-emerald-950 mt-1">&ldquo;{selectedTask.adminNote}&rdquo;</p>
                 </div>
               )}
             </div>

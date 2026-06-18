@@ -58,9 +58,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                             <span className="text-xl">👀</span>
                             <span className="font-bold text-sm">Chế độ xem Dashboard của: {user?.name}</span>
                         </div>
-                        <a href="/admin/employees">
+                        <Link href="/admin/employees">
                             <Button variant="secondary" size="sm" className="h-7 text-xs">Thoát</Button>
-                        </a>
+                        </Link>
                     </div>
                 )}
 

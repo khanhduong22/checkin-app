@@ -3,6 +3,13 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, AlertCircle, Clock, DollarSign, Calendar, Gift } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 
 function formatVND(amount: number) {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -140,19 +147,20 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                         <h3 className="font-bold text-gray-900">Chi tiết Ca làm việc</h3>
                     </div>
                     <div>
-                        <div className="grid grid-cols-5 gap-2 p-3 font-medium text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b">
+                        <div className="grid grid-cols-6 gap-2 p-3 font-medium text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/30 border-b">
                             <div className="col-span-1">Ngày</div>
                             <div className="col-span-1 text-center">Giờ vào</div>
                             <div className="col-span-1 text-center">Giờ ra</div>
                             <div className="col-span-1 text-center">Số giờ</div>
                             <div className="col-span-1 text-right">Lương</div>
+                            <div className="col-span-1 text-center">Đối soát</div>
                         </div>
                         {stats.dailyDetails.length === 0 ? (
                             <div className="p-8 text-center text-sm text-muted-foreground">Chưa có dữ liệu chấm công tháng này.</div>
                         ) : (
                             <div className="max-h-[600px] overflow-auto">
                                 {stats.dailyDetails.map((day: any, idx: number) => (
-                                    <div key={idx} className="grid grid-cols-5 gap-2 p-3 text-sm border-b last:border-0 hover:bg-gray-50 items-center">
+                                    <div key={idx} className="grid grid-cols-6 gap-2 p-3 text-sm border-b last:border-0 hover:bg-gray-50 items-center">
                                         <div className="col-span-1 font-medium text-xs">
                                             {new Date(day.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
                                             {!day.isValid && (
@@ -172,6 +180,93 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                                         </div>
                                         <div className="col-span-1 text-right font-medium text-emerald-600 text-xs">
                                             {day.salary > 0 ? formatVND(day.salary) : '-'}
+                                        </div>
+                                        <div className="col-span-1 text-center">
+                                            {day.hours > 0 ? (
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <button className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold hover:underline inline-flex items-center gap-0.5">
+                                                            Audit 🔍
+                                                        </button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-md bg-white border border-gray-200 shadow-xl rounded-xl">
+                                                        <DialogHeader>
+                                                            <DialogTitle className="text-base font-bold text-gray-900 border-b pb-2 flex items-center gap-2">
+                                                                <span>🔍 Đối soát ngày {new Date(day.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                                            </DialogTitle>
+                                                        </DialogHeader>
+                                                        <div className="space-y-4 text-xs mt-2 text-gray-700">
+                                                            {/* Raw Info */}
+                                                            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-1.5 font-medium">
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-500">Lịch làm việc (Shift):</span>
+                                                                    <span className="text-gray-800">{day.shift || 'Ngoài lịch (Không gán ca)'}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-500">Giờ vào thực tế:</span>
+                                                                    <span className="text-gray-800">{day.checkIn ? new Date(day.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-500">Giờ ra thực tế:</span>
+                                                                    <span className="text-gray-800">{day.checkOut ? new Date(day.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Logic explanation */}
+                                                            <div className="bg-blue-50/50 border border-blue-100 p-3 rounded-lg space-y-2">
+                                                                <h4 className="font-bold text-blue-800 uppercase tracking-wide text-[10px]">Giải thích công thức:</h4>
+                                                                <ul className="list-disc list-inside space-y-1 text-gray-600 pl-1">
+                                                                    {day.shift ? (
+                                                                        <>
+                                                                            <li>
+                                                                                Có lịch làm việc cố định gán: <span className="font-semibold text-gray-800">{day.shift}</span>.
+                                                                            </li>
+                                                                            <li>
+                                                                                <strong>Check-in sớm:</strong> Do bạn vào lúc <span className="font-semibold text-gray-800">{new Date(day.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span> (sớm hơn lịch bắt đầu), hệ thống tự động làm tròn giờ bắt đầu tính công về <span className="font-semibold text-blue-700">bằng giờ bắt đầu của ca</span>.
+                                                                            </li>
+                                                                            <li>
+                                                                                <strong>Check-out:</strong> Tính theo giờ check-out thực tế hoặc tối đa đến hết ca (nếu không có tăng ca được duyệt).
+                                                                            </li>
+                                                                        </>
+                                                                    ) : (
+                                                                        <li>Không có ca làm việc gán: Tính 100% thời gian làm việc thực tế từ lúc check-in đến lúc check-out.</li>
+                                                                    )}
+                                                                    <li className="text-blue-700 font-semibold">
+                                                                        Tổng thời gian tính công: {day.hours.toFixed(2)}h
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+
+                                                            {/* Salary Calculation */}
+                                                            <div className="border-t pt-3 space-y-2">
+                                                                <h4 className="font-bold text-gray-900 uppercase tracking-wide text-[10px]">Chi tiết lương:</h4>
+                                                                <div className="space-y-1 bg-emerald-50/30 p-2.5 rounded-lg border border-emerald-100 font-medium">
+                                                                    <div className="flex justify-between">
+                                                                        <span>Giờ tính công:</span>
+                                                                        <span className="font-mono font-bold text-gray-850">{day.hours.toFixed(2)}h</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span>Lương theo giờ (dynamicHourlyRate):</span>
+                                                                        <span className="font-mono font-bold text-gray-850">{formatVND(stats.dynamicHourlyRate || stats.hourlyRate)}/h</span>
+                                                                    </div>
+                                                                    {day.multiplier > 1 && (
+                                                                        <div className="flex justify-between text-amber-600 font-semibold">
+                                                                            <span>Hệ số ngày lễ:</span>
+                                                                            <span>x{day.multiplier}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex justify-between border-t border-dashed border-emerald-200 pt-1.5 font-bold text-emerald-700 text-sm">
+                                                                        <span>Lương tạm tính trong ngày:</span>
+                                                                        <span>{formatVND(day.salary)}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            ) : (
+                                                <span className="text-[11px] text-muted-foreground">-</span>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

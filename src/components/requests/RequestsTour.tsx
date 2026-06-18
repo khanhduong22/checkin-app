@@ -19,7 +19,7 @@ export default function RequestsTour() {
     useEffect(() => {
         const hasSeen = localStorage.getItem("tour_seen:/requests:v1.8.0");
         if (!hasSeen) {
-            setRun(true);
+            setTimeout(() => setRun(true), 0);
         }
     }, []);
 

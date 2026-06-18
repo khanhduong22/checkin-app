@@ -73,7 +73,7 @@ export default function HomeTour() {
     useEffect(() => {
         const hasSeen = localStorage.getItem("tour_seen:/home:v1.8.0");
         if (!hasSeen) {
-            setRun(true);
+            setTimeout(() => setRun(true), 0);
         }
     }, []);
 

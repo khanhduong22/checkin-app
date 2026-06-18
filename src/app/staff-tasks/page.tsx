@@ -39,7 +39,7 @@ export default async function StaffTasksPage() {
           <CardHeader className="p-0">
             <CardTitle className="text-lg font-bold text-red-950">Không có quyền truy cập</CardTitle>
             <CardDescription className="text-xs text-red-800">
-              Bạn không có quyền truy cập vào mục "Công việc và KPI".
+              Bạn không có quyền truy cập vào mục &ldquo;Công việc và KPI&rdquo;.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0 text-sm text-red-900 leading-relaxed">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { type StaffTask, COLUMNS, type StaffPerformanceStats } from "./types";
 import { 
   createStaffTask, 
@@ -62,7 +62,7 @@ export default function AdminStaffTaskClient({
     weekly: StaffPerformanceStats;
   }>>({});
 
-  const fetchStatsForAll = async () => {
+  const fetchStatsForAll = useCallback(async () => {
     const statsMap: any = {};
     for (const u of allowedUsers) {
       const res = await getStaffTaskPerformanceStats(u.id);
@@ -71,11 +71,14 @@ export default function AdminStaffTaskClient({
       }
     }
     setUserStats(statsMap);
-  };
+  }, [allowedUsers]);
 
   useEffect(() => {
-    fetchStatsForAll();
-  }, [tasks]);
+    const timer = setTimeout(() => {
+      fetchStatsForAll();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [tasks, fetchStatsForAll]);
 
   const handleOpenCreate = () => {
     setFormMode("CREATE");
@@ -617,7 +620,7 @@ export default function AdminStaffTaskClient({
                     {selectedTask.evidenceNote && (
                       <div className="text-xs">
                         <span className="font-semibold text-emerald-800 block mb-0.5">Ghi chú của nhân viên:</span>
-                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">"{selectedTask.evidenceNote}"</p>
+                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">&ldquo;{selectedTask.evidenceNote}&rdquo;</p>
                       </div>
                     )}
                   </div>
@@ -657,7 +660,7 @@ export default function AdminStaffTaskClient({
               {selectedTask.adminNote && (
                 <div className="bg-slate-50 border rounded-lg p-3">
                   <h5 className="font-bold text-gray-700 text-xs uppercase tracking-wide">Ghi chú phản hồi / Duyệt</h5>
-                  <p className="text-sm mt-1 text-slate-800 italic">"{selectedTask.adminNote}"</p>
+                  <p className="text-sm mt-1 text-slate-800 italic">&ldquo;{selectedTask.adminNote}&rdquo;</p>
                 </div>
               )}
             </div>

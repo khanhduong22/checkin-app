@@ -95,8 +95,13 @@ interface ManagerKanbanBoardProps {
 
 export function ManagerKanbanBoard({ tasks, users, onTaskClick, onTaskUpdate }: ManagerKanbanBoardProps) {
   const [items, setItems] = useState<MTask[]>(tasks);
+  const [prevTasks, setPrevTasks] = useState<MTask[]>(tasks);
   const [activeId, setActiveId] = useState<string | null>(null);
-  useEffect(() => setItems(tasks), [tasks]);
+
+  if (tasks !== prevTasks) {
+    setPrevTasks(tasks);
+    setItems(tasks);
+  }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const activeCard = activeId ? items.find(i => i.id === activeId) : null;

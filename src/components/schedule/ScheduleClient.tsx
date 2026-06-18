@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { registerShift, cancelShift, toggleShiftSwap, takeShift } from "@/app/actions/shift";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 // Helpers
 const DAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -69,9 +70,9 @@ export default function ScheduleClient({ shifts, availableSwaps = [] }: { shifts
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <a href="/">
+                <Link href="/">
                     <Button variant="outline" size="sm">← Home</Button>
-                </a>
+                </Link>
                 <h1 className="text-xl font-bold">Đăng ký lịch làm việc</h1>
                 <div className="w-[80px]"></div>
             </div>
