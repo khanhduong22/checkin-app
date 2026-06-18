@@ -16,8 +16,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     const month = resolvedParams.month ? parseInt(resolvedParams.month) : now.getMonth() + 1;
     const year = resolvedParams.year ? parseInt(resolvedParams.year) : now.getFullYear();
 
-    const report = await getMonthlyReport(month, year);
-    const payroll = await calculatePayroll(month, year); // To get Top Hours
+    const [report, payroll] = await Promise.all([
+        getMonthlyReport(month, year),
+        calculatePayroll(month, year) // To get Top Hours
+    ]);
 
     // Filter out inactive users who have quit
     const excludedNames = ['Nía'];
