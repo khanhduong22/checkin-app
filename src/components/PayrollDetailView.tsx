@@ -301,9 +301,9 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                                                                                             <li>
                                                                                                 Có lịch làm việc cố định gán: <span className="font-semibold text-gray-800">{day.shift}</span>.
                                                                                             </li>
-                                                                                            {day.anomalies?.includes("Vào sớm") && (
+                                                                                            {day.anomalies?.includes("Vào sớm (Làm tròn ca)") && (
                                                                                                 <li>
-                                                                                                    <strong>Vào sớm:</strong> Bạn check-in sớm hơn giờ ca bắt đầu. Giờ làm việc tính từ lúc check-in thực tế.
+                                                                                                    <strong>Làm tròn check-in sớm:</strong> Do vào sớm hơn lịch bắt đầu, hệ thống làm tròn giờ tính công về <span className="font-semibold text-blue-700">bằng giờ bắt đầu của ca</span> để tránh ngoài giờ chưa duyệt.
                                                                                                 </li>
                                                                                             )}
                                                                                             {day.anomalies?.includes("Đi muộn") && (

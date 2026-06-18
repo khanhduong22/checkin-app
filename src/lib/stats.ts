@@ -311,7 +311,8 @@ export async function getUserMonthlyStats(
 
             // Shift Logic
             if (startCalc < shiftStart) {
-              anomalies.push("Vào sớm");
+              startCalc = shiftStart;
+              anomalies.push("Vào sớm (Làm tròn ca)");
             }
 
             // Early Leave Logic
@@ -397,6 +398,11 @@ export async function getUserMonthlyStats(
     const rawSalaryCalc = (rawEffectiveHours * dynamicHourlyRate) * multiplier;
 
     let auditedCheckInDate: Date | null = firstCheckIn;
+    if (firstCheckIn && shift) {
+      if (firstCheckIn.getTime() < shift.start.getTime()) {
+        auditedCheckInDate = shift.start;
+      }
+    }
     
     let auditedCheckOutDate: Date | null = lastCheckOut;
     if (lastCheckOut && shift) {
