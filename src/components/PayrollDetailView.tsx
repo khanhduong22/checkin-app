@@ -40,9 +40,14 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                     <div className="text-2xl font-bold">
                         {stats.totalHours.toFixed(1)}h
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        {stats.daysWorked} ngày đi làm
-                    </p>
+                    <div className="flex justify-between items-center mt-1">
+                        <span className="text-xs text-muted-foreground">{stats.daysWorked} ngày đi làm</span>
+                        {stats.totalDeficiencies && stats.totalDeficiencies > 0 ? (
+                            <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-bold">
+                                ⚠️ {stats.totalDeficiencies} lỗi quy trình
+                            </span>
+                        ) : null}
+                    </div>
                 </Card>
 
                 <Card className="p-4">

@@ -57,6 +57,7 @@ erDiagram
     User ||--o{ TaskItem : assigned_to
     User ||--o{ StaffTask : assigned_to
     User ||--o{ StaffTask : created_by
+    User ||--o{ ManagerChecklistTask : assigned_to
 
     TaskDefinition ||--o{ TaskItem : defines
     TaskDefinition ||--o{ UserTask : based_on
@@ -65,6 +66,7 @@ erDiagram
 
     LuckyWheelPrize ||--o{ LuckyWheelHistory : awarded_in
     User ||--o{ LuckyWheelHistory : spins
+    ManagerChecklistTask ||--o{ ManagerChecklistCompletion : has_completions
 ```
 
 ## detailed Model Reference
@@ -99,3 +101,19 @@ erDiagram
 | `adminNote` | `String?` | Comments or feedback given by admin (e.g. rejection reason). |
 | `submittedAt` | `DateTime?` | When the staff marked the task as `DONE` for approval. |
 | `completedAt` | `DateTime?` | When the admin marked the task as `APPROVED`. |
+
+### ManagerChecklistTask
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `title` | `String` | Title of the recurring checklist task. |
+| `description` | `String?` | Detail of the checklist task. |
+| `assigneeId` | `String` | User assigned to complete this checklist task daily. |
+| `active` | `Boolean` | True if the task is currently active for daily completion. |
+
+### ManagerChecklistCompletion
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `taskId` | `String` | Foreign key to the checklist task template. |
+| `date` | `String` | Date string formatted as `YYYY-MM-DD`. |
+| `completed` | `Boolean` | True if the task was completed on that date. |
+| `completedAt` | `DateTime?` | Timestamp of task completion. |

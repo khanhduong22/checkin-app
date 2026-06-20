@@ -21,6 +21,12 @@ vi.mock("@/lib/prisma", () => ({
     staffTask: {
       findMany: vi.fn(),
     },
+    managerChecklistTask: {
+      findMany: vi.fn(() => Promise.resolve([])),
+    },
+    managerChecklistCompletion: {
+      findMany: vi.fn(() => Promise.resolve([])),
+    },
   },
 }));
 
@@ -169,5 +175,29 @@ describe("Thư Special KPI Payroll Logic (June 2026+)", () => {
     expect(stats.baseSalary).toBe(6000000);
     expect(stats.totalAdjustments).toBe(500000);
     expect(stats.totalSalary).toBe(6500000); // 6M base + 500k adjustments
+  });
+
+  it("applies Majority Days Rule for transition week tasks (e.g. week starting June 29 belongs to July)", async () => {
+    mockUserFindUnique.mockResolvedValue(mockUserRecord);
+    mockCheckInFindMany.mockResolvedValue([]);
+    mockShiftFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+    mockHolidayFindMany.mockResolvedValue([]);
+
+    // We have 2 tasks:
+    // 1. StartDate: June 22, 2026. Thursday is June 25 (in June). Should count for June.
+    // 2. StartDate: June 29, 2026. Thursday is July 2 (in July). Should NOT count for June.
+    mockStaffTaskFindMany.mockResolvedValue([
+      { id: "task-june", status: "APPROVED", startDate: new Date("2026-06-22T08:00:00+07:00"), updatedAt: new Date() },
+      { id: "task-july", status: "DOING", startDate: new Date("2026-06-29T08:00:00+07:00"), updatedAt: new Date() }
+    ]);
+
+    // Query for June 2026. Only task-june (APPROVED) should count (totalTasks = 1, approved = 1 -> 100% completion)
+    const stats = await getUserMonthlyStats(mockUserRecord.id, targetDateJune);
+
+    expect(stats.isThuKpiSalary).toBe(true);
+    expect(stats.kpiTasksTotal).toBe(1); // Only the task belonging to June is counted
+    expect(stats.kpiTasksApproved).toBe(1);
+    expect(stats.kpiCompletionRate).toBe(1.0);
   });
 });

@@ -86,7 +86,14 @@ export default async function EmployeeDetailPage({
                      <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Tổng Công</CardTitle></CardHeader>
                      <CardContent>
                          <div className="text-2xl font-bold">{stats.daysWorked} ngày</div>
-                         <p className="text-xs text-muted-foreground">{stats.totalHours.toFixed(1)} giờ làm việc</p>
+                         <div className="flex justify-between items-center mt-1">
+                             <span className="text-xs text-muted-foreground">{stats.totalHours.toFixed(1)} giờ làm việc</span>
+                             {stats.totalDeficiencies && stats.totalDeficiencies > 0 ? (
+                                 <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-bold">
+                                     ⚠️ {stats.totalDeficiencies} lỗi quy trình
+                                 </span>
+                             ) : null}
+                         </div>
                      </CardContent>
                  </Card>
                  <Card>

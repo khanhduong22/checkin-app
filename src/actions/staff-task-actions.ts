@@ -246,16 +246,19 @@ export async function getStaffTaskPerformanceStats(userId: string) {
     const weekEnd = new Date(weekEndLocal.getTime() - VN_OFFSET_MS);
 
     // 2. Fetch tasks for user
-    const [monthlyTasks, weeklyTasks] = await Promise.all([
+    const extendedStartDate = new Date(monthStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const extendedEndDate = new Date(monthEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const [monthlyTasksRaw, weeklyTasks] = await Promise.all([
       prisma.staffTask.findMany({
         where: {
           assigneeId: userId,
           OR: [
-            { startDate: { gte: monthStart, lte: monthEnd } },
+            { startDate: { gte: extendedStartDate, lte: extendedEndDate } },
             {
               AND: [
                 { startDate: null },
-                { createdAt: { gte: monthStart, lte: monthEnd } }
+                { createdAt: { gte: extendedStartDate, lte: extendedEndDate } }
               ]
             }
           ]
@@ -276,6 +279,23 @@ export async function getStaffTaskPerformanceStats(userId: string) {
         }
       })
     ]);
+
+    const getWeekThursday = (date: Date): Date => {
+      const VN_OFFSET = 7 * 60 * 60 * 1000;
+      const local = new Date(date.getTime() + VN_OFFSET);
+      const day = local.getUTCDay();
+      const diffToThursday = day === 0 ? -3 : 4 - day;
+      const thursLocal = new Date(local);
+      thursLocal.setUTCDate(local.getUTCDate() + diffToThursday);
+      thursLocal.setUTCHours(12, 0, 0, 0);
+      return new Date(thursLocal.getTime() - VN_OFFSET);
+    };
+
+    const monthlyTasks = monthlyTasksRaw.filter(t => {
+      const dateToUse = t.startDate || t.createdAt || new Date(monthStart.getTime() + 15 * 24 * 60 * 60 * 1000);
+      const thursday = getWeekThursday(dateToUse);
+      return thursday >= monthStart && thursday <= monthEnd;
+    });
 
     // 3. Compute stats
     const computeStats = (tasks: any[]) => {

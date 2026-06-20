@@ -17,6 +17,7 @@ interface DailyDetail {
   error?: string;
   checkInNote: string | null;
   checkOutNote: string | null;
+  isChecklistIncomplete?: boolean;
 }
 
 export interface MonthlyStats {
@@ -41,6 +42,7 @@ export interface MonthlyStats {
   lateCount: number;
   latePenaltyHours: number;
   latePenaltyAmount: number;
+  totalDeficiencies?: number;
 }
 
 // --- Late Penalty Helper ---
@@ -159,20 +161,40 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   let approvedTasksCount = 0;
 
   if (isThuKpiSalary) {
-    const monthlyTasks = await prisma.staffTask.findMany({
+    const extendedStartDate = new Date(startDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const extendedEndDate = new Date(endDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const candidateTasks = await prisma.staffTask.findMany({
       where: {
         assigneeId: userId,
         OR: [
-          { startDate: { gte: startDate, lte: endDate } },
+          { startDate: { gte: extendedStartDate, lte: extendedEndDate } },
           {
             AND: [
               { startDate: null },
-              { createdAt: { gte: startDate, lte: endDate } }
+              { createdAt: { gte: extendedStartDate, lte: extendedEndDate } }
             ]
           }
         ]
       }
     });
+
+    const getWeekThursday = (date: Date): Date => {
+      const VN_OFFSET = 7 * 60 * 60 * 1000;
+      const local = new Date(date.getTime() + VN_OFFSET);
+      const day = local.getUTCDay();
+      const diffToThursday = day === 0 ? -3 : 4 - day;
+      const thursLocal = new Date(local);
+      thursLocal.setUTCDate(local.getUTCDate() + diffToThursday);
+      thursLocal.setUTCHours(12, 0, 0, 0);
+      return new Date(thursLocal.getTime() - VN_OFFSET);
+    };
+
+    const monthlyTasks = candidateTasks.filter(t => {
+      const dateToUse = t.startDate || t.createdAt || new Date(startDate.getTime() + 15 * 24 * 60 * 60 * 1000);
+      const thursday = getWeekThursday(dateToUse);
+      return thursday >= startDate && thursday <= endDate;
+    });
+
     totalTasksCount = monthlyTasks.length;
     const now = new Date();
     approvedTasksCount = monthlyTasks.filter(t => {
@@ -187,6 +209,21 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   }
 
   const { checkins, shifts, allRequests, holidays } = await fetchPeriodData(userId, startDate, endDate);
+
+  const [checklistTasks, checklistCompletions] = await Promise.all([
+    prisma.managerChecklistTask.findMany({
+      where: { assigneeId: userId }
+    }),
+    prisma.managerChecklistCompletion.findMany({
+      where: {
+        task: { assigneeId: userId },
+        date: {
+          gte: toVNDateKey(startDate),
+          lte: toVNDateKey(endDate)
+        }
+      }
+    })
+  ]);
 
   // 2. Process Requests & Maps
   const leaves = allRequests.filter(r => r.type === 'LEAVE' && r.status === 'APPROVED');
@@ -269,7 +306,10 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
             const shiftEnd = shift.end.getTime();
 
             // Shift Logic
-            if (startCalc < shiftStart) startCalc = shiftStart;
+            const earlyBuffer = 30 * 60 * 1000; // 30 minutes
+            if (startCalc < shiftStart && (shiftStart - startCalc) <= earlyBuffer) {
+              startCalc = shiftStart;
+            }
 
             // Early Leave Logic
             if (endCalc < shiftEnd) {
@@ -336,6 +376,28 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     const effectiveHours = user.employmentType === 'FULL_TIME' ? Math.min(dayHours, 8) : dayHours;
     const dailySalaryCalc = (effectiveHours * dynamicHourlyRate) * multiplier;
 
+    // Checklist Validation Logic
+    let isChecklistIncomplete = false;
+    const isWorkingDay = dayHours > 0 || wfhMap.has(date);
+    if (isWorkingDay && checklistTasks.length > 0) {
+      const activeTasks = checklistTasks.filter(task => {
+        const taskCreatedKey = toVNDateKey(task.createdAt);
+        return taskCreatedKey <= date && task.active;
+      });
+      if (activeTasks.length > 0) {
+        const completedTaskIds = checklistCompletions
+          .filter(c => c.date === date && c.completed)
+          .map(c => c.taskId);
+        
+        const hasUncompleted = activeTasks.some(task => !completedTaskIds.includes(task.id));
+        if (hasUncompleted) {
+          isChecklistIncomplete = true;
+          isValidDay = false;
+          errorMsg = errorMsg ? `${errorMsg}, Thiếu checklist` : 'Thiếu checklist';
+        }
+      }
+    }
+
     dailyDetails.push({
       date: date,
       checkIn: firstCheckIn,
@@ -349,6 +411,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
       error: errorMsg || (dayHours === 0 ? 'Không tính công' : undefined),
       checkInNote: firstCheckInEvent?.note || null,
       checkOutNote: lastCheckOutEvent?.note || null,
+      isChecklistIncomplete,
     });
   });
 
@@ -393,7 +456,8 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     deduction,
     lateCount,
     latePenaltyHours,
-    latePenaltyAmount
+    latePenaltyAmount,
+    totalDeficiencies: dailyDetails.filter(d => d.isChecklistIncomplete).length
   };
 
   if (isThuKpiSalary) {

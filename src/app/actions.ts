@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeIP, isIPMatch } from "@/lib/ip-utils";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { verifyChecklistComplete } from "@/actions/manager-checklist-actions";
 
 
 export async function getIPStatus() {
@@ -69,6 +70,16 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
     // type === 'checkout'
     if (!lastCheckin || lastCheckin.type === 'checkout') {
       return { success: false, message: "⚠️ Bạn chưa Check-in, không thể Check-out!" };
+    }
+
+    // Validate Checklist Completed
+    const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const vnNow = new Date(new Date().getTime() + VN_OFFSET_MS);
+    const dateStr = vnNow.toISOString().split("T")[0];
+
+    const checklistVerify = await verifyChecklistComplete(userId, dateStr);
+    if (!checklistVerify.success) {
+      return { success: false, message: checklistVerify.message };
     }
 
     // Validate Time Gap (Minimum 1 hour)

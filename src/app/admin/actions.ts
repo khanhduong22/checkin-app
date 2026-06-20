@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { verifyChecklistComplete } from "@/actions/manager-checklist-actions";
 
 // --- User Management Actions ---
 
@@ -278,6 +279,11 @@ export async function adminManualCheckIn(userId: string, date: string, checkInTi
     }
 
     if (checkOutTime) {
+      const checklistVerify = await verifyChecklistComplete(userId, date);
+      if (!checklistVerify.success) {
+        return { success: false, message: checklistVerify.message };
+      }
+
       const targetISO = `${date}T${checkOutTime}:00+07:00`;
       const targetDate = new Date(targetISO);
 
