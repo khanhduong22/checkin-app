@@ -75,4 +75,23 @@ test.describe("Admin Announcements (CRUD)", () => {
       console.log("No announcements to toggle, skipping");
     }
   });
+
+  test("DELETE: removes the created E2E announcement", async ({ page }) => {
+    // Intercept and accept the confirmation dialog
+    page.once("dialog", async (dialog) => {
+      expect(dialog.message()).toContain("xóa thông báo này");
+      await dialog.accept();
+    });
+
+    // Locate the card containing E2E_TITLE
+    const card = page.locator("#announcement-list > div", { hasText: E2E_TITLE }).first();
+    await expect(card).toBeVisible();
+
+    // Click the Xóa button inside that card
+    await card.getByRole("button", { name: "Xóa" }).click();
+
+    // Wait for it to disappear from the list
+    await page.waitForLoadState("networkidle");
+    await expect(card).not.toBeVisible();
+  });
 });

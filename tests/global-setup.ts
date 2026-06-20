@@ -4,7 +4,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { config } from "dotenv";
 
-// Load .env for DATABASE_URL
+// Load .env.local first, then fallback to .env for DATABASE_URL and NEXTAUTH settings
+config({ path: path.join(__dirname, "../.env.local") });
 config({ path: path.join(__dirname, "../.env") });
 
 const prisma = new PrismaClient();

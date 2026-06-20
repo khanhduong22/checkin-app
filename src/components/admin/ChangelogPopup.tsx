@@ -17,7 +17,10 @@ export default function ChangelogPopup({ latestVersion, changelog }: Props) {
     useEffect(() => {
         const seenVersion = localStorage.getItem('admin_changelog_version');
         if (seenVersion !== latestVersion) {
-            setOpen(true);
+            const timer = setTimeout(() => {
+                setOpen(true);
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [latestVersion]);
 

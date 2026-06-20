@@ -15,7 +15,7 @@ export default function TourGuide({ steps, run, onFinish }: TourGuideProps) {
   const { theme } = useTheme();
 
   useEffect(() => {
-    setMounted(true);
+    setTimeout(() => setMounted(true), 0);
   }, []);
 
   if (!mounted) return null;

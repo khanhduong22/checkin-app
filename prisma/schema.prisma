@@ -23,6 +23,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -31,6 +32,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -86,6 +89,7 @@ model WorkShift {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, start])
+  @@index([start])
 }
 
 model Request {
@@ -97,6 +101,9 @@ model Request {
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([date])
 }
 
 model Announcement {
@@ -115,6 +122,8 @@ model StickyNote {
   userId    String
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model PayrollAdjustment {
@@ -125,6 +134,9 @@ model PayrollAdjustment {
   date      DateTime @default(now())
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
 }
 
 model LuckyWheelPrize {
@@ -151,6 +163,9 @@ model LuckyWheelHistory {
   createdAt DateTime         @default(now())
   prize     LuckyWheelPrize? @relation(fields: [prizeId], references: [id])
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([prizeId])
 }
 
 model UserAchievement {
@@ -174,6 +189,9 @@ model CheckIn {
   ipAddress String
   note      String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([timestamp])
 }
 
 model AllowedIP {
@@ -235,6 +253,9 @@ model TaskItem {
   taskDefinition TaskDefinition @relation(fields: [taskDefId], references: [id])
   assignee       User?          @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
   userTasks      UserTask[]
+
+  @@index([taskDefId])
+  @@index([assigneeId])
 }
 
 model UserTask {
@@ -259,6 +280,11 @@ model UserTask {
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   taskDefinition TaskDefinition @relation(fields: [taskDefId], references: [id])
   taskItem       TaskItem?      @relation(fields: [taskItemId], references: [id])
+
+  @@index([userId])
+  @@index([taskDefId])
+  @@index([taskItemId])
+  @@index([status, updatedAt])
 }
 
 model PayrollPeriod {
@@ -290,6 +316,7 @@ model Payslip {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, month, year])
+  @@index([month, year])
 }
 
 model Document {
@@ -331,6 +358,10 @@ model ManagerTask {
   createdBy User          @relation("ManagerTaskCreator", fields: [createdById], references: [id])
   parent    ManagerTask?  @relation("ManagerTaskSubtasks", fields: [parentId], references: [id], onDelete: SetNull)
   subtasks  ManagerTask[] @relation("ManagerTaskSubtasks")
+
+  @@index([assigneeId])
+  @@index([createdById])
+  @@index([parentId])
 }
 
 model StaffTask {
@@ -352,6 +383,10 @@ model StaffTask {
 
   assignee  User @relation("StaffTaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
   createdBy User @relation("StaffTaskCreator", fields: [createdById], references: [id])
+
+  @@index([assigneeId, startDate])
+  @@index([assigneeId, createdAt])
+  @@index([createdById])
 }
 
 model ManagerChecklistTask {

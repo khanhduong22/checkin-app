@@ -2,18 +2,26 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 const COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
 
 const SimpleConfetti = () => {
-    const pieces = Array.from({ length: 50 }).map((_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        delay: Math.random() * 5,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        rotation: Math.random() * 360,
-    }));
+    const [pieces, setPieces] = useState<{ id: number; x: number; delay: number; color: string; rotation: number }[]>([]);
+
+    useEffect(() => {
+        const generated = Array.from({ length: 50 }).map((_, i) => ({
+            id: i,
+            x: Math.random() * 100,
+            delay: Math.random() * 5,
+            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+            rotation: Math.random() * 360,
+        }));
+        const timer = setTimeout(() => {
+            setPieces(generated);
+        }, 0);
+        return () => clearTimeout(timer);
+    }, []);
 
     return (
         <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
@@ -79,9 +87,12 @@ export default function SpecialDaysWidget({
 
     useEffect(() => {
         if (todayEvents.length > 0) {
-            setShowConfetti(true);
-            const timer = setTimeout(() => setShowConfetti(false), 5000);
-            return () => clearTimeout(timer);
+            const timer1 = setTimeout(() => setShowConfetti(true), 0);
+            const timer2 = setTimeout(() => setShowConfetti(false), 5000);
+            return () => {
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+            };
         }
     }, [todayEvents.length]);
 

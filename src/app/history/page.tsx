@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { checkTimeStatus } from "@/lib/utils";
 
+import Link from "next/link";
+
 export const dynamic = 'force-dynamic';
 
 export default async function HistoryPage() {
@@ -42,9 +44,9 @@ export default async function HistoryPage() {
             <div className="w-full max-w-4xl mx-auto space-y-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold tracking-tight">Lịch sử chấm công</h1>
-                    <a href="/">
+                    <Link href="/">
                         <Button variant="outline" size="sm">← Quay lại trang chủ</Button>
-                    </a>
+                    </Link>
                 </div>
 
                 {/* GANTT CHART Visualization */}

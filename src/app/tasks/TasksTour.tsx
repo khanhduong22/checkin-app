@@ -35,7 +35,7 @@ export default function TasksTour() {
         const hasSeen = localStorage.getItem("tour_seen:/tasks:v1.8.0");
         const isMobile = window.innerWidth < 768; // Optional: disable on mobile if needed, or adjust steps
         if (!hasSeen) {
-            setRun(true);
+            setTimeout(() => setRun(true), 0);
         }
     }, []);
 

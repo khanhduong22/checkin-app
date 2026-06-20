@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import PayrollMonthSelector from "@/components/PayrollMonthSelector";
 
+import Link from "next/link";
+
 export const dynamic = 'force-dynamic';
 
 export default async function RewardsPage({ searchParams }: { searchParams: Promise<{ month?: string, year?: string }> }) {
@@ -127,9 +129,9 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
                         <div className="w-40 md:w-48 bg-white p-2 rounded-lg shadow-sm border">
                             <PayrollMonthSelector current={`${year}-${month}`} options={monthOptions} baseUrl="/rewards" />
                         </div>
-                        <a href="/">
+                        <Link href="/">
                             <Button variant="outline" size="sm">← Trang chủ</Button>
-                        </a>
+                        </Link>
                      </div>
                 </div>
 

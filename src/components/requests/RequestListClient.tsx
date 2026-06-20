@@ -9,6 +9,7 @@ import { submitRequest } from "@/app/actions/request";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { HeadlessCombobox } from "@/components/ui/headless-combobox";
+import Link from "next/link";
 
 const TYPES = [
     { value: 'LATE', label: 'Xin đi muộn' },
@@ -46,9 +47,9 @@ export default function RequestListClient({ requests }: { requests: any[] }) {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <a href="/">
+                <Link href="/">
                     <Button variant="outline" size="sm">← Home</Button>
-                </a>
+                </Link>
                 <h1 className="text-xl font-bold">Yêu cầu / Giải trình</h1>
                 <Button id="create-request-btn" onClick={() => setIsOpen(true)}>📝 Tạo yêu cầu</Button>
             </div>

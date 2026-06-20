@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from "@/lib/prisma";
-import { getUserMonthlyStats } from "@/lib/stats";
+import { calculatePayroll } from "@/lib/payroll";
 import { revalidatePath } from "next/cache";
 export async function addAdjustment(userId: string, amount: number, reason: string) {
   try {
@@ -28,23 +28,22 @@ export async function addAdjustment(userId: string, amount: number, reason: stri
 import { EmploymentType } from "@prisma/client";
 
 export async function closePayrollMonth(month: number, year: number, bonusPercent: number, targets: EmploymentType[] = ['PART_TIME'], excludedBonusUsers: string[] = []) {
-  // 1. Get all users
-  const users = await prisma.user.findMany({});
+  // 1. Calculate stats using optimized batch calculatePayroll
+  const payrollData = await calculatePayroll(month, year);
 
-  // 2. Calculate stats
-  const targetDate = new Date(year, month - 1, 28);
-
-  const snapshots = await Promise.all(users.map(async (u) => {
-    const stats = await getUserMonthlyStats(u.id, targetDate);
-
+  // 2. Build snapshots
+  const snapshots = payrollData.map((p) => {
     // Calculate Final Net with Bonus
-    const isThuKpiSalary = (u.email === 'cuccung123456789@gmail.com' || u.name === 'Thư') && (year > 2026 || (year === 2026 && month >= 6));
-    const shouldApplyBonus = (targets.includes(u.employmentType) || (isThuKpiSalary && targets.includes('PART_TIME'))) && !excludedBonusUsers.includes(u.id);
-    const bonusAmount = shouldApplyBonus ? stats.baseSalary * (bonusPercent / 100) : 0;
-    const finalNet = stats.totalSalary + bonusAmount;
+    const isThuKpiSalary = (p.email === 'cuccung123456789@gmail.com' || p.name === 'Thư') && (year > 2026 || (year === 2026 && month >= 6));
+    const shouldApplyBonus = (targets.includes(p.employmentType) || (isThuKpiSalary && targets.includes('PART_TIME'))) && !excludedBonusUsers.includes(p.id);
+    const bonusAmount = shouldApplyBonus ? p.baseSalary * (bonusPercent / 100) : 0;
+    const finalNet = p.totalSalary + bonusAmount;
+
+    // Destructure to extract stats (excluding user metadata fields)
+    const { id, name, email, role, ...stats } = p;
 
     return {
-      userId: u.id,
+      userId: p.id,
       content: {
         ...stats,
         bonusPercent: shouldApplyBonus ? bonusPercent : 0,
@@ -55,7 +54,7 @@ export async function closePayrollMonth(month: number, year: number, bonusPercen
       month,
       year
     };
-  }));
+  });
 
   // 3. Save to DB
   await prisma.$transaction(async (tx) => {

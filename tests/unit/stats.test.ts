@@ -97,7 +97,7 @@ describe("getUserMonthlyStats() - Early Check-in Capping Logic", () => {
 
   const targetDate = new Date("2026-06-15T12:00:00+07:00");
 
-  it("caps check-in to shift start if early arrival is <= 30 minutes (e.g. 15 minutes early)", async () => {
+  it("caps check-in to shift start in audited hours if early arrival is registered (e.g. 15 minutes early)", async () => {
     mockUserFindUnique.mockResolvedValue(mockUserRecord);
     mockHolidayFindMany.mockResolvedValue([]);
     mockRequestFindMany.mockResolvedValue([]);
@@ -122,11 +122,14 @@ describe("getUserMonthlyStats() - Early Check-in Capping Logic", () => {
 
     const stats = await getUserMonthlyStats(mockUserRecord.id, targetDate);
 
-    // Capped: start is adjusted to 12:00 Local. Duration: 12:00 to 17:00 = 5.0 hours.
+    // Capped in audited hours: 12:00 to 17:00 = 5.0 hours.
     expect(stats.totalHours).toBeCloseTo(5.0, 1);
+    
+    // Raw hours should show uncapped: 5.25 hours
+    expect(stats.dailyDetails[0].rawHours).toBeCloseTo(5.25, 2);
   });
 
-  it("does not cap check-in to shift start if early arrival is > 30 minutes (e.g. 2 hours early)", async () => {
+  it("caps check-in to shift start in audited hours even if early arrival is > 30 minutes (e.g. 2 hours early)", async () => {
     mockUserFindUnique.mockResolvedValue(mockUserRecord);
     mockHolidayFindMany.mockResolvedValue([]);
     mockRequestFindMany.mockResolvedValue([]);
@@ -151,7 +154,11 @@ describe("getUserMonthlyStats() - Early Check-in Capping Logic", () => {
 
     const stats = await getUserMonthlyStats(mockUserRecord.id, targetDate);
 
-    // Uncapped: starts at 09:59 Local. Duration: 09:59 to 17:48 = 7 hours 49 minutes = 7.82 hours.
-    expect(stats.totalHours).toBeCloseTo(7.82, 1);
+    // Audited hours are capped: shift end check out is 17:48 (uncapped) but check-in is capped to 12:00.
+    // So audited is 12:00 to 17:48 = 5.8 hours.
+    expect(stats.totalHours).toBeCloseTo(5.8, 1);
+    
+    // Raw hours should show the actual time: 09:59 to 17:48 = 7 hours 49 minutes = 7.82 hours.
+    expect(stats.dailyDetails[0].rawHours).toBeCloseTo(7.82, 1);
   });
 });

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isLate as checkIsLate } from "@/lib/utils";
-import { User, EmploymentType, Request, WorkShift, CheckIn, Holiday, PayrollAdjustment } from "@prisma/client";
+import { User, EmploymentType, Request, WorkShift, CheckIn, Holiday, PayrollAdjustment, StaffTask } from "@prisma/client";
 
 // --- Interfaces ---
 
@@ -18,6 +18,13 @@ interface DailyDetail {
   checkInNote: string | null;
   checkOutNote: string | null;
   isChecklistIncomplete?: boolean;
+  rawCheckIn?: Date | null;
+  rawCheckOut?: Date | null;
+  rawHours?: number;
+  rawSalary?: number;
+  auditedCheckIn?: Date | null;
+  auditedCheckOut?: Date | null;
+  anomalies?: string[];
 }
 
 export interface MonthlyStats {
@@ -138,7 +145,20 @@ function calculateFullTimeMetrics(user: User, vnYear: number, vnMonth: number, l
 
 // --- Main Function ---
 
-export async function getUserMonthlyStats(userId: string, targetDate: Date = new Date()): Promise<MonthlyStats> {
+export interface PrefetchedStatsData {
+  user?: User & { adjustments?: PayrollAdjustment[] };
+  checkins?: CheckIn[];
+  shifts?: WorkShift[];
+  allRequests?: Request[];
+  holidays?: Holiday[];
+  staffTasks?: StaffTask[];
+}
+
+export async function getUserMonthlyStats(
+  userId: string,
+  targetDate: Date = new Date(),
+  prefetched?: PrefetchedStatsData
+): Promise<MonthlyStats> {
   // Use Vietnam timezone (UTC+7) for month boundaries
   // Convert targetDate to VN local time to get correct year/month
   const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -152,7 +172,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   const endDate = new Date(Date.UTC(vnYear, vnMonth + 1, 0, 23, 59, 59, 999) - VN_OFFSET_MS);
 
   // 1. Fetch Data
-  const user = await fetchUserData(userId, startDate, endDate);
+  const user = prefetched?.user || await fetchUserData(userId, startDate, endDate);
   if (!user) throw new Error("User not found");
 
   const isThuKpiSalary = (user.email === 'cuccung123456789@gmail.com' || user.name === 'Thư') && (vnYear > 2026 || (vnYear === 2026 && vnMonth >= 5));
@@ -208,7 +228,23 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     completionRate = totalTasksCount === 0 ? 1.0 : approvedTasksCount / totalTasksCount;
   }
 
-  const { checkins, shifts, allRequests, holidays } = await fetchPeriodData(userId, startDate, endDate);
+  let checkins: CheckIn[];
+  let shifts: WorkShift[];
+  let allRequests: Request[];
+  let holidays: Holiday[];
+
+  if (prefetched) {
+    checkins = prefetched.checkins || [];
+    shifts = prefetched.shifts || [];
+    allRequests = prefetched.allRequests || [];
+    holidays = prefetched.holidays || [];
+  } else {
+    const periodData = await fetchPeriodData(userId, startDate, endDate);
+    checkins = periodData.checkins;
+    shifts = periodData.shifts;
+    allRequests = periodData.allRequests;
+    holidays = periodData.holidays;
+  }
 
   const [checklistTasks, checklistCompletions] = await Promise.all([
     prisma.managerChecklistTask.findMany({
@@ -289,6 +325,9 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     let multiplier = holidayMap.get(date) || 1;
 
     // Process check-in pairs
+    let tempRawHours = 0;
+    let anomalies: string[] = [];
+
     for (const event of dailyCheckins) {
       if (event.type === 'checkin') {
         lastCheckIn = event;
@@ -301,14 +340,16 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
           let startCalc = lastCheckIn.timestamp.getTime();
           let endCalc = event.timestamp.getTime();
 
+          tempRawHours += (endCalc - startCalc) / (1000 * 60 * 60);
+
           if (shift) {
             const shiftStart = shift.start.getTime();
             const shiftEnd = shift.end.getTime();
 
             // Shift Logic
-            const earlyBuffer = 30 * 60 * 1000; // 30 minutes
-            if (startCalc < shiftStart && (shiftStart - startCalc) <= earlyBuffer) {
+            if (startCalc < shiftStart) {
               startCalc = shiftStart;
+              anomalies.push("Vào sớm (Làm tròn ca)");
             }
 
             // Early Leave Logic
@@ -316,8 +357,12 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
               const currentDateStr = toVNDateKey(event.timestamp);
               if (earlyLeaveApprovedMap.has(currentDateStr)) {
                 endCalc = shiftEnd;
+                anomalies.push("Về sớm (Đã duyệt)");
               } else if (earlyLeavePendingMap.has(currentDateStr)) {
                 errorMsg = errorMsg ? `${errorMsg}, Xin về sớm (Đang chờ duyệt)` : 'Xin về sớm (Đang chờ duyệt)';
+                anomalies.push("Về sớm (Chờ duyệt)");
+              } else {
+                anomalies.push("Về sớm");
               }
             }
           }
@@ -330,6 +375,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
         } else {
           isValidDay = false;
           errorMsg = 'Thiếu Check-in';
+          anomalies.push("Thiếu check-in");
         }
       }
     }
@@ -337,6 +383,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     if (lastCheckIn) {
       isValidDay = false;
       errorMsg = 'Quên Check-out';
+      anomalies.push("Quên check-out");
     }
 
     let scheduledHours = user.employmentType === 'FULL_TIME' ? 8 : 0;
@@ -357,11 +404,14 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     if (wfhMap.has(date)) {
       if (dayHours === 0) {
         dayHours = 8;
+        tempRawHours = 8;
         totalHours += 8;
         isValidDay = true;
         errorMsg = 'Làm việc từ xa (WFH)';
+        anomalies.push("Làm việc từ xa (WFH)");
       } else {
         errorMsg = errorMsg ? `${errorMsg} + WFH` : 'WFH + Check-in';
+        anomalies.push("WFH + Check-in");
       }
     }
 
@@ -369,12 +419,37 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     if (shift && firstCheckIn) {
       if (checkIsLate(firstCheckIn, shift.start)) {
         isLate = true;
+        anomalies.push("Đi muộn");
       }
+    }
+
+    if (multiplier > 1) {
+      anomalies.push(`Ngày lễ (x${multiplier})`);
     }
 
     // Daily Salary Calculation
     const effectiveHours = user.employmentType === 'FULL_TIME' ? Math.min(dayHours, 8) : dayHours;
     const dailySalaryCalc = (effectiveHours * dynamicHourlyRate) * multiplier;
+
+    const rawEffectiveHours = user.employmentType === 'FULL_TIME' ? Math.min(tempRawHours, 8) : tempRawHours;
+    const rawSalaryCalc = (rawEffectiveHours * dynamicHourlyRate) * multiplier;
+
+    let auditedCheckInDate: Date | null = firstCheckIn;
+    if (firstCheckIn && shift) {
+      if (firstCheckIn.getTime() < shift.start.getTime()) {
+        auditedCheckInDate = shift.start;
+      }
+    }
+    
+    let auditedCheckOutDate: Date | null = lastCheckOut;
+    if (lastCheckOut && shift) {
+      if (lastCheckOut.getTime() < shift.end.getTime()) {
+        const currentDateStr = toVNDateKey(lastCheckOut);
+        if (earlyLeaveApprovedMap.has(currentDateStr)) {
+          auditedCheckOutDate = shift.end;
+        }
+      }
+    }
 
     // Checklist Validation Logic
     let isChecklistIncomplete = false;
@@ -412,6 +487,13 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
       checkInNote: firstCheckInEvent?.note || null,
       checkOutNote: lastCheckOutEvent?.note || null,
       isChecklistIncomplete,
+      rawCheckIn: firstCheckIn,
+      rawCheckOut: lastCheckOut,
+      rawHours: tempRawHours,
+      rawSalary: rawSalaryCalc,
+      auditedCheckIn: auditedCheckInDate,
+      auditedCheckOut: auditedCheckOutDate,
+      anomalies: anomalies,
     });
   });
 
@@ -421,7 +503,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
   // Both FULL_TIME and PART_TIME sum daily salaries so holiday multipliers are included.
   let baseSalary = dailyDetails.reduce((sum, day) => sum + (day.salary || 0), 0);
 
-  const totalAdjustments = user.adjustments.reduce((sum, adj) => sum + adj.amount, 0);
+  const totalAdjustments = (user.adjustments || []).reduce((sum, adj) => sum + adj.amount, 0);
 
   // Late penalty: deduct (lateCount - 3) hours of salary starting from the 4th late occurrence
   const lateCount = dailyDetails.filter(d => d.isLate).length;
@@ -445,7 +527,7 @@ export async function getUserMonthlyStats(userId: string, targetDate: Date = new
     totalSalary,
     projectedSalary,
     dailyDetails,
-    adjustments: user.adjustments,
+    adjustments: user.adjustments || [],
     hourlyRate: user.hourlyRate,
     dynamicHourlyRate,
     employmentType: user.employmentType,

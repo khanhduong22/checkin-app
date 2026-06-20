@@ -153,8 +153,13 @@ interface MatrixViewProps {
 
 export function MatrixView({ tasks, users, onTaskClick, onAddClick, onTaskUpdate }: MatrixViewProps) {
   const [items, setItems] = useState<MTask[]>(tasks);
+  const [prevTasks, setPrevTasks] = useState<MTask[]>(tasks);
   const [activeId, setActiveId] = useState<string | null>(null);
-  useEffect(() => setItems(tasks), [tasks]);
+
+  if (tasks !== prevTasks) {
+    setPrevTasks(tasks);
+    setItems(tasks);
+  }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const activeTask = activeId ? items.find(t => t.id === activeId) : null;

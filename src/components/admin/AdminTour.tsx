@@ -222,11 +222,17 @@ export default function AdminTour() {
         const hasSeen = localStorage.getItem(storageKey);
 
         if (!hasSeen) {
-            setSteps(currentSteps);
-            setRun(true);
+            const timer = setTimeout(() => {
+                setSteps(currentSteps);
+                setRun(true);
+            }, 0);
+            return () => clearTimeout(timer);
         }
     } else {
-        setRun(false);
+        const timer = setTimeout(() => {
+            setRun(false);
+        }, 0);
+        return () => clearTimeout(timer);
     }
   }, [pathname]);
 
