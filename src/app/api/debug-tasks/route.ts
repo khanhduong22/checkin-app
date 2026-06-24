@@ -5,35 +5,47 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // Fetch all carrying tasks for the entire month of June 2026 across all users
-    const allCarryingTasksInJune = await prisma.userTask.findMany({
+    const hanId = 'cml1w19v20003r078f4d76ql9';
+
+    // 1. Fetch Hân's check-ins in June 2026
+    const checkins = await prisma.checkIn.findMany({
       where: {
-        taskDefinition: { unit: 'điểm-bưng' },
-        createdAt: {
+        userId: hanId,
+        timestamp: {
           gte: new Date('2026-06-01T00:00:00Z'),
           lte: new Date('2026-06-30T23:59:59Z')
         }
       },
-      include: {
-        taskDefinition: true,
-        user: { select: { name: true, email: true } }
+      orderBy: { timestamp: 'asc' }
+    });
+
+    // 2. Fetch Hân's shifts in June 2026
+    const shifts = await prisma.workShift.findMany({
+      where: {
+        userId: hanId,
+        start: {
+          gte: new Date('2026-06-01T00:00:00Z'),
+          lte: new Date('2026-06-30T23:59:59Z')
+        }
       },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { start: 'asc' }
     });
 
     return NextResponse.json({
       success: true,
-      juneCarryingTasksCount: allCarryingTasksInJune.length,
-      juneCarryingTasks: allCarryingTasksInJune.map(t => ({
-        id: t.id,
-        userName: t.user?.name,
-        userEmail: t.user?.email,
-        taskName: t.taskDefinition?.name,
-        quantity: t.quantity,
-        status: t.status,
-        createdAt: t.createdAt.toISOString(),
-        updatedAt: t.updatedAt.toISOString(),
-        note: t.note
+      checkinsCount: checkins.length,
+      checkins: checkins.map(c => ({
+        id: c.id,
+        type: c.type,
+        timestamp: c.timestamp.toISOString(),
+        note: c.note
+      })),
+      shiftsCount: shifts.length,
+      shifts: shifts.map(s => ({
+        id: s.id,
+        start: s.start.toISOString(),
+        end: s.end.toISOString(),
+        status: s.status
       }))
     });
   } catch (err: any) {
@@ -43,5 +55,6 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+
 
 
