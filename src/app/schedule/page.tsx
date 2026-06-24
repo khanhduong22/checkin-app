@@ -22,9 +22,15 @@ export default async function SchedulePage() {
     const startRange = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     
     const shifts = await prisma.workShift.findMany({
-        where: { 
-            start: { gte: startRange }
-        },
+        where: currentUser.role === 'ADMIN'
+            ? { start: { gte: startRange } }
+            : {
+                start: { gte: startRange },
+                OR: [
+                    { userId: currentUser.id },
+                    { isOpenForSwap: true }
+                ]
+              },
         include: { user: true }
     });
 
@@ -34,6 +40,8 @@ export default async function SchedulePage() {
         start: s.start,
         end: s.end,
         userId: s.userId,
+        isOpenForSwap: s.isOpenForSwap,
+        employmentType: s.user.employmentType,
     }));
 
     // Serialization for Client Component Props safety

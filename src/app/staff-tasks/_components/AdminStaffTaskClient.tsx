@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { type StaffTask, COLUMNS, type StaffPerformanceStats } from "./types";
 import { 
   createStaffTask, 
   updateStaffTask, 
   deleteStaffTask, 
-  getStaffTaskPerformanceStats 
+  getStaffTaskPerformanceStats,
+  getBatchStaffTaskPerformanceStats
 } from "@/actions/staff-task-actions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ export default function AdminStaffTaskClient({
   initialTasks: StaffTask[]; 
   users: UserOption[]; 
 }) {
-  const allowedUsers = users.filter(u => u.staffTasksAllowed);
+  const allowedUsers = useMemo(() => users.filter(u => u.staffTasksAllowed), [users]);
 
   const [tasks, setTasks] = useState<StaffTask[]>(initialTasks);
   const [selectedUserFilter, setSelectedUserFilter] = useState<string>("ALL");
@@ -63,14 +64,12 @@ export default function AdminStaffTaskClient({
   }>>({});
 
   const fetchStatsForAll = useCallback(async () => {
-    const statsMap: any = {};
-    for (const u of allowedUsers) {
-      const res = await getStaffTaskPerformanceStats(u.id);
-      if (res.success && res.data) {
-        statsMap[u.id] = res.data;
-      }
+    const userIds = allowedUsers.map(u => u.id);
+    if (userIds.length === 0) return;
+    const res = await getBatchStaffTaskPerformanceStats(userIds);
+    if (res.success && res.data) {
+      setUserStats(res.data);
     }
-    setUserStats(statsMap);
   }, [allowedUsers]);
 
   useEffect(() => {

@@ -336,3 +336,132 @@ export async function getStaffTaskPerformanceStats(userId: string) {
     return { success: false, error: e.message };
   }
 }
+
+export async function getBatchStaffTaskPerformanceStats(userIds: string[]) {
+  try {
+    const { user } = await requireUserOrAdmin();
+    const isAdmin = user.role === "ADMIN";
+
+    let targetUserIds = userIds;
+    if (!isAdmin) {
+      if (!user.staffTasksAllowed) {
+        return { success: false, error: "Bạn không có quyền truy cập Công việc và KPI" };
+      }
+      targetUserIds = [user.id];
+    }
+
+    if (targetUserIds.length === 0) {
+      return { success: true, data: {} };
+    }
+
+    // 1. Get Vietnam Time boundaries
+    const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const now = new Date();
+    const vnNow = new Date(now.getTime() + VN_OFFSET_MS);
+
+    // Monthly range
+    const vnYear = vnNow.getUTCFullYear();
+    const vnMonth = vnNow.getUTCMonth();
+    const monthStart = new Date(Date.UTC(vnYear, vnMonth, 1) - VN_OFFSET_MS);
+    const monthEnd = new Date(Date.UTC(vnYear, vnMonth + 1, 0, 23, 59, 59, 999) - VN_OFFSET_MS);
+
+    // Weekly range (Mon-Sun in Vietnam time)
+    const currentDay = vnNow.getUTCDay(); // 0 = Sun, 1 = Mon... 6 = Sat
+    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay; // calculate difference to Monday
+    
+    const weekStartLocal = new Date(vnNow);
+    weekStartLocal.setUTCDate(vnNow.getUTCDate() + diffToMonday);
+    weekStartLocal.setUTCHours(0, 0, 0, 0);
+    const weekStart = new Date(weekStartLocal.getTime() - VN_OFFSET_MS);
+
+    const weekEndLocal = new Date(weekStartLocal);
+    weekEndLocal.setUTCDate(weekStartLocal.getUTCDate() + 6);
+    weekEndLocal.setUTCHours(23, 59, 59, 999);
+    const weekEnd = new Date(weekEndLocal.getTime() - VN_OFFSET_MS);
+
+    // 2. Fetch tasks for userIds in one query using extended monthly range
+    const extendedStartDate = new Date(monthStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const extendedEndDate = new Date(monthEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const tasksRaw = await prisma.staffTask.findMany({
+      where: {
+        assigneeId: { in: targetUserIds },
+        OR: [
+          { startDate: { gte: extendedStartDate, lte: extendedEndDate } },
+          {
+            AND: [
+              { startDate: null },
+              { createdAt: { gte: extendedStartDate, lte: extendedEndDate } }
+            ]
+          }
+        ]
+      }
+    });
+
+    const getWeekThursday = (date: Date): Date => {
+      const VN_OFFSET = 7 * 60 * 60 * 1000;
+      const local = new Date(date.getTime() + VN_OFFSET);
+      const day = local.getUTCDay();
+      const diffToThursday = day === 0 ? -3 : 4 - day;
+      const thursLocal = new Date(local);
+      thursLocal.setUTCDate(local.getUTCDate() + diffToThursday);
+      thursLocal.setUTCHours(12, 0, 0, 0);
+      return new Date(thursLocal.getTime() - VN_OFFSET);
+    };
+
+    const computeStats = (tasks: any[]) => {
+      const total = tasks.length;
+      const doing = tasks.filter(t => t.status === "DOING").length;
+      const pendingReview = tasks.filter(t => t.status === "DONE").length;
+      const todo = tasks.filter(t => t.status === "TODO").length;
+      const rejected = tasks.filter(t => t.status === "REJECTED").length;
+
+      const kpiAchieved = tasks.filter(t => 
+        t.status === "APPROVED" || 
+        t.status === "DONE" || 
+        (t.status === "REJECTED" && (now.getTime() - new Date(t.updatedAt).getTime()) <= 24 * 60 * 60 * 1000)
+      ).length;
+
+      const overdue = tasks.filter(t => {
+        if (t.status === "APPROVED" || t.status === "DONE") return false;
+        if (t.status === "REJECTED") {
+          const diffHours = (now.getTime() - new Date(t.updatedAt).getTime()) / (1000 * 60 * 60);
+          if (diffHours <= 24) return false;
+        }
+        return t.deadline && new Date(t.deadline) < now;
+      }).length;
+
+      const completionRate = total === 0 ? 1.0 : kpiAchieved / total;
+
+      return { total, approved: kpiAchieved, doing, pendingReview, todo, rejected, overdue, completionRate };
+    };
+
+    // 3. Group and compute stats for each user
+    const statsMap: Record<string, { monthly: any, weekly: any }> = {};
+
+    for (const userId of targetUserIds) {
+      const userTasks = tasksRaw.filter(t => t.assigneeId === userId);
+
+      const monthlyTasks = userTasks.filter(t => {
+        const dateToUse = t.startDate || t.createdAt || new Date(monthStart.getTime() + 15 * 24 * 60 * 60 * 1000);
+        const thursday = getWeekThursday(dateToUse);
+        return thursday >= monthStart && thursday <= monthEnd;
+      });
+
+      const weeklyTasks = userTasks.filter(t => {
+        const dateToUse = t.startDate || t.createdAt;
+        return dateToUse >= weekStart && dateToUse <= weekEnd;
+      });
+
+      statsMap[userId] = {
+        monthly: computeStats(monthlyTasks),
+        weekly: computeStats(weeklyTasks)
+      };
+    }
+
+    return { success: true, data: statsMap };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+

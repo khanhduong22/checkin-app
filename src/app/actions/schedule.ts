@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { isShiftLocked } from "@/lib/schedule-lock";
 
 export async function registerShift(start: Date, end: Date, override: boolean = false, targetUserId?: string) {
   const session = await getServerSession(authOptions);
@@ -26,6 +27,11 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
     targetUser = found;
   }
 
+  // Lock check: normal users cannot register shifts if it's locked
+  if (requester.role !== 'ADMIN' && isShiftLocked(start)) {
+    return { success: false, error: 'Lịch làm việc của tuần này đã được chốt, không thể thay đổi!' };
+  }
+
   // Check self overlap (for targetUser)
   const overlap = await prisma.workShift.count({
     where: {
@@ -39,38 +45,6 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
   });
 
   if (overlap > 0) return { success: false, error: 'Nhân viên này đã có lịch đăng ký trùng giờ này!' };
-
-  // PART_TIME Limit Validation
-  if (targetUser.employmentType === 'PART_TIME') {
-    const overlappingShifts = await prisma.workShift.findMany({
-      where: {
-        OR: [
-          { start: { lte: start }, end: { gt: start } },
-          { start: { lt: end }, end: { gte: end } },
-          { start: { gte: start }, end: { lte: end } }
-        ]
-      },
-      include: { user: true }
-    });
-
-    const partTimeCount = overlappingShifts.reduce((count, s) => {
-      if (s.user.employmentType === 'PART_TIME' || (s.user as any).employmentType === 'PART_TIME') return count + 1;
-      return count;
-    }, 0);
-
-    if (partTimeCount >= 2) {
-      if (override) {
-        if (requester.role !== 'ADMIN') return { success: false, error: 'Cần quyền Admin để vượt giới hạn nhân sự!' };
-        // Allowed
-      } else {
-        if (requester.role === 'ADMIN') {
-          return { success: false, error: 'LIMIT_PART_TIME', count: partTimeCount };
-        } else {
-          return { success: false, error: 'Đã đủ số lượng nhân viên Part-time (2/2) trong khung giờ này.' };
-        }
-      }
-    }
-  }
 
   try {
     const newShift = await prisma.workShift.create({
@@ -103,6 +77,13 @@ export async function deleteShift(shiftId: number) {
   const user = await prisma.user.findUnique({ where: { email: email! } });
   if (!user) return { success: false };
 
+  const existing = await prisma.workShift.findUnique({ where: { id: shiftId } });
+  if (!existing) return { success: false, error: 'Ca làm không tồn tại' };
+
+  if (user.role !== 'ADMIN' && isShiftLocked(existing.start)) {
+    return { success: false, error: 'Lịch làm việc của tuần này đã được chốt, không thể thay đổi!' };
+  }
+
   await prisma.workShift.deleteMany({
     where: {
       id: shiftId,
@@ -122,8 +103,13 @@ export async function updateShift(shiftId: number, start: Date, end: Date) {
 
   if (!existing) return { success: false, error: 'Not found' };
 
-  if (user?.role !== 'ADMIN' && existing.userId !== user?.id) {
-    return { success: false, error: 'Forbidden' };
+  if (user?.role !== 'ADMIN') {
+    if (existing.userId !== user?.id) {
+      return { success: false, error: 'Forbidden' };
+    }
+    if (isShiftLocked(existing.start) || isShiftLocked(start)) {
+      return { success: false, error: 'Lịch làm việc của tuần này đã được chốt, không thể thay đổi!' };
+    }
   }
 
   const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);

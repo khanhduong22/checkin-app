@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { isShiftLocked } from "@/lib/schedule-lock";
 
 export async function registerShift(dateStr: string, shift: string) {
   const session = await getServerSession(authOptions);
@@ -32,6 +33,10 @@ export async function registerShift(dateStr: string, shift: string) {
       end.setHours(17, 0, 0, 0);
     }
 
+    if (user.role !== 'ADMIN' && isShiftLocked(start)) {
+      return { success: false, message: "Lịch làm việc của tuần này đã được chốt, không thể thay đổi!" };
+    }
+
     await prisma.workShift.create({
       data: {
         userId: user.id,
@@ -51,7 +56,17 @@ export async function registerShift(dateStr: string, shift: string) {
 
 export async function cancelShift(shiftId: number) {
   const session = await getServerSession(authOptions);
-  // Validate ownership logic here if needed
+  if (!session?.user?.email) return { success: false, message: "Unauthorized" };
+
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (!user) return { success: false, message: "User not found" };
+
+  const existing = await prisma.workShift.findUnique({ where: { id: shiftId } });
+  if (!existing) return { success: false, message: "Ca làm không tồn tại" };
+
+  if (user.role !== 'ADMIN' && isShiftLocked(existing.start)) {
+    return { success: false, message: "Lịch làm việc của tuần này đã được chốt, không thể thay đổi!" };
+  }
 
   await prisma.workShift.delete({ where: { id: shiftId } });
   revalidatePath('/schedule');
@@ -96,7 +111,17 @@ export async function assignCustomShift(userId: string, dateStr: string, startTi
 
 export async function toggleShiftSwap(shiftId: number, isOpen: boolean) {
   const session = await getServerSession(authOptions);
-  if (!session) return { success: false, message: "Unauthorized" };
+  if (!session?.user?.email) return { success: false, message: "Unauthorized" };
+
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (!user) return { success: false, message: "User not found" };
+
+  const existing = await prisma.workShift.findUnique({ where: { id: shiftId } });
+  if (!existing) return { success: false, message: "Ca làm không tồn tại" };
+
+  if (user.role !== 'ADMIN' && isShiftLocked(existing.start)) {
+    return { success: false, message: "Lịch làm việc của tuần này đã được chốt, không thể thay đổi!" };
+  }
 
   try {
     await prisma.workShift.update({
@@ -116,6 +141,27 @@ export async function takeShift(shiftId: number) {
 
   const user = await prisma.user.findUnique({ where: { email: session.user.email } });
   if (!user) return { success: false, message: "User not found" };
+
+  const existing = await prisma.workShift.findUnique({ where: { id: shiftId } });
+  if (!existing) return { success: false, message: "Ca làm không tồn tại" };
+
+  if (user.role !== 'ADMIN' && isShiftLocked(existing.start)) {
+    return { success: false, message: "Lịch làm việc của tuần này đã được chốt, không thể thay đổi!" };
+  }
+
+  // Check self overlap for the user taking the shift
+  const overlap = await prisma.workShift.count({
+    where: {
+      userId: user.id,
+      OR: [
+        { start: { lte: existing.start }, end: { gt: existing.start } },
+        { start: { lt: existing.end }, end: { gte: existing.end } },
+        { start: { gte: existing.start }, end: { lte: existing.end } }
+      ]
+    }
+  });
+
+  if (overlap > 0) return { success: false, message: "Bạn đã có lịch làm trùng với khung giờ của ca này!" };
 
   try {
     // Transaction: Assign to new user, Close swap status

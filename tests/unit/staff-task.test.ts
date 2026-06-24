@@ -5,7 +5,8 @@ import {
   updateStaffTask, 
   deleteStaffTask, 
   toggleUserStaffTasksAllowed,
-  getStaffTaskPerformanceStats
+  getStaffTaskPerformanceStats,
+  getBatchStaffTaskPerformanceStats
 } from "@/actions/staff-task-actions";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -191,6 +192,44 @@ describe("Staff Tasks Actions", () => {
       // t1 (APPROVED), t4 (DONE), and t5 (REJECTED within 24h) count as KPI completed
       expect(res.data?.monthly.approved).toBe(3); 
       expect(res.data?.monthly.completionRate).toBe(3/6);
+    });
+  });
+
+  describe("getBatchStaffTaskPerformanceStats", () => {
+    it("calculates correct statistics for multiple users", async () => {
+      mockGetServerSession.mockResolvedValue({ user: { email: "admin@example.com" } });
+      mockUserFindUnique.mockResolvedValue({ id: "admin-1", role: "ADMIN" });
+
+      const now = new Date();
+      const recentRejectedDate = new Date(now.getTime() - 10 * 60 * 1000);
+
+      mockTaskFindMany.mockResolvedValue([
+        { id: "t1", assigneeId: "staff-1", status: "APPROVED", updatedAt: now, createdAt: now },
+        { id: "t2", assigneeId: "staff-1", status: "DOING", updatedAt: now, createdAt: now },
+        { id: "t3", assigneeId: "staff-2", status: "TODO", updatedAt: now, createdAt: now },
+        { id: "t4", assigneeId: "staff-2", status: "DONE", updatedAt: now, createdAt: now },
+        { id: "t5", assigneeId: "staff-2", status: "REJECTED", updatedAt: recentRejectedDate, createdAt: now }
+      ]);
+
+      const res = await getBatchStaffTaskPerformanceStats(["staff-1", "staff-2"]);
+      expect(res.success).toBe(true);
+      
+      expect(res.data?.["staff-1"]?.monthly.total).toBe(2);
+      expect(res.data?.["staff-1"]?.monthly.approved).toBe(1); // APPROVED
+      
+      expect(res.data?.["staff-2"]?.monthly.total).toBe(3);
+      expect(res.data?.["staff-2"]?.monthly.approved).toBe(2); // DONE, REJECTED within 24h
+    });
+
+    it("prevents non-admins from querying other users' stats", async () => {
+      mockGetServerSession.mockResolvedValue({ user: { email: "staff1@example.com" } });
+      mockUserFindUnique.mockResolvedValue({ id: "staff-1", role: "USER", staffTasksAllowed: true });
+      mockTaskFindMany.mockResolvedValue([]);
+
+      const res = await getBatchStaffTaskPerformanceStats(["staff-1", "staff-2"]);
+      expect(res.success).toBe(true);
+      expect(res.data?.["staff-1"]).toBeDefined();
+      expect(res.data?.["staff-2"]).toBeUndefined();
     });
   });
 });

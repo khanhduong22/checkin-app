@@ -9,6 +9,8 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from "sonner";
 import { registerShift, deleteShift, updateShift } from "@/app/actions/schedule"; 
+import { toggleShiftSwap, takeShift } from "@/app/actions/shift";
+import { isShiftLocked } from "@/lib/schedule-lock";
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import {
@@ -51,9 +53,12 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
              parsedEnd = new Date(parsedEnd.getTime() - 60000);
         }
 
+        const isSwap = e.userId !== userId && e.isOpenForSwap;
+        const title = isSwap ? `🔄 Đổi ca: ${e.title}` : e.title;
+
         return {
             id: e.id,
-            title: e.title || 'Staff',
+            title: title || 'Staff',
             start: parsedStart,
             end: parsedEnd,
             resource: e,
@@ -82,9 +87,17 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
     const [pendingEvent, setPendingEvent] = useState<{start: Date, end: Date} | null>(null);
     const [targetUserId, setTargetUserId] = useState<string>(userId);
 
+    const [actionModalOpen, setActionModalOpen] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+
     const handleEventUpdate = useCallback(
         async ({ event, start, end }: any) => {
              if (!event.isOwner) return;
+
+             if (!isAdmin && (isShiftLocked(event.start) || isShiftLocked(start))) {
+                 toast.error("Lịch làm của tuần này đã chốt, không thể thay đổi!");
+                 return;
+             }
 
              // Optimistic update
              const oldStart = event.start;
@@ -107,13 +120,18 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                  setEvents(prev => prev.map(e => e.id === event.id ? { ...e, start: oldStart, end: oldEnd } : e));
              }
         },
-        []
+        [isAdmin]
     );
 
     const handleSelectSlot = useCallback(
         ({ start, end }: { start: Date, end: Date }) => {
             if (start < new Date()) {
                 toast.error("Không thể đăng ký lịch trong quá khứ!");
+                return;
+            }
+
+            if (!isAdmin && isShiftLocked(start)) {
+                toast.error("Lịch làm của tuần này đã chốt, không thể đăng ký thêm!");
                 return;
             }
 
@@ -129,7 +147,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
             setTargetUserId(userId); // Reset to current user (self) or keep previous? Reset is safer.
             setModalOpen(true);
         },
-        [userId]
+        [userId, isAdmin]
     )
 
     const handleConfirmRegister = async () => {
@@ -178,20 +196,10 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
     const handleSelectEvent = useCallback(
         (event: CalendarEvent) => {
-            if (!event.isOwner) {
-                 // toast.info(`Lịch của ${event.title}`);
-                 return;
-            }
-
-            if (confirm(`Bạn muốn xóa lịch làm việc ${moment(event.start).format('HH:mm')} - ${moment(event.end).format('HH:mm')}?`)) {
-                deleteShift(event.id).then((res: any) => {
-                    if (res.success) {
-                        toast.success("Đã xóa lịch làm việc");
-                         setEvents((prev) => prev.filter((e) => e.id !== event.id))
-                    } else {
-                        toast.error("Không thể xóa lịch này");
-                    }
-                });
+            const isSwap = !event.isOwner && event.resource?.isOpenForSwap;
+            if (event.isOwner || isSwap) {
+                setSelectedEvent(event);
+                setActionModalOpen(true);
             }
         },
         []
@@ -225,7 +233,8 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
     const eventPropGetter = useCallback(
         (event: CalendarEvent) => {
-            const backgroundColor = stringToColor(event.title);
+            const isSwap = !event.isOwner && event.resource?.isOpenForSwap;
+            const backgroundColor = isSwap ? '#8b5cf6' : stringToColor(event.title);
             return {
                 style: {
                     backgroundColor: backgroundColor,
@@ -235,7 +244,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                     display: 'block',
                     zoom: 1, 
                     fontSize: '0.75rem', 
-                    boxShadow: event.isOwner ? '0 0 0 2px #000' : 'none', // Extra visibility for owner
+                    boxShadow: event.isOwner ? '0 0 0 2px #000' : (isSwap ? '0 0 0 2px #8b5cf6' : 'none'), // Extra visibility for owner/swap
                 },
             }
         },
@@ -341,6 +350,122 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setModalOpen(false)}>Hủy</Button>
                         <Button onClick={handleConfirmRegister}>Đăng ký ngay</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={actionModalOpen} onOpenChange={setActionModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {selectedEvent?.isOwner ? "Quản lý ca làm việc của bạn" : "Nhận ca làm từ đồng nghiệp"}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {selectedEvent && (
+                                <>
+                                    Khung giờ: <span className="font-bold text-emerald-600 block text-lg my-2">
+                                        {moment(selectedEvent.start).format('HH:mm')} - {moment(selectedEvent.end).format('HH:mm')}
+                                    </span>
+                                    Ngày: {moment(selectedEvent.start).format('DD/MM/YYYY')}
+                                </>
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedEvent && selectedEvent.isOwner ? (
+                        <div className="space-y-4 py-4">
+                            {!isAdmin && isShiftLocked(selectedEvent.start) ? (
+                                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold rounded-lg">
+                                    ⚠️ Lịch làm của tuần này đã được chốt. Chỉ Admin mới có quyền sửa đổi.
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="text-sm text-gray-500">
+                                        Trạng thái đổi ca: <span className="font-bold text-gray-700">{selectedEvent.resource?.isOpenForSwap ? "Đang treo trên chợ đổi ca" : "Chưa đăng đổi ca"}</span>
+                                    </p>
+                                    <div className="flex flex-col gap-2">
+                                        <Button 
+                                            variant={selectedEvent.resource?.isOpenForSwap ? "secondary" : "default"}
+                                            onClick={async () => {
+                                                setActionModalOpen(false);
+                                                const res = await toggleShiftSwap(selectedEvent.id, !selectedEvent.resource?.isOpenForSwap);
+                                                if (res.success) {
+                                                    toast.success(res.message);
+                                                    setEvents(prev => prev.map(e => e.id === selectedEvent.id ? {
+                                                        ...e,
+                                                        title: selectedEvent.resource?.isOpenForSwap 
+                                                            ? e.title.replace('🔄 Đổi ca: ', '') 
+                                                            : e.title,
+                                                        resource: { ...e.resource, isOpenForSwap: !selectedEvent.resource?.isOpenForSwap }
+                                                    } : e));
+                                                } else {
+                                                    toast.error(res.message || "Lỗi hệ thống");
+                                                }
+                                            }}
+                                        >
+                                            {selectedEvent.resource?.isOpenForSwap ? "🚫 Gỡ khỏi chợ đổi ca" : "🔄 Đăng lên chợ đổi ca (Pass ca)"}
+                                        </Button>
+                                        
+                                        <Button 
+                                            variant="destructive"
+                                            onClick={async () => {
+                                                if (confirm("Bạn có chắc chắn muốn xóa ca làm này?")) {
+                                                    setActionModalOpen(false);
+                                                    const res: any = await deleteShift(selectedEvent.id);
+                                                    if (res.success) {
+                                                        toast.success("Đã xóa lịch làm việc");
+                                                        setEvents(prev => prev.filter(e => e.id !== selectedEvent.id));
+                                                    } else {
+                                                        toast.error(res.error || "Không thể xóa lịch này");
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            ❌ Xóa ca làm này
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ) : selectedEvent ? (
+                        <div className="space-y-4 py-4 text-center">
+                            {!isAdmin && isShiftLocked(selectedEvent.start) ? (
+                                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold rounded-lg">
+                                    ⚠️ Lịch làm của tuần này đã được chốt. Không thể nhận ca này nữa!
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="text-sm text-gray-600">
+                                        Ca làm này được đăng bởi <span className="font-bold">{selectedEvent.resource?.title || 'Đồng nghiệp'}</span>.
+                                        Bạn có muốn nhận làm ca này không?
+                                    </p>
+                                    <Button 
+                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                                        onClick={async () => {
+                                            setActionModalOpen(false);
+                                            const res = await takeShift(selectedEvent.id);
+                                            if (res.success) {
+                                                toast.success(res.message);
+                                                setEvents(prev => prev.map(e => e.id === selectedEvent.id ? {
+                                                    ...e,
+                                                    title: e.resource?.title || 'Staff',
+                                                    isOwner: true,
+                                                    resource: { ...e.resource, userId: userId, isOpenForSwap: false }
+                                                } : e));
+                                            } else {
+                                                toast.error(res.message || "Lỗi khi nhận ca");
+                                            }
+                                        }}
+                                    >
+                                        ✅ Đồng ý nhận ca làm
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                    ) : null}
+
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setActionModalOpen(false)}>Đóng</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
