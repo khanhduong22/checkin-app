@@ -5,6 +5,7 @@ import { normalizeIP, isIPMatch } from "@/lib/ip-utils";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { verifyChecklistComplete } from "@/actions/manager-checklist-actions";
+import { verifyWeeklyChecklistComplete } from "@/actions/manager-weekly-actions";
 
 
 export async function getIPStatus() {
@@ -80,6 +81,11 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
     const checklistVerify = await verifyChecklistComplete(userId, dateStr);
     if (!checklistVerify.success) {
       return { success: false, message: checklistVerify.message };
+    }
+
+    const weeklyChecklistVerify = await verifyWeeklyChecklistComplete(userId, dateStr);
+    if (!weeklyChecklistVerify.success) {
+      return { success: false, message: weeklyChecklistVerify.message };
     }
 
     // Validate Time Gap (Minimum 1 hour)

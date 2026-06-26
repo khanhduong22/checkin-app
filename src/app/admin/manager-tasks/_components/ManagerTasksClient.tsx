@@ -40,6 +40,14 @@ import {
   deleteManagerChecklistTask,
   getManagerStatsHistory,
 } from "@/actions/manager-checklist-actions";
+import {
+  getManagerWeeklyTasks,
+  createManagerWeeklyTask,
+  updateManagerWeeklyTask,
+  deleteManagerWeeklyTask,
+  toggleManagerWeeklyTask,
+  reportAndCarryOverWeeklyTask,
+} from "@/actions/manager-weekly-actions";
 
 interface ManagerTasksClientProps {
   currentUser: {
@@ -78,6 +86,10 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
   const [templates, setTemplates] = useState<ChecklistItem[]>([]);
   const [historyStats, setHistoryStats] = useState<any>(null);
   
+  // Weekly task states
+  const [weeklyTasks, setWeeklyTasks] = useState<any[]>([]);
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
+  
   // Loading states
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -87,10 +99,21 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<ChecklistItem | null>(null);
+
+  // Weekly Dialog states
+  const [isWeeklyCreateOpen, setIsWeeklyCreateOpen] = useState(false);
+  const [isWeeklyEditOpen, setIsWeeklyEditOpen] = useState(false);
+  const [isWeeklyCarryOverOpen, setIsWeeklyCarryOverOpen] = useState(false);
+  const [editingWeeklyTask, setEditingWeeklyTask] = useState<any>(null);
   
   // Form states
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
+
+  // Weekly Form states
+  const [weeklyTaskTitle, setWeeklyTaskTitle] = useState("");
+  const [weeklyTaskDesc, setWeeklyTaskDesc] = useState("");
+  const [carryOverExplanation, setCarryOverExplanation] = useState("");
 
   // Filters
   const adminUsers = users.filter(u => u.role === "ADMIN");
@@ -98,18 +121,29 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
   // Load Checklist for Selected User and Date
   const loadChecklist = async () => {
     setLoading(true);
+    setWeeklyLoading(true);
     try {
-      const res = await getManagerDailyChecklist(selectedUserId, selectedDate);
-      if (res.success && res.data) {
-        // Sort active templates
-        setChecklist(res.data as ChecklistItem[]);
+      const [dailyRes, weeklyRes] = await Promise.all([
+        getManagerDailyChecklist(selectedUserId, selectedDate),
+        getManagerWeeklyTasks(selectedUserId, selectedDate)
+      ]);
+      
+      if (dailyRes.success && dailyRes.data) {
+        setChecklist(dailyRes.data as ChecklistItem[]);
       } else {
-        toast.error(res.error || "Gặp lỗi tải checklist");
+        toast.error(dailyRes.error || "Gặp lỗi tải checklist hằng ngày");
+      }
+
+      if (weeklyRes.success && weeklyRes.data) {
+        setWeeklyTasks(weeklyRes.data);
+      } else {
+        toast.error(weeklyRes.error || "Gặp lỗi tải checklist hằng tuần");
       }
     } catch (e) {
       toast.error("Không thể kết nối máy chủ");
     } finally {
       setLoading(false);
+      setWeeklyLoading(false);
     }
   };
 
@@ -280,11 +314,163 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
     setIsEditOpen(true);
   };
 
+  // Toggle weekly task completion
+  const handleToggleWeekly = async (taskId: string, currentCompleted: boolean) => {
+    const nextCompleted = !currentCompleted;
+    setWeeklyTasks(prev => prev.map(item => item.id === taskId ? {
+      ...item,
+      completed: nextCompleted,
+      completedAt: nextCompleted ? new Date() : null
+    } : item));
+
+    try {
+      const res = await toggleManagerWeeklyTask(taskId, nextCompleted);
+      if (res.success) {
+        toast.success(nextCompleted ? "Đã hoàn thành việc tuần!" : "Đã hủy hoàn thành việc tuần");
+      } else {
+        toast.error(res.error || "Gặp lỗi cập nhật");
+        // Rollback
+        setWeeklyTasks(prev => prev.map(item => item.id === taskId ? {
+          ...item,
+          completed: currentCompleted,
+          completedAt: currentCompleted ? new Date() : null
+        } : item));
+      }
+    } catch (e) {
+      toast.error("Lỗi kết nối máy chủ");
+      // Rollback
+      setWeeklyTasks(prev => prev.map(item => item.id === taskId ? {
+        ...item,
+        completed: currentCompleted,
+        completedAt: currentCompleted ? new Date() : null
+      } : item));
+    }
+  };
+
+  // Create weekly task
+  const handleCreateWeeklyTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!weeklyTaskTitle.trim()) return;
+
+    setActionLoading(true);
+    try {
+      const res = await createManagerWeeklyTask(
+        weeklyTaskTitle.trim(),
+        weeklyTaskDesc.trim() || null,
+        selectedUserId,
+        selectedDate
+      );
+      if (res.success) {
+        toast.success("Tạo việc hằng tuần thành công!");
+        setIsWeeklyCreateOpen(false);
+        setWeeklyTaskTitle("");
+        setWeeklyTaskDesc("");
+        loadChecklist();
+      } else {
+        toast.error(res.error || "Gặp lỗi tạo nhiệm vụ tuần");
+      }
+    } catch (e) {
+      toast.error("Không thể kết nối");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Update weekly task
+  const handleUpdateWeeklyTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWeeklyTask || !weeklyTaskTitle.trim()) return;
+
+    setActionLoading(true);
+    try {
+      const res = await updateManagerWeeklyTask(
+        editingWeeklyTask.id,
+        weeklyTaskTitle.trim(),
+        weeklyTaskDesc.trim() || null
+      );
+      if (res.success) {
+        toast.success("Cập nhật nhiệm vụ tuần thành công!");
+        setIsWeeklyEditOpen(false);
+        setEditingWeeklyTask(null);
+        setWeeklyTaskTitle("");
+        setWeeklyTaskDesc("");
+        loadChecklist();
+      } else {
+        toast.error(res.error || "Gặp lỗi cập nhật");
+      }
+    } catch (e) {
+      toast.error("Không thể kết nối");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Delete weekly task
+  const handleDeleteWeeklyTask = async (taskId: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa nhiệm vụ hằng tuần này?")) return;
+
+    try {
+      const res = await deleteManagerWeeklyTask(taskId);
+      if (res.success) {
+        toast.success("Đã xóa nhiệm vụ tuần!");
+        loadChecklist();
+      } else {
+        toast.error(res.error || "Lỗi xóa nhiệm vụ");
+      }
+    } catch (e) {
+      toast.error("Lỗi kết nối");
+    }
+  };
+
+  // Carry over weekly task
+  const handleCarryOverWeeklyTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWeeklyTask || !carryOverExplanation.trim()) {
+      toast.error("Vui lòng nhập lý do giải trình!");
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await reportAndCarryOverWeeklyTask(editingWeeklyTask.id, carryOverExplanation.trim());
+      if (res.success) {
+        toast.success("Đã nộp giải trình và chuyển việc sang tuần sau!");
+        setIsWeeklyCarryOverOpen(false);
+        setEditingWeeklyTask(null);
+        setCarryOverExplanation("");
+        loadChecklist();
+      } else {
+        toast.error(res.error || "Gặp lỗi nộp giải trình");
+      }
+    } catch (e) {
+      toast.error("Không thể kết nối");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenWeeklyEdit = (task: any) => {
+    setEditingWeeklyTask(task);
+    setWeeklyTaskTitle(task.title);
+    setWeeklyTaskDesc(task.description || "");
+    setIsWeeklyEditOpen(true);
+  };
+
+  const handleOpenWeeklyCarryOver = (task: any) => {
+    setEditingWeeklyTask(task);
+    setCarryOverExplanation("");
+    setIsWeeklyCarryOverOpen(true);
+  };
+
   // UI calculations
   const totalTasks = checklist.filter(t => t.active).length;
   const completedTasks = checklist.filter(t => t.active && t.completed).length;
   const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100;
   const isFullyCompleted = totalTasks > 0 && completedTasks === totalTasks;
+
+  // Weekly calculations
+  const weeklyTotal = weeklyTasks.length;
+  const weeklyCompleted = weeklyTasks.filter(t => t.completed || t.explanation).length;
 
   return (
     <div className="space-y-6">
@@ -362,12 +548,13 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
       {activeTab === "checklist" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Checklist Card */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Daily Tasks Checklist */}
             <Card className="border-indigo-100 shadow-md">
               <CardHeader className="pb-3 border-b bg-indigo-50/20">
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle className="text-lg font-bold text-slate-800">Checklist công việc</CardTitle>
+                    <CardTitle className="text-lg font-bold text-slate-800">Checklist công việc hằng ngày</CardTitle>
                     <CardDescription className="text-xs">
                       Ngày {new Date(selectedDate).toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit" })}
                     </CardDescription>
@@ -387,7 +574,7 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
                 {loading ? (
                   <div className="p-12 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
                     <RefreshCw className="h-6 w-6 animate-spin text-indigo-500" />
-                    Đang tải dữ liệu checklist...
+                    Đang tải dữ liệu checklist hằng ngày...
                   </div>
                 ) : checklist.filter(t => t.active).length === 0 ? (
                   <div className="p-12 text-center text-muted-foreground space-y-2">
@@ -444,14 +631,149 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
                 )}
               </CardContent>
             </Card>
+
+            {/* Weekly Tasks Checklist */}
+            <Card className="border-indigo-100 shadow-md">
+              <CardHeader className="pb-3 border-b bg-purple-50/20">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-1.5">
+                      📅 Checklist công việc hằng tuần
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Công việc bắt buộc hoàn thành trong tuần này
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold h-8 text-xs"
+                      onClick={() => setIsWeeklyCreateOpen(true)}
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Thêm việc tuần
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={loadChecklist}
+                      disabled={weeklyLoading}
+                      className="h-8 w-8 p-0"
+                    >
+                      <RefreshCw className={`h-4 w-4 text-slate-500 ${weeklyLoading ? "animate-spin" : ""}`} />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {weeklyLoading ? (
+                  <div className="p-12 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+                    <RefreshCw className="h-6 w-6 animate-spin text-purple-500" />
+                    Đang tải dữ liệu việc tuần...
+                  </div>
+                ) : weeklyTasks.length === 0 ? (
+                  <div className="p-12 text-center text-muted-foreground space-y-2">
+                    <AlertCircle className="h-8 w-8 mx-auto text-amber-500" />
+                    <p className="text-sm font-medium text-slate-800">Chưa có nhiệm vụ tuần nào.</p>
+                    <p className="text-xs">Hãy bấm nút "Thêm việc tuần" ở trên để tạo nhiệm vụ cho tuần này.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {weeklyTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className={`flex items-start justify-between p-4 transition-all hover:bg-slate-50/50 gap-4 ${
+                          task.completed ? "bg-emerald-50/10" : ""
+                        }`}
+                      >
+                        <div 
+                          className="flex items-start gap-4 flex-1 cursor-pointer select-none min-w-0"
+                          onClick={() => handleToggleWeekly(task.id, task.completed)}
+                        >
+                          <div className="pt-0.5">
+                            <div
+                              className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${
+                                task.completed
+                                  ? "bg-purple-500 border-purple-500 text-white"
+                                  : "border-slate-300 hover:border-purple-500"
+                              }`}
+                            >
+                              {task.completed && <CheckCircle2 className="h-4 w-4 stroke-[3]" />}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p
+                                className={`text-sm font-semibold text-slate-800 break-words ${
+                                  task.completed ? "line-through text-slate-400 font-normal" : ""
+                                }`}
+                              >
+                                {task.title}
+                              </p>
+                              {task.isCarriedOver && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
+                                  Chuyển tiếp
+                                </span>
+                              )}
+                              {task.explanation && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                                  Đã giải trình chuyển tuần
+                                </span>
+                              )}
+                            </div>
+                            {task.description && (
+                              <p className={`text-xs text-muted-foreground mt-0.5 ${task.completed ? "text-slate-300" : ""}`}>
+                                {task.description}
+                              </p>
+                            )}
+                            {task.explanation && (
+                              <p className="text-xs text-blue-700 bg-blue-50/50 border border-blue-100 rounded-md p-1.5 mt-2 font-medium">
+                                💬 <b>Giải trình:</b> {task.explanation}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {!task.completed && !task.explanation && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 font-bold px-2"
+                              onClick={(e) => { e.stopPropagation(); handleOpenWeeklyCarryOver(task); }}
+                            >
+                              Chuyển tuần
+                            </Button>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleOpenWeeklyEdit(task); }}
+                            className="p-1.5 rounded-md hover:bg-purple-50 hover:text-purple-600 text-slate-400 transition-colors"
+                            title="Sửa"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteWeeklyTask(task.id); }}
+                            className="p-1.5 rounded-md hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition-colors"
+                            title="Xóa"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Progress Widget Card */}
           <div className="space-y-4">
+            {/* Daily progress */}
             <Card className="border-indigo-100 shadow-md overflow-hidden relative">
               <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-indigo-100/40 to-transparent rounded-bl-full pointer-events-none" />
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold text-slate-600 uppercase tracking-wider">Tiến Độ Hoàn Thành</CardTitle>
+                <CardTitle className="text-sm font-bold text-slate-600 uppercase tracking-wider">Tiến Độ Hằng Ngày</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-baseline">
@@ -493,6 +815,33 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Weekly progress */}
+            <Card className="border-indigo-100 shadow-md overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-purple-100/40 to-transparent rounded-bl-full pointer-events-none" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-bold text-slate-600 uppercase tracking-wider">Tiến Độ Tuần Này</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-4xl font-extrabold text-purple-950 font-mono tracking-tight">
+                    {weeklyTotal > 0 ? Math.round((weeklyCompleted / weeklyTotal) * 100) : 100}%
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    Đã hoàn thành: <b className="text-purple-600 font-mono text-sm">{weeklyCompleted}</b> / {weeklyTotal}
+                  </span>
+                </div>
+
+                <div className="w-full bg-slate-100 h-3.5 rounded-full overflow-hidden border">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      weeklyCompleted === weeklyTotal && weeklyTotal > 0 ? "bg-gradient-to-r from-emerald-500 to-teal-500" : "bg-gradient-to-r from-purple-500 to-pink-500"
+                    }`}
+                    style={{ width: `${weeklyTotal > 0 ? Math.round((weeklyCompleted / weeklyTotal) * 100) : 100}%` }}
+                  />
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -773,6 +1122,138 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
               <Button type="submit" size="sm" className="bg-indigo-600 hover:bg-indigo-700 font-bold" disabled={actionLoading}>
                 {actionLoading && <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
                 Cập nhật
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Weekly Task Dialog */}
+      <Dialog open={isWeeklyCreateOpen} onOpenChange={setIsWeeklyCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleCreateWeeklyTask}>
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-slate-800">Tạo nhiệm vụ hằng tuần</DialogTitle>
+              <DialogDescription className="text-xs">
+                Thêm nhiệm vụ bắt buộc hoàn thành trong tuần này cho quản lý.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="weekly-title" className="text-xs font-bold text-slate-700">Tên nhiệm vụ (Bắt buộc)</Label>
+                <Input
+                  id="weekly-title"
+                  placeholder="Ví dụ: Hoàn tất báo cáo doanh thu tuần"
+                  value={weeklyTaskTitle}
+                  onChange={(e) => setWeeklyTaskTitle(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="weekly-description" className="text-xs font-bold text-slate-700">Mô tả chi tiết</Label>
+                <Textarea
+                  id="weekly-description"
+                  placeholder="Mô tả công việc cụ thể..."
+                  value={weeklyTaskDesc}
+                  onChange={(e) => setWeeklyTaskDesc(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsWeeklyCreateOpen(false)}>
+                Hủy
+              </Button>
+              <Button type="submit" size="sm" className="bg-purple-600 hover:bg-purple-700 font-bold" disabled={actionLoading}>
+                {actionLoading && <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                Lưu
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Weekly Task Dialog */}
+      <Dialog open={isWeeklyEditOpen} onOpenChange={setIsWeeklyEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleUpdateWeeklyTask}>
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-slate-800">Sửa nhiệm vụ hằng tuần</DialogTitle>
+              <DialogDescription className="text-xs">
+                Sửa đổi tên hoặc mô tả việc tuần.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="weekly-edit-title" className="text-xs font-bold text-slate-700">Tên nhiệm vụ (Bắt buộc)</Label>
+                <Input
+                  id="weekly-edit-title"
+                  placeholder="Ví dụ: Hoàn tất báo cáo doanh thu tuần"
+                  value={weeklyTaskTitle}
+                  onChange={(e) => setWeeklyTaskTitle(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="weekly-edit-description" className="text-xs font-bold text-slate-700">Mô tả chi tiết</Label>
+                <Textarea
+                  id="weekly-edit-description"
+                  placeholder="Mô tả công việc cụ thể..."
+                  value={weeklyTaskDesc}
+                  onChange={(e) => setWeeklyTaskDesc(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={() => { setIsWeeklyEditOpen(false); setEditingWeeklyTask(null); }}>
+                Hủy
+              </Button>
+              <Button type="submit" size="sm" className="bg-purple-600 hover:bg-purple-700 font-bold" disabled={actionLoading}>
+                {actionLoading && <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                Cập nhật
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Weekly Carry Over / Explanation Dialog */}
+      <Dialog open={isWeeklyCarryOverOpen} onOpenChange={setIsWeeklyCarryOverOpen}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleCarryOverWeeklyTask}>
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-slate-800">Giải trình & Chuyển sang tuần sau</DialogTitle>
+              <DialogDescription className="text-xs">
+                Nhập lý do chưa hoàn thành để chuyển công việc sang tuần tiếp theo và được mở chặn Check-out. Báo cáo giải trình sẽ được gửi cho Admin Dung duyệt.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">Tên nhiệm vụ</Label>
+                <div className="text-sm bg-slate-50 border rounded-lg p-3 font-semibold text-slate-800">
+                  {editingWeeklyTask?.title}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="carryover-explanation" className="text-xs font-bold text-slate-700">Lý do giải trình (Bắt buộc)</Label>
+                <Textarea
+                  id="carryover-explanation"
+                  placeholder="Ví dụ: Đối tác gửi số liệu trễ nên chưa thể đối soát xong..."
+                  value={carryOverExplanation}
+                  onChange={(e) => setCarryOverExplanation(e.target.value)}
+                  rows={3}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={() => { setIsWeeklyCarryOverOpen(false); setEditingWeeklyTask(null); }}>
+                Hủy
+              </Button>
+              <Button type="submit" size="sm" className="bg-amber-600 hover:bg-amber-700 text-white font-bold" disabled={actionLoading}>
+                {actionLoading && <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                Xác nhận & Chuyển tuần
               </Button>
             </DialogFooter>
           </form>
