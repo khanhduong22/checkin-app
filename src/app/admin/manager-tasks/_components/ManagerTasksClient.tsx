@@ -472,6 +472,25 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
   const weeklyTotal = weeklyTasks.length;
   const weeklyCompleted = weeklyTasks.filter(t => t.completed || t.explanation).length;
 
+  const getSelectedWeekRangeStr = () => {
+    try {
+      const date = new Date(selectedDate + "T00:00:00");
+      const currentDay = date.getDay(); // 0 = Sun, 1 = Mon... 6 = Sat
+      const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+      
+      const monday = new Date(date);
+      monday.setDate(date.getDate() + diffToMonday);
+      
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      
+      const format = (d: Date) => d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+      return `${format(monday)} - ${format(sunday)}`;
+    } catch (e) {
+      return "";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Selection row */}
@@ -638,7 +657,7 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
                 <div className="flex justify-between items-center">
                   <div>
                     <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-1.5">
-                      📅 Checklist công việc hằng tuần
+                      📅 Checklist công việc hằng tuần ({getSelectedWeekRangeStr()})
                     </CardTitle>
                     <CardDescription className="text-xs">
                       Công việc bắt buộc hoàn thành trong tuần này
@@ -1135,7 +1154,7 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
             <DialogHeader>
               <DialogTitle className="text-base font-bold text-slate-800">Tạo nhiệm vụ hằng tuần</DialogTitle>
               <DialogDescription className="text-xs">
-                Thêm nhiệm vụ bắt buộc hoàn thành trong tuần này cho quản lý.
+                Thêm nhiệm vụ bắt buộc hoàn thành trong tuần ({getSelectedWeekRangeStr()}) cho quản lý.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -1180,7 +1199,7 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
             <DialogHeader>
               <DialogTitle className="text-base font-bold text-slate-800">Sửa nhiệm vụ hằng tuần</DialogTitle>
               <DialogDescription className="text-xs">
-                Sửa đổi tên hoặc mô tả việc tuần.
+                Sửa đổi tên hoặc mô tả việc tuần ({getSelectedWeekRangeStr()}).
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
