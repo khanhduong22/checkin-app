@@ -231,15 +231,48 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         return colors[Math.abs(hash) % colors.length];
     }, []);
 
+    // Get specific color for staff members
+    const getEventColor = useCallback((title: string) => {
+        if (!title) return { bg: '#6b7280', text: '#ffffff' };
+        
+        // Extract clean name in case it contains swap indicators
+        let cleanName = title.replace('🔄 Đổi ca: ', '').trim();
+        const words = cleanName.toLowerCase().split(/\s+/);
+        const firstName = words[words.length - 1];
+
+        // Specific color assignments
+        if (firstName === 'hân') {
+            return { bg: '#fbcfe8', text: '#9d174d' }; // Pink pastel
+        }
+        if (firstName === 'hiền') {
+            return { bg: '#fef08a', text: '#854d0e' }; // Yellow pastel
+        }
+        if (firstName === 'hương') {
+            return { bg: '#0ea5e9', text: '#ffffff' }; // Sky blue
+        }
+        if (firstName === 'ngân') {
+            return { bg: '#e9d5ff', text: '#6b21a8' }; // Purple pastel
+        }
+        if (firstName === 'uyên') {
+            return { bg: '#ef4444', text: '#ffffff' }; // Red
+        }
+        if (firstName === 'na') {
+            return { bg: '#a7f3d0', text: '#065f46' }; // Mint green
+        }
+
+        // Default behavior (keep existing color for Phượng, Trang, etc.)
+        return { bg: stringToColor(cleanName), text: '#ffffff' };
+    }, [stringToColor]);
+
     const eventPropGetter = useCallback(
         (event: CalendarEvent) => {
             const isSwap = !event.isOwner && event.resource?.isOpenForSwap;
-            const backgroundColor = isSwap ? '#8b5cf6' : stringToColor(event.title);
+            const colors = isSwap ? { bg: '#8b5cf6', text: '#ffffff' } : getEventColor(event.title);
             return {
                 style: {
-                    backgroundColor: backgroundColor,
+                    backgroundColor: colors.bg,
                     opacity: 0.9,
-                    color: 'white',
+                    color: colors.text,
                     border: event.isOwner ? '2px solid white' : '0px', // Highlight own shifts with border
                     display: 'block',
                     zoom: 1, 
@@ -248,7 +281,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 },
             }
         },
-        [stringToColor]
+        [getEventColor]
     )
     
     const slotPropGetter = useCallback(
