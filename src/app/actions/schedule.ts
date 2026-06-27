@@ -46,6 +46,52 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
 
   if (overlap > 0) return { success: false, error: 'Nhân viên này đã có lịch đăng ký trùng giờ này!' };
 
+  // Check 3-person limit for next week and onwards (starting Monday, June 29, 2026)
+  const limitStartDate = new Date('2026-06-29T00:00:00+07:00');
+  const isNextWeekOrLater = start.getTime() >= limitStartDate.getTime();
+
+  if (isNextWeekOrLater && !override) {
+    const overlappingShifts = await prisma.workShift.findMany({
+      where: {
+        start: { lt: end },
+        end: { gt: start },
+        user: {
+          employmentType: 'PART_TIME'
+        }
+      }
+    });
+
+    // Check concurrency at all relevant points
+    const S = start.getTime();
+    const E = end.getTime();
+    const points = new Set<number>([S]);
+    for (const os of overlappingShifts) {
+      const osStart = os.start.getTime();
+      if (osStart >= S && osStart < E) {
+        points.add(osStart);
+      }
+    }
+
+    let maxConcurrency = 0;
+    for (const t of points) {
+      let count = 0;
+      for (const os of overlappingShifts) {
+        const osStart = os.start.getTime();
+        const osEnd = os.end.getTime();
+        if (osStart <= t && osEnd > t) {
+          count++;
+        }
+      }
+      if (count > maxConcurrency) {
+        maxConcurrency = count;
+      }
+    }
+
+    if (maxConcurrency >= 3) {
+      return { success: false, error: 'LIMIT_PART_TIME', count: maxConcurrency };
+    }
+  }
+
   try {
     const newShift = await prisma.workShift.create({
       data: {
