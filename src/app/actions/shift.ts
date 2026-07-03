@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { isShiftLocked } from "@/lib/schedule-lock";
+import { logShiftAction } from "@/lib/audit";
 
 export async function registerShift(dateStr: string, shift: string) {
   const session = await getServerSession(authOptions);
@@ -37,7 +38,7 @@ export async function registerShift(dateStr: string, shift: string) {
       return { success: false, message: "Lịch làm việc của tuần này đã được chốt, không thể thay đổi!" };
     }
 
-    await prisma.workShift.create({
+    const newShift = await prisma.workShift.create({
       data: {
         userId: user.id,
         start: start,
@@ -45,6 +46,15 @@ export async function registerShift(dateStr: string, shift: string) {
         shiftType: shift, // store original type for ref
         status: 'APPROVED'
       }
+    });
+
+    await logShiftAction({
+      shiftId: newShift.id,
+      userId: user.id,
+      action: 'CREATE',
+      changedById: user.id,
+      newStart: start,
+      newEnd: end
     });
 
     revalidatePath('/schedule');
@@ -68,6 +78,15 @@ export async function cancelShift(shiftId: number) {
     return { success: false, message: "Lịch làm việc của tuần này đã được chốt, không thể thay đổi!" };
   }
 
+  await logShiftAction({
+    shiftId: existing.id,
+    userId: existing.userId,
+    action: 'DELETE',
+    changedById: user.id,
+    oldStart: existing.start,
+    oldEnd: existing.end
+  });
+
   await prisma.workShift.delete({ where: { id: shiftId } });
   revalidatePath('/schedule');
   return { success: true, message: "Đã hủy ca." };
@@ -77,6 +96,9 @@ export async function assignCustomShift(userId: string, dateStr: string, startTi
   const session = await getServerSession(authOptions);
   // @ts-ignore
   if (session?.user?.role !== 'ADMIN') return { success: false, message: "Forbidden" };
+
+  const admin = await prisma.user.findUnique({ where: { email: session.user.email! } });
+  if (!admin) return { success: false, message: "Admin user not found" };
 
   try {
     const date = new Date(dateStr);
@@ -93,7 +115,7 @@ export async function assignCustomShift(userId: string, dateStr: string, startTi
     // Validate end > start
     if (end <= start) return { success: false, message: "Giờ kết thúc phải sau giờ bắt đầu" };
 
-    await prisma.workShift.create({
+    const newShift = await prisma.workShift.create({
       data: {
         userId,
         start,
@@ -102,6 +124,16 @@ export async function assignCustomShift(userId: string, dateStr: string, startTi
         status: 'APPROVED'
       }
     });
+
+    await logShiftAction({
+      shiftId: newShift.id,
+      userId,
+      action: 'CREATE',
+      changedById: admin.id,
+      newStart: start,
+      newEnd: end
+    });
+
     revalidatePath('/admin/schedule');
     return { success: true, message: "Đã gán ca thành công!" };
   } catch (e) {
@@ -172,6 +204,18 @@ export async function takeShift(shiftId: number) {
         isOpenForSwap: false
       }
     });
+
+    await logShiftAction({
+      shiftId: existing.id,
+      userId: user.id,
+      action: 'TAKE_SWAP',
+      changedById: user.id,
+      oldStart: existing.start,
+      oldEnd: existing.end,
+      newStart: existing.start,
+      newEnd: existing.end
+    });
+
     revalidatePath('/schedule');
     return { success: true, message: "Đã nhận ca thành công! Đừng quên đi làm nhé." };
   } catch (e) {

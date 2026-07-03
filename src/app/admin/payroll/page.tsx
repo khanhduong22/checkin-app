@@ -56,8 +56,10 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
             orderBy: { name: 'asc' },
             include: {
                 adjustments: {
-                    orderBy: { createdAt: 'desc' },
-                    take: 5
+                    where: {
+                        date: { gte: startDate, lte: endDate }
+                    },
+                    orderBy: { date: 'desc' }
                 }
             }
         });

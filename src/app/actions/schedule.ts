@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { isShiftLocked } from "@/lib/schedule-lock";
+import { logShiftAction } from "@/lib/audit";
 
 export async function registerShift(start: Date, end: Date, override: boolean = false, targetUserId?: string) {
   const session = await getServerSession(authOptions);
@@ -46,51 +47,6 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
 
   if (overlap > 0) return { success: false, error: 'Nhân viên này đã có lịch đăng ký trùng giờ này!' };
 
-  // Check 3-person limit for next week and onwards (starting Monday, June 29, 2026)
-  const limitStartDate = new Date('2026-06-29T00:00:00+07:00');
-  const isNextWeekOrLater = start.getTime() >= limitStartDate.getTime();
-
-  if (isNextWeekOrLater && !override) {
-    const overlappingShifts = await prisma.workShift.findMany({
-      where: {
-        start: { lt: end },
-        end: { gt: start },
-        user: {
-          employmentType: 'PART_TIME'
-        }
-      }
-    });
-
-    // Check concurrency at all relevant points
-    const S = start.getTime();
-    const E = end.getTime();
-    const points = new Set<number>([S]);
-    for (const os of overlappingShifts) {
-      const osStart = os.start.getTime();
-      if (osStart >= S && osStart < E) {
-        points.add(osStart);
-      }
-    }
-
-    let maxConcurrency = 0;
-    for (const t of points) {
-      let count = 0;
-      for (const os of overlappingShifts) {
-        const osStart = os.start.getTime();
-        const osEnd = os.end.getTime();
-        if (osStart <= t && osEnd > t) {
-          count++;
-        }
-      }
-      if (count > maxConcurrency) {
-        maxConcurrency = count;
-      }
-    }
-
-    if (maxConcurrency >= 3) {
-      return { success: false, error: 'LIMIT_PART_TIME', count: maxConcurrency };
-    }
-  }
 
   try {
     const newShift = await prisma.workShift.create({
@@ -101,6 +57,16 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
         status: 'APPROVED'
       }
     });
+    
+    await logShiftAction({
+      shiftId: newShift.id,
+      userId: targetUser.id,
+      action: 'CREATE',
+      changedById: requester.id,
+      newStart: start,
+      newEnd: end
+    });
+
     revalidatePath('/schedule');
     revalidatePath('/admin/schedule');
 
@@ -129,6 +95,15 @@ export async function deleteShift(shiftId: number) {
   if (user.role !== 'ADMIN' && isShiftLocked(existing.start)) {
     return { success: false, error: 'Lịch làm việc của tuần này đã được chốt, không thể thay đổi!' };
   }
+
+  await logShiftAction({
+    shiftId: existing.id,
+    userId: existing.userId,
+    action: 'DELETE',
+    changedById: user.id,
+    oldStart: existing.start,
+    oldEnd: existing.end
+  });
 
   await prisma.workShift.deleteMany({
     where: {
@@ -160,6 +135,19 @@ export async function updateShift(shiftId: number, start: Date, end: Date) {
 
   const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
   if (duration < 4) return { success: false, error: 'Tối thiểu 4 tiếng!' };
+
+  if (user) {
+    await logShiftAction({
+      shiftId: existing.id,
+      userId: existing.userId,
+      action: 'UPDATE',
+      changedById: user.id,
+      oldStart: existing.start,
+      oldEnd: existing.end,
+      newStart: start,
+      newEnd: end
+    });
+  }
 
   await prisma.workShift.update({
     where: { id: shiftId },
@@ -261,11 +249,21 @@ export async function importWeeklySchedule(shiftsParam: ParsedShiftItem[], overr
           }
       }
 
-      // 3. Bulk insert
+      // 3. Insert individually and log
       if (createdShifts.length > 0) {
-          await prisma.workShift.createMany({
-              data: createdShifts
-          });
+          for (const shiftData of createdShifts) {
+              const newShift = await prisma.workShift.create({
+                  data: shiftData
+              });
+              await logShiftAction({
+                  shiftId: newShift.id,
+                  userId: newShift.userId,
+                  action: 'IMPORT',
+                  changedById: admin.id,
+                  newStart: newShift.start,
+                  newEnd: newShift.end
+              });
+          }
       }
 
       revalidatePath('/schedule');

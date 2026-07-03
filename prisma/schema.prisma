@@ -76,6 +76,8 @@ model User {
   staffTasksAllowed     Boolean                @default(false)
   staffTasksCreated     StaffTask[]            @relation("StaffTaskCreator")
   staffTasksAssigned    StaffTask[]            @relation("StaffTaskAssignee")
+  shiftAuditLogs        ShiftAuditLog[]        @relation("UserShiftsLogs")
+  changedShiftLogs      ShiftAuditLog[]        @relation("ChangedByShiftsLogs")
 }
 
 model WorkShift {
@@ -91,6 +93,26 @@ model WorkShift {
 
   @@index([userId, start])
   @@index([start])
+}
+
+model ShiftAuditLog {
+  id          Int      @id @default(autoincrement())
+  shiftId     Int
+  userId      String
+  action      String   // 'CREATE', 'UPDATE', 'DELETE', 'IMPORT', 'TAKE_SWAP'
+  changedById String
+  oldStart    DateTime?
+  oldEnd      DateTime?
+  newStart    DateTime?
+  newEnd      DateTime?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation("UserShiftsLogs", fields: [userId], references: [id], onDelete: Cascade)
+  changedBy   User     @relation("ChangedByShiftsLogs", fields: [changedById], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([changedById])
+  @@index([createdAt])
 }
 
 model Request {

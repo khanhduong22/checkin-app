@@ -13,6 +13,9 @@ vi.mock("../../src/lib/prisma", () => ({
       findMany: vi.fn(),
       create: vi.fn(),
     },
+    shiftAuditLog: {
+      create: vi.fn(),
+    },
   },
 }));
 
@@ -70,7 +73,7 @@ describe("registerShift Limit", () => {
     vi.useRealTimers();
   });
 
-  it("blocks registration next week if there are already 3 concurrent part-time shifts", async () => {
+  it("allows registration next week even if there are already 3 concurrent part-time shifts", async () => {
     // Next week shift: July 1, 2026 (Wednesday), 08:00 - 12:00 VN (01:00 - 05:00 UTC)
     const start = new Date("2026-07-01T01:00:00Z");
     const end = new Date("2026-07-01T05:00:00Z");
@@ -85,10 +88,8 @@ describe("registerShift Limit", () => {
 
     const result = await registerShift(start, end, false);
 
-    expect(result.success).toBe(false);
-    expect(result.error).toBe("LIMIT_PART_TIME");
-    expect(result.count).toBe(3);
-    expect(mockShiftCreate).not.toHaveBeenCalled();
+    expect(result.success).toBe(true);
+    expect(mockShiftCreate).toHaveBeenCalledOnce();
   });
 
   it("allows registration next week if there are only 2 concurrent part-time shifts", async () => {
