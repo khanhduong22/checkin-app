@@ -40,6 +40,7 @@ export default async function LuckyWheelPage() {
 
     // Fetch users for allowed list
     const users = await prisma.user.findMany({
+        where: { isActive: true },
         select: { id: true, name: true, email: true, luckyWheelAllowed: true },
         orderBy: { name: 'asc' }
     });

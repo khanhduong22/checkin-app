@@ -51,6 +51,7 @@ model User {
   emailVerified         DateTime?
   image                 String?
   role                  UserRole               @default(USER)
+  isActive              Boolean                @default(true)
   luckyWheelAllowed     Boolean                @default(true)
   hourlyRate            Float                  @default(0)
   employmentType        EmploymentType         @default(PART_TIME)

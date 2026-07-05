@@ -23,6 +23,7 @@ export async function getSpecialDayUsers(): Promise<SpecialEvent[]> {
   // 1. Fetch Users
   const users = await prisma.user.findMany({
     where: {
+      isActive: true,
       OR: [
         { birthday: { not: null } },
         { startDate: { not: null } }

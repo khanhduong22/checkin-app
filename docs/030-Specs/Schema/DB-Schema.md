@@ -75,6 +75,7 @@ erDiagram
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | `role` | `UserRole` | `ADMIN` or `USER`. Controls access. |
+| `isActive` | `Boolean` | True if the employee is active. False if resigned/deactivated (blocks sign-in). |
 | `employmentType` | `EmploymentType` | `FULL_TIME` or `PART_TIME`. Impacts payroll. |
 | `hourlyRate` | `Float` | For part-time calculation. |
 | `monthlySalary` | `Float` | For full-time calculation. |

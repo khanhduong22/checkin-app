@@ -323,5 +323,28 @@ export async function updateUserDates(userId: string, birthday: Date | null, sta
   }
 }
 
+export async function updateUserActiveStatus(userId: string, isActive: boolean) {
+  try {
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: { isActive }
+      }),
+      ...(isActive ? [] : [
+        prisma.session.deleteMany({
+          where: { userId }
+        })
+      ])
+    ]);
+    revalidatePath('/admin');
+    revalidatePath('/admin/employees');
+    return { success: true, message: isActive ? 'Đã kích hoạt tài khoản' : 'Đã khoá tài khoản (nghỉ việc)' };
+  } catch (e) {
+    console.error("Error updating user active status:", e);
+    return { success: false, message: 'Lỗi cập nhật trạng thái' };
+  }
+}
+
+
 
 

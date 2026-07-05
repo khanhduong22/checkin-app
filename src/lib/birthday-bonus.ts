@@ -20,7 +20,7 @@ export async function runBirthdayBonus(): Promise<void> {
 
         // Fetch all users with a birthday set
         const allUsers = await prisma.user.findMany({
-            where: { birthday: { not: null } },
+            where: { isActive: true, birthday: { not: null } },
             select: { id: true, name: true, email: true, birthday: true },
         });
 

@@ -41,7 +41,8 @@ export async function GET(request: Request) {
       Email: u.email,
       Role: u.role,
       EmploymentType: u.employmentType,
-      HourlyRate: u.hourlyRate
+      HourlyRate: u.hourlyRate,
+      Active: u.isActive !== false ? "Đang làm việc" : "Đã nghỉ việc"
     }));
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(userRows), "Users");
 

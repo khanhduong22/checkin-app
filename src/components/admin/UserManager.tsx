@@ -1,6 +1,6 @@
 'use client';
 
-import { updateUserRole, updateUserRate, updateUserMonthlySalary, deleteUser, createUser } from '@/app/admin/actions';
+import { updateUserRole, updateUserRate, updateUserMonthlySalary, deleteUser, createUser, updateUserActiveStatus } from '@/app/admin/actions';
 import { toggleUserStaffTasksAllowed } from '@/actions/staff-task-actions';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -119,6 +119,23 @@ function UserItem({ user }: { user: any }) {
     const [showEditDatesDialog, setShowEditDatesDialog] = useState(false);
     const [deleteEmailInput, setDeleteEmailInput] = useState('');
 
+    const handleToggleActiveStatus = async () => {
+        const nextActive = user.isActive !== false ? false : true;
+        if (nextActive) {
+            setLoading(true);
+            const res = await updateUserActiveStatus(user.id, true);
+            setLoading(false);
+            if (!res.success) alert(res.message);
+        } else {
+            if (confirm(`Bạn có chắc chắn muốn cho nhân viên ${user.name} nghỉ việc? Tài khoản sẽ bị đăng xuất ngay lập tức và không thể truy cập lại, nhưng lịch sử công/lương vẫn sẽ được giữ lại.`)) {
+                setLoading(true);
+                const res = await updateUserActiveStatus(user.id, false);
+                setLoading(false);
+                if (!res.success) alert(res.message);
+            }
+        }
+    };
+
     const handleUpdateRate = async () => {
         setLoading(true);
         await updateUserRate(user.id, parseFloat(rate));
@@ -134,9 +151,6 @@ function UserItem({ user }: { user: any }) {
     const handleUpdateName = async () => {
         if (name === user.name) return;
         setLoading(true);
-        // Assuming updateUserName is imported or I'll add import
-        // Since I can't easily add import to top without regex, I will assume it's added or use 'any' bypass if imports are tricky in replace.
-        // Actually I need to add import to top.
         const { updateUserName } = require('@/app/admin/actions');
         await updateUserName(user.id, name);
         setLoading(false);
@@ -201,9 +215,11 @@ function UserItem({ user }: { user: any }) {
         }
     };
 
+    const isUserActive = user.isActive !== false;
+
     return (
         <>
-            <div className="flex items-center justify-between p-4 border-b last:border-0 hover:bg-gray-50/50 transition-colors">
+            <div className={`flex items-center justify-between p-4 border-b last:border-0 hover:bg-gray-50/50 transition-colors ${!isUserActive ? 'bg-gray-50/50 opacity-70' : ''}`}>
                 <div className="flex items-center gap-4 flex-1">
                     <a href={`/admin/employees/${user.id}`} className="hover:opacity-80 transition-opacity" title="Xem chi tiết">
                         <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center font-bold text-secondary-foreground shrink-0">
@@ -221,13 +237,15 @@ function UserItem({ user }: { user: any }) {
                     <div>
                         <div className="font-medium flex items-center gap-2">
                             <input
-                                className="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-primary outline-none focus:ring-0 w-[200px] transition-colors"
+                                className={`bg-transparent border-b border-transparent hover:border-gray-300 focus:border-primary outline-none focus:ring-0 w-[200px] transition-colors ${!isUserActive ? 'text-gray-500 italic line-through' : ''}`}
                                 value={name}
                                 onChange={e => setName(e.target.value)}
                                 onBlur={handleUpdateName}
                                 placeholder="Tên nhân viên"
+                                disabled={!isUserActive}
                             />
                             {user.role === 'ADMIN' && <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded">ADMIN</span>}
+                            {!isUserActive && <span className="text-[10px] bg-amber-500 text-white px-1.5 py-0.5 rounded">ĐÃ NGHỈ VIỆC</span>}
                         </div>
                         <div className="text-sm text-muted-foreground">{user.email}</div>
                         <div className="mt-1">
@@ -235,7 +253,7 @@ function UserItem({ user }: { user: any }) {
                                 className="text-xs border rounded p-1 bg-white"
                                 value={user.employmentType || 'PART_TIME'}
                                 onChange={handleEmploymentTypeChange}
-                                disabled={loading}
+                                disabled={!isUserActive || loading}
                             >
                                 <option value="PART_TIME">Part Time</option>
                                 <option value="FULL_TIME">Full Time</option>
@@ -251,10 +269,11 @@ function UserItem({ user }: { user: any }) {
                                 <span className="text-sm text-muted-foreground">Lương cứng:</span>
                                 <input
                                     type="number"
-                                    className="w-28 h-8 rounded border px-2 text-sm text-right"
+                                    className="w-28 h-8 rounded border px-2 text-sm text-right bg-white"
                                     value={monthlySalary}
                                     onChange={e => setMonthlySalary(e.target.value)}
                                     onBlur={handleUpdateMonthlySalary}
+                                    disabled={!isUserActive}
                                 />
                             </>
                         ) : (
@@ -262,10 +281,11 @@ function UserItem({ user }: { user: any }) {
                                 <span className="text-sm text-muted-foreground">Lương/h:</span>
                                 <input
                                     type="number"
-                                    className="w-24 h-8 rounded border px-2 text-sm text-right"
+                                    className="w-24 h-8 rounded border px-2 text-sm text-right bg-white"
                                     value={rate}
                                     onChange={e => setRate(e.target.value)}
                                     onBlur={handleUpdateRate}
+                                    disabled={!isUserActive}
                                 />
                             </>
                         )}
@@ -276,13 +296,23 @@ function UserItem({ user }: { user: any }) {
                         size="sm" 
                         onClick={handleToggleStaffTasksAllowed}
                         className={user.staffTasksAllowed ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"}
-                        disabled={loading}
+                        disabled={!isUserActive || loading}
                     >
                         {user.staffTasksAllowed ? 'Gỡ quyền KPI' : 'Cấp quyền KPI'}
                     </Button>
 
-                    <Button variant="outline" size="sm" onClick={toggleRole}>
+                    <Button variant="outline" size="sm" onClick={toggleRole} disabled={!isUserActive || loading}>
                         {user.role === 'ADMIN' ? 'Gỡ Admin' : 'Cấp Admin'}
+                    </Button>
+
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleToggleActiveStatus}
+                        className={!isUserActive ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50" : "border-amber-200 text-amber-700 hover:bg-amber-50"}
+                        disabled={loading}
+                    >
+                        {!isUserActive ? 'Đi làm lại' : 'Cho nghỉ việc'}
                     </Button>
 
                     <Button
@@ -290,6 +320,7 @@ function UserItem({ user }: { user: any }) {
                         size="icon"
                         title="Chỉnh sửa ngày đặc biệt"
                         onClick={() => setShowEditDatesDialog(true)}
+                        disabled={!isUserActive}
                     >
                         <span className="text-xl">📅</span>
                     </Button>
@@ -353,8 +384,9 @@ function UserItem({ user }: { user: any }) {
                     <DialogHeader>
                         <DialogTitle className="text-red-600">Xóa nhân viên?</DialogTitle>
                         <DialogDescription>
-                            Hành động này không thể hoàn tác. Toàn bộ dữ liệu chấm công, lịch làm việc của nhân viên này sẽ bị xóa vĩnh viễn.<br /><br />
-                            Vui lòng nhập email <b>{user.email}</b> để xác nhận.
+                            Hành động này không thể hoàn tác. Toàn bộ dữ liệu chấm công, lịch làm việc của nhân viên này sẽ bị xóa vĩnh viễn khỏi hệ thống.<br /><br />
+                            Để giữ lại lịch sử làm việc/chấm công/phần lương, hãy chọn **"Cho nghỉ việc"** thay vì xóa.<br /><br />
+                            Vui lòng nhập email <b>{user.email}</b> để xác nhận xóa vĩnh viễn.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -386,24 +418,53 @@ function UserItem({ user }: { user: any }) {
 
 export default function UserManager({ users }: { users: any[] }) {
     const [showAddDialog, setShowAddDialog] = useState(false);
+    const [showResigned, setShowResigned] = useState(false);
+
+    const activeUsers = users.filter(u => u.isActive !== false);
+    const resignedUsers = users.filter(u => u.isActive === false);
 
     return (
         <>
-            <Card id="user-manager-card">
-                <CardHeader className="flex flex-row items-center justify-between">
+            <Card id="user-manager-card" className="border-emerald-100">
+                <CardHeader className="flex flex-row items-center justify-between pb-4">
                     <div>
-                        <CardTitle>Danh sách nhân viên</CardTitle>
-                        <CardDescription>Quản lý quyền hạn và mức lương</CardDescription>
+                        <CardTitle className="text-emerald-900">Danh sách nhân viên</CardTitle>
+                        <CardDescription>Quản lý quyền hạn, mức lương và trạng thái hoạt động</CardDescription>
                     </div>
-                    <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+                    <Button onClick={() => setShowAddDialog(true)} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
                         <UserPlus className="h-4 w-4" />
                         Thêm nhân viên
                     </Button>
                 </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border">
-                        {users.map(u => <UserItem key={u.id} user={u} />)}
+                <CardContent className="space-y-6">
+                    <div className="rounded-md border border-emerald-100 overflow-hidden bg-white">
+                        <div className="bg-emerald-50/50 px-4 py-2 text-xs font-semibold text-emerald-800 border-b border-emerald-100">
+                            ĐANG LÀM VIỆC ({activeUsers.length})
+                        </div>
+                        {activeUsers.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">Không có nhân viên nào</div>
+                        ) : (
+                            activeUsers.map(u => <UserItem key={u.id} user={u} />)
+                        )}
                     </div>
+
+                    {resignedUsers.length > 0 && (
+                        <div className="space-y-2">
+                            <button 
+                                onClick={() => setShowResigned(!showResigned)}
+                                className="text-xs font-semibold text-gray-500 hover:text-gray-700 flex items-center gap-1.5 focus:outline-none transition-colors"
+                            >
+                                <span>{showResigned ? '▼' : '▶'}</span>
+                                <span>NHÂN VIÊN ĐÃ NGHỈ VIỆC ({resignedUsers.length})</span>
+                            </button>
+                            
+                            {showResigned && (
+                                <div className="rounded-md border border-gray-200 overflow-hidden bg-white">
+                                    {resignedUsers.map(u => <UserItem key={u.id} user={u} />)}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

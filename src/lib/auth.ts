@@ -15,6 +15,16 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
       console.log('SignIn Callback Debug:', { user, account, profile, email, credentials });
+      if (user.email) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          select: { isActive: true }
+        });
+        if (dbUser && dbUser.isActive === false) {
+          console.warn(`Sign-in rejected for inactive user: ${user.email}`);
+          return false;
+        }
+      }
       return true;
     },
     async session({ session, user }) {

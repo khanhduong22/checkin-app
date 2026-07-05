@@ -39,8 +39,8 @@ export default async function AdminSchedulePage() {
         employmentType: s.user.employmentType,
     }));
 
-    // Get all users for validation
-    const allUsers = await prisma.user.findMany();
+    // Get all active users for validation
+    const allUsers = await prisma.user.findMany({ where: { isActive: true } });
 
     return (
         <div className="space-y-6">

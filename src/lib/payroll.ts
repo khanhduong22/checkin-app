@@ -15,6 +15,14 @@ export async function calculatePayroll(month: number, year: number) {
 
   // 1. Fetch all users with adjustments for this month
   const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { isActive: true },
+        { shifts: { some: { start: { gte: startDate, lte: endDate } } } },
+        { checkins: { some: { timestamp: { gte: startDate, lte: endDate } } } },
+        { adjustments: { some: { date: { gte: startDate, lte: endDate } } } }
+      ]
+    },
     orderBy: { name: 'asc' },
     include: {
       adjustments: {

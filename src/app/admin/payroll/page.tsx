@@ -53,6 +53,14 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
         const endDate = new Date(Date.UTC(vnYear, vnMonth + 1, 0, 23, 59, 59, 999) - VN_OFFSET_MS);
 
         const users = await prisma.user.findMany({
+            where: {
+                OR: [
+                    { isActive: true },
+                    { shifts: { some: { start: { gte: startDate, lte: endDate } } } },
+                    { checkins: { some: { timestamp: { gte: startDate, lte: endDate } } } },
+                    { adjustments: { some: { date: { gte: startDate, lte: endDate } } } }
+                ]
+            },
             orderBy: { name: 'asc' },
             include: {
                 adjustments: {

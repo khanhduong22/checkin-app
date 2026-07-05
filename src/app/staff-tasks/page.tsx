@@ -69,6 +69,7 @@ export default async function StaffTasksPage() {
 
     // 2. Fetch all users for dropdown assignee filter
     const users = await prisma.user.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         name: true,

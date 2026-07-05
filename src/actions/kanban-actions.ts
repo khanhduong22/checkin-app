@@ -59,6 +59,7 @@ export async function getUsers() {
     if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
     const users = await prisma.user.findMany({
+      where: { isActive: true },
       select: { id: true, name: true, email: true, image: true },
       orderBy: { name: "asc" },
     });
