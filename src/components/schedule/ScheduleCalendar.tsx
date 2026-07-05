@@ -257,6 +257,9 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
             return { bg: '#ef4444', text: '#ffffff' }; // Red
         }
         if (firstName === 'na') {
+            return { bg: '#fef08a', text: '#854d0e' }; // Yellow pastel
+        }
+        if (firstName === 'trang') {
             return { bg: '#a7f3d0', text: '#065f46' }; // Mint green
         }
 
