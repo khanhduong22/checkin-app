@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function StaffTaskClient({ initialTasks, userId }: { initialTasks: StaffTask[]; userId: string }) {
   const [tasks, setTasks] = useState<StaffTask[]>(initialTasks);
-  const [selectedWeekFilter, setSelectedWeekFilter] = useState<"THIS_WEEK" | "NEXT_WEEK" | "ALL">("THIS_WEEK");
+  const [selectedWeekFilter, setSelectedWeekFilter] = useState<"THIS_WEEK" | "NEXT_WEEK" | "LAST_WEEK" | "THIS_MONTH" | "ALL">("THIS_WEEK");
   const [selectedTask, setSelectedTask] = useState<StaffTask | null>(null);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<{
@@ -169,8 +169,10 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
           onChange={e => setSelectedWeekFilter(e.target.value as any)}
           className="border rounded-lg text-xs px-3 py-1.5 bg-white outline-hidden focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-700"
         >
+          <option value="LAST_WEEK">Tuần trước</option>
           <option value="THIS_WEEK">Tuần này</option>
           <option value="NEXT_WEEK">Tuần sau</option>
+          <option value="THIS_MONTH">Tháng này</option>
           <option value="ALL">Tất cả thời gian</option>
         </select>
       </div>
@@ -202,6 +204,20 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
           const nextWeekEnd = new Date(thisWeekEnd);
           nextWeekEnd.setDate(thisWeekEnd.getDate() + 7);
 
+          const lastWeekStart = new Date(thisWeekStart);
+          lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+
+          const lastWeekEnd = new Date(thisWeekEnd);
+          lastWeekEnd.setDate(thisWeekEnd.getDate() - 7);
+
+          const thisMonthStartLocal = new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), 1));
+          thisMonthStartLocal.setUTCHours(0, 0, 0, 0);
+          const thisMonthStart = new Date(thisMonthStartLocal.getTime() - VN_OFFSET_MS);
+
+          const thisMonthEndLocal = new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth() + 1, 0));
+          thisMonthEndLocal.setUTCHours(23, 59, 59, 999);
+          const thisMonthEnd = new Date(thisMonthEndLocal.getTime() - VN_OFFSET_MS);
+
           const filteredTasksByWeek = tasks.filter(t => {
             const taskStart = t.startDate ? new Date(t.startDate) : new Date(t.createdAt);
             
@@ -210,6 +226,12 @@ export default function StaffTaskClient({ initialTasks, userId }: { initialTasks
             }
             if (selectedWeekFilter === "NEXT_WEEK") {
               return taskStart >= nextWeekStart && taskStart <= nextWeekEnd;
+            }
+            if (selectedWeekFilter === "LAST_WEEK") {
+              return taskStart >= lastWeekStart && taskStart <= lastWeekEnd;
+            }
+            if (selectedWeekFilter === "THIS_MONTH") {
+              return taskStart >= thisMonthStart && taskStart <= thisMonthEnd;
             }
             return true;
           });

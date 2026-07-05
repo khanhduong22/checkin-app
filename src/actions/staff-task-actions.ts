@@ -155,13 +155,55 @@ export async function updateStaffTask(id: string, data: Partial<StaffTaskInput>)
     }
 
     const updated = await prisma.staffTask.update({
-      where: { id },
+      where: { id: id },
       data: updateData,
       include: {
         assignee: { select: { id: true, name: true, email: true, image: true } },
         createdBy: { select: { id: true, name: true } },
       }
     });
+
+    // Auto-duplicate recurring tasks for Thư (cuccung123456789@gmail.com) upon approval
+    if (data.status === "APPROVED" && task.status !== "APPROVED") {
+      if (updated.assignee?.email === "cuccung123456789@gmail.com") {
+        const recurringTitles = [
+          "làm video",
+          "live stream 2 buổi",
+          "đăng story",
+          "đăng bài fb, ins, thread"
+        ];
+        const titleNormalized = updated.title.trim().toLowerCase();
+        if (recurringTitles.includes(titleNormalized)) {
+          // Shift dates by 7 days
+          const newStartDate = updated.startDate ? new Date(updated.startDate.getTime() + 7 * 24 * 60 * 60 * 1000) : null;
+          const newDeadline = updated.deadline ? new Date(updated.deadline.getTime() + 7 * 24 * 60 * 60 * 1000) : null;
+
+          // Check if already created for the same week to prevent duplicate creation
+          const existingDuplicate = await prisma.staffTask.findFirst({
+            where: {
+              assigneeId: updated.assigneeId,
+              title: updated.title,
+              startDate: newStartDate ? { equals: newStartDate } : undefined,
+              deadline: newDeadline ? { equals: newDeadline } : undefined
+            }
+          });
+
+          if (!existingDuplicate) {
+            await prisma.staffTask.create({
+              data: {
+                title: updated.title,
+                description: updated.description,
+                status: "TODO",
+                assigneeId: updated.assigneeId,
+                createdById: updated.createdById,
+                startDate: newStartDate,
+                deadline: newDeadline
+              }
+            });
+          }
+        }
+      }
+    }
 
     // Send email notification on rejection
     if (isRejecting && updated.assignee.email) {

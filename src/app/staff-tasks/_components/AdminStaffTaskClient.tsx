@@ -39,7 +39,7 @@ export default function AdminStaffTaskClient({
 
   const [tasks, setTasks] = useState<StaffTask[]>(initialTasks);
   const [selectedUserFilter, setSelectedUserFilter] = useState<string>("ALL");
-  const [selectedWeekFilter, setSelectedWeekFilter] = useState<"THIS_WEEK" | "NEXT_WEEK" | "ALL">("THIS_WEEK");
+  const [selectedWeekFilter, setSelectedWeekFilter] = useState<"THIS_WEEK" | "NEXT_WEEK" | "LAST_WEEK" | "THIS_MONTH" | "ALL">("THIS_WEEK");
   const [selectedTask, setSelectedTask] = useState<StaffTask | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -229,6 +229,20 @@ export default function AdminStaffTaskClient({
   const nextWeekEnd = new Date(thisWeekEnd);
   nextWeekEnd.setDate(thisWeekEnd.getDate() + 7);
 
+  const lastWeekStart = new Date(thisWeekStart);
+  lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+
+  const lastWeekEnd = new Date(thisWeekEnd);
+  lastWeekEnd.setDate(thisWeekEnd.getDate() - 7);
+
+  const thisMonthStartLocal = new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), 1));
+  thisMonthStartLocal.setUTCHours(0, 0, 0, 0);
+  const thisMonthStart = new Date(thisMonthStartLocal.getTime() - VN_OFFSET_MS);
+
+  const thisMonthEndLocal = new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth() + 1, 0));
+  thisMonthEndLocal.setUTCHours(23, 59, 59, 999);
+  const thisMonthEnd = new Date(thisMonthEndLocal.getTime() - VN_OFFSET_MS);
+
   const filteredTasks = tasks.filter(t => {
     // 1. User Filter
     if (selectedUserFilter !== "ALL" && t.assigneeId !== selectedUserFilter) {
@@ -243,6 +257,12 @@ export default function AdminStaffTaskClient({
     }
     if (selectedWeekFilter === "NEXT_WEEK") {
       return taskStart >= nextWeekStart && taskStart <= nextWeekEnd;
+    }
+    if (selectedWeekFilter === "LAST_WEEK") {
+      return taskStart >= lastWeekStart && taskStart <= lastWeekEnd;
+    }
+    if (selectedWeekFilter === "THIS_MONTH") {
+      return taskStart >= thisMonthStart && taskStart <= thisMonthEnd;
     }
     return true;
   });
@@ -276,8 +296,10 @@ export default function AdminStaffTaskClient({
             onChange={e => setSelectedWeekFilter(e.target.value as any)}
             className="border rounded-lg text-sm px-3 py-2 bg-white outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700"
           >
+            <option value="LAST_WEEK">Tuần trước</option>
             <option value="THIS_WEEK">Tuần này</option>
             <option value="NEXT_WEEK">Tuần sau</option>
+            <option value="THIS_MONTH">Tháng này</option>
             <option value="ALL">Tất cả thời gian</option>
           </select>
         </div>
