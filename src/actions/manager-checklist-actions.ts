@@ -65,7 +65,10 @@ export async function getManagerDailyChecklist(userId: string, dateStr: string) 
           { targetDate: dateStr }
         ]
       },
-      orderBy: { createdAt: "asc" }
+      orderBy: [
+        { order: "asc" },
+        { createdAt: "asc" }
+      ]
     });
 
     // 2. Fetch completions for the selected date
@@ -105,10 +108,33 @@ export async function getManagerChecklistTemplates(userId: string) {
 
     const templates = await prisma.managerChecklistTask.findMany({
       where: { assigneeId: userId },
-      orderBy: { createdAt: "asc" }
+      orderBy: [
+        { order: "asc" },
+        { createdAt: "asc" }
+      ]
     });
 
     return { success: true, data: templates };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function updateManagerChecklistTaskOrder(userId: string, taskIds: string[]) {
+  try {
+    await requireAdmin();
+
+    await prisma.$transaction(
+      taskIds.map((id, index) =>
+        prisma.managerChecklistTask.update({
+          where: { id },
+          data: { order: index }
+        })
+      )
+    );
+
+    revalidatePath("/admin/manager-tasks");
+    return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message };
   }

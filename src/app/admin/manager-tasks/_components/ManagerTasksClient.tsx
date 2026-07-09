@@ -18,6 +18,8 @@ import {
   Settings,
   Clock,
   Sparkles,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +43,7 @@ import {
   deleteManagerChecklistTask,
   getManagerStatsHistory,
   getManagerChecklistTemplates,
+  updateManagerChecklistTaskOrder,
 } from "@/actions/manager-checklist-actions";
 import {
   getManagerWeeklyTasks,
@@ -320,6 +323,34 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
       }
     } catch (e) {
       toast.error("Lỗi kết nối");
+    }
+  };
+
+  const handleMoveTask = async (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === templates.length - 1) return;
+
+    const newTemplates = [...templates];
+    const swapWithIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    const temp = newTemplates[index];
+    newTemplates[index] = newTemplates[swapWithIndex];
+    newTemplates[swapWithIndex] = temp;
+    
+    setTemplates(newTemplates);
+
+    try {
+      const orderedIds = newTemplates.map(t => t.id);
+      const res = await updateManagerChecklistTaskOrder(selectedUserId, orderedIds);
+      if (res.success) {
+        toast.success("Đã thay đổi thứ tự nhiệm vụ");
+      } else {
+        toast.error(res.error || "Gặp lỗi cập nhật thứ tự");
+        loadTemplates();
+      }
+    } catch (e) {
+      toast.error("Không thể kết nối máy chủ");
+      loadTemplates();
     }
   };
 
@@ -924,7 +955,7 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
               </div>
             ) : (
               <div className="divide-y">
-                {templates.map((task) => (
+                {templates.map((task, idx) => (
                   <div key={task.id} className="flex justify-between items-center p-4 hover:bg-slate-50 gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -949,6 +980,26 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
                       )}
                     </div>
                     <div className="flex items-center gap-1.5">
+                      {/* Move Up */}
+                      <button
+                        onClick={() => handleMoveTask(idx, 'up')}
+                        disabled={idx === 0}
+                        className={`p-1.5 rounded-md text-slate-400 transition-colors ${idx === 0 ? 'opacity-25 cursor-not-allowed' : 'hover:bg-slate-100 hover:text-slate-700'}`}
+                        title="Di chuyển lên"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+
+                      {/* Move Down */}
+                      <button
+                        onClick={() => handleMoveTask(idx, 'down')}
+                        disabled={idx === templates.length - 1}
+                        className={`p-1.5 rounded-md text-slate-400 transition-colors ${idx === templates.length - 1 ? 'opacity-25 cursor-not-allowed' : 'hover:bg-slate-100 hover:text-slate-700'}`}
+                        title="Di chuyển xuống"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+
                       {/* Active toggle */}
                       <button
                         onClick={() => handleToggleTaskActive(task)}
