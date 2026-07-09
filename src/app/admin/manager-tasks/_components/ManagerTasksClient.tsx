@@ -80,8 +80,9 @@ interface ChecklistItem {
 }
 
 export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientProps) {
+  const defaultUser = users.find(u => u.role === "ADMIN" && (u.email?.includes("maithina4040") || u.name?.toLowerCase() === "na")) || currentUser;
   const [activeTab, setActiveTab] = useState<"checklist" | "templates" | "history">("checklist");
-  const [selectedUserId, setSelectedUserId] = useState<string>(currentUser.id);
+  const [selectedUserId, setSelectedUserId] = useState<string>(defaultUser.id);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
   
   // Data states
@@ -120,7 +121,7 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
   const [carryOverExplanation, setCarryOverExplanation] = useState("");
 
   // Filters
-  const adminUsers = users.filter(u => u.role === "ADMIN");
+  const adminUsers = users.filter(u => u.role === "ADMIN" && (u.email?.includes("maithina4040") || u.name?.toLowerCase() === "na"));
 
   // Load Checklist for Selected User and Date
   const loadChecklist = async () => {
