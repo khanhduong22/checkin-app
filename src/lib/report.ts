@@ -11,6 +11,11 @@ export async function getMonthlyReport(month: number, year: number) {
       timestamp: {
         gte: startDate,
         lte: endDate
+      },
+      user: {
+        role: {
+          not: 'ADMIN'
+        }
       }
     },
     include: { user: true }

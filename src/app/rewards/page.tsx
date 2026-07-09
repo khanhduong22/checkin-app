@@ -21,9 +21,9 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
     const report = await getMonthlyReport(month, year);
     const payroll = await calculatePayroll(month, year);
 
-    // Filter out inactive users who have quit
+    // Filter out inactive users who have quit and admins
     const excludedNames = ['Nía'];
-    const activePayroll = payroll.filter((p: any) => !excludedNames.includes(p.name));
+    const activePayroll = payroll.filter((p: any) => !excludedNames.includes(p.name) && p.role !== 'ADMIN');
     report.topDiscipline = report.topDiscipline.filter((u: any) => !excludedNames.includes(u.user.name));
 
     // Top 3 Hardworking (Part-time only, by hours)
@@ -56,7 +56,12 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
         where: {
             status: "APPROVED",
             updatedAt: { gte: startDate, lte: endDate },
-            taskDefinition: { unit: 'điểm' }
+            taskDefinition: { unit: 'điểm' },
+            user: {
+                role: {
+                    not: 'ADMIN'
+                }
+            }
         },
         include: { user: true }
     });
@@ -79,7 +84,12 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
         where: {
             status: "APPROVED",
             updatedAt: { gte: startDate, lte: endDate },
-            taskDefinition: { unit: 'điểm-bưng' }
+            taskDefinition: { unit: 'điểm-bưng' },
+            user: {
+                role: {
+                    not: 'ADMIN'
+                }
+            }
         },
         include: { user: true }
     });

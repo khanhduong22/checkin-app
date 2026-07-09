@@ -48,6 +48,17 @@ describe("runCarryingBonus()", () => {
 
     expect(mockFindFirst).toHaveBeenCalledOnce();
     expect(mockFindManyTasks).toHaveBeenCalledOnce();
+    expect(mockFindManyTasks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          user: {
+            role: {
+              not: "ADMIN"
+            }
+          }
+        })
+      })
+    );
     expect(mockCreate).toHaveBeenCalledOnce();
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({

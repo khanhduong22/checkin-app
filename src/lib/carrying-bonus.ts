@@ -41,12 +41,16 @@ export async function runCarryingBonus(): Promise<void> {
         const startDate = new Date(targetYear, targetMonth, 1);
         const endDate = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59, 999);
 
-        // We use updatedAt to credit points exactly when they were approved/modified by Admin
         const pointTasks = await prisma.userTask.findMany({
             where: {
                 status: "APPROVED",
                 updatedAt: { gte: startDate, lte: endDate },
-                taskDefinition: { unit: 'điểm-bưng' }
+                taskDefinition: { unit: 'điểm-bưng' },
+                user: {
+                    role: {
+                        not: 'ADMIN'
+                    }
+                }
             }
         });
 
