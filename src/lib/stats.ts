@@ -457,7 +457,8 @@ export async function getUserMonthlyStats(
     if (isWorkingDay && checklistTasks.length > 0) {
       const activeTasks = checklistTasks.filter(task => {
         const taskCreatedKey = toVNDateKey(task.createdAt);
-        return taskCreatedKey <= date && task.active;
+        const matchesDate = !task.targetDate || task.targetDate === date;
+        return taskCreatedKey <= date && task.active && matchesDate;
       });
       if (activeTasks.length > 0) {
         const completedTaskIds = checklistCompletions

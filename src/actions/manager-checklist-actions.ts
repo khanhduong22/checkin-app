@@ -28,39 +28,47 @@ const DEFAULT_TASKS = [
   { title: "🔒 Khoá cửa và Tắt thiết bị", description: "Kiểm tra tắt hết điều hòa, máy tính, đèn điện và khóa cửa an toàn trước khi về" }
 ];
 
+async function ensureChecklistTemplatesSeeded(userId: string) {
+  const count = await prisma.managerChecklistTask.count({
+    where: { assigneeId: userId }
+  });
+
+  if (count === 0) {
+    await prisma.$transaction(
+      DEFAULT_TASKS.map(t =>
+        prisma.managerChecklistTask.create({
+          data: {
+            title: t.title,
+            description: t.description,
+            assigneeId: userId,
+            active: true
+          }
+        })
+      )
+    );
+  }
+}
+
 export async function getManagerDailyChecklist(userId: string, dateStr: string) {
   try {
     await requireAdmin();
 
-    // 1. Get active checklist templates for this user
-    let templates = await prisma.managerChecklistTask.findMany({
-      where: { assigneeId: userId },
+    await ensureChecklistTemplatesSeeded(userId);
+
+    // 1. Get checklist templates active/scheduled for this specific date
+    const templates = await prisma.managerChecklistTask.findMany({
+      where: {
+        assigneeId: userId,
+        OR: [
+          { targetDate: null },
+          { targetDate: "" },
+          { targetDate: dateStr }
+        ]
+      },
       orderBy: { createdAt: "asc" }
     });
 
-    // 2. Self-healing seed if templates count is 0
-    if (templates.length === 0) {
-      await prisma.$transaction(
-        DEFAULT_TASKS.map(t =>
-          prisma.managerChecklistTask.create({
-            data: {
-              title: t.title,
-              description: t.description,
-              assigneeId: userId,
-              active: true
-            }
-          })
-        )
-      );
-
-      // Fetch templates again after seeding
-      templates = await prisma.managerChecklistTask.findMany({
-        where: { assigneeId: userId },
-        orderBy: { createdAt: "asc" }
-      });
-    }
-
-    // 3. Fetch completions for the selected date
+    // 2. Fetch completions for the selected date
     const completions = await prisma.managerChecklistCompletion.findMany({
       where: {
         date: dateStr,
@@ -68,7 +76,7 @@ export async function getManagerDailyChecklist(userId: string, dateStr: string) 
       }
     });
 
-    // 4. Map template tasks with completion status
+    // 3. Map template tasks with completion status
     const checklist = templates.map(task => {
       const comp = completions.find(c => c.taskId === task.id);
       return {
@@ -76,6 +84,7 @@ export async function getManagerDailyChecklist(userId: string, dateStr: string) 
         title: task.title,
         description: task.description,
         active: task.active,
+        targetDate: task.targetDate,
         createdAt: task.createdAt,
         completed: comp ? comp.completed : false,
         completedAt: comp ? comp.completedAt : null
@@ -83,6 +92,23 @@ export async function getManagerDailyChecklist(userId: string, dateStr: string) 
     });
 
     return { success: true, data: checklist };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function getManagerChecklistTemplates(userId: string) {
+  try {
+    await requireAdmin();
+
+    await ensureChecklistTemplatesSeeded(userId);
+
+    const templates = await prisma.managerChecklistTask.findMany({
+      where: { assigneeId: userId },
+      orderBy: { createdAt: "asc" }
+    });
+
+    return { success: true, data: templates };
   } catch (e: any) {
     return { success: false, error: e.message };
   }
@@ -129,7 +155,7 @@ export async function toggleManagerChecklistItem(taskId: string, dateStr: string
   }
 }
 
-export async function createManagerChecklistTask(title: string, description: string | null, assigneeId: string) {
+export async function createManagerChecklistTask(title: string, description: string | null, assigneeId: string, targetDate: string | null = null) {
   try {
     await requireAdmin();
 
@@ -138,6 +164,7 @@ export async function createManagerChecklistTask(title: string, description: str
         title,
         description,
         assigneeId,
+        targetDate,
         active: true
       }
     });
@@ -149,7 +176,7 @@ export async function createManagerChecklistTask(title: string, description: str
   }
 }
 
-export async function updateManagerChecklistTask(id: string, title: string, description: string | null, active: boolean) {
+export async function updateManagerChecklistTask(id: string, title: string, description: string | null, active: boolean, targetDate: string | null = null) {
   try {
     await requireAdmin();
 
@@ -158,7 +185,8 @@ export async function updateManagerChecklistTask(id: string, title: string, desc
       data: {
         title,
         description,
-        active
+        active,
+        targetDate
       }
     });
 
@@ -197,7 +225,15 @@ export async function getManagerStatsHistory(userId: string, date: Date = new Da
 export async function verifyChecklistComplete(userId: string, dateStr: string) {
   try {
     const activeTasks = await prisma.managerChecklistTask.findMany({
-      where: { assigneeId: userId, active: true }
+      where: {
+        assigneeId: userId,
+        active: true,
+        OR: [
+          { targetDate: null },
+          { targetDate: "" },
+          { targetDate: dateStr }
+        ]
+      }
     });
 
     if (activeTasks.length === 0) {

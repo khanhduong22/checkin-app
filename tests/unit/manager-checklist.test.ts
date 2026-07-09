@@ -193,6 +193,60 @@ describe("getUserMonthlyStats() - Manager Checklist Compliance Logic", () => {
     expect(day?.error).toBeUndefined();
     expect(stats.totalDeficiencies).toBe(0);
   });
+
+  it("ignores active checklist tasks that have a targetDate not matching the evaluated day", async () => {
+    mockUserFindUnique.mockResolvedValue(mockUserRecord);
+    mockHolidayFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+    
+    mockShiftFindMany.mockResolvedValue([
+      {
+        id: 1,
+        userId: "manager-1",
+        start: new Date("2026-06-15T08:00:00+07:00"),
+        end: new Date("2026-06-15T17:00:00+07:00"),
+        status: "APPROVED",
+      },
+    ]);
+
+    mockCheckInFindMany.mockResolvedValue([
+      {
+        id: 101,
+        userId: "manager-1",
+        type: "checkin",
+        timestamp: new Date("2026-06-15T08:00:00+07:00"),
+      },
+      {
+        id: 102,
+        userId: "manager-1",
+        type: "checkout",
+        timestamp: new Date("2026-06-15T17:00:00+07:00"),
+      },
+    ]);
+
+    // checklist task is active, but targeted for June 16, 2026 (not today June 15)
+    mockChecklistTaskFindMany.mockResolvedValue([
+      {
+        id: "task-1",
+        title: "Clean freezer",
+        assigneeId: "manager-1",
+        active: true,
+        targetDate: "2026-06-16",
+        createdAt: new Date("2026-06-14T08:00:00+07:00"),
+      },
+    ]);
+
+    mockChecklistCompletionFindMany.mockResolvedValue([]);
+
+    const stats = await getUserMonthlyStats("manager-1", targetDate);
+    
+    // Day should be valid because the task is for June 16
+    const day = stats.dailyDetails.find(d => d.date === "2026-06-15");
+    expect(day).toBeDefined();
+    expect(day?.isChecklistIncomplete).toBe(false);
+    expect(day?.isValid).toBe(true);
+    expect(stats.totalDeficiencies).toBe(0);
+  });
 });
 
 describe("verifyChecklistComplete()", () => {
@@ -200,6 +254,17 @@ describe("verifyChecklistComplete()", () => {
     mockChecklistTaskFindMany.mockResolvedValue([]);
     const res = await verifyChecklistComplete("manager-1", "2026-06-15");
     expect(res.success).toBe(true);
+    expect(mockChecklistTaskFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            { targetDate: null },
+            { targetDate: "" },
+            { targetDate: "2026-06-15" }
+          ])
+        })
+      })
+    );
   });
 
   it("returns failure if active tasks exist but not completed", async () => {

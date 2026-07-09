@@ -20,6 +20,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,7 @@ import {
   updateManagerChecklistTask,
   deleteManagerChecklistTask,
   getManagerStatsHistory,
+  getManagerChecklistTemplates,
 } from "@/actions/manager-checklist-actions";
 import {
   getManagerWeeklyTasks,
@@ -71,6 +73,7 @@ interface ChecklistItem {
   title: string;
   description: string | null;
   active: boolean;
+  targetDate: string | null;
   createdAt: Date;
   completed: boolean;
   completedAt: Date | null;
@@ -109,6 +112,7 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
   // Form states
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
+  const [taskTargetDate, setTaskTargetDate] = useState("");
 
   // Weekly Form states
   const [weeklyTaskTitle, setWeeklyTaskTitle] = useState("");
@@ -151,9 +155,18 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const res = await getManagerDailyChecklist(selectedUserId, new Date().toISOString().split("T")[0]);
+      const res = await getManagerChecklistTemplates(selectedUserId);
       if (res.success && res.data) {
-        setTemplates(res.data as ChecklistItem[]);
+        setTemplates((res.data as any[]).map(t => ({
+          id: t.id,
+          title: t.title,
+          description: t.description,
+          active: t.active,
+          targetDate: t.targetDate,
+          createdAt: t.createdAt,
+          completed: false,
+          completedAt: null
+        })));
       } else {
         toast.error(res.error || "Gặp lỗi tải danh sách mẫu");
       }
@@ -235,12 +248,13 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
     
     setActionLoading(true);
     try {
-      const res = await createManagerChecklistTask(taskTitle.trim(), taskDesc.trim(), selectedUserId);
+      const res = await createManagerChecklistTask(taskTitle.trim(), taskDesc.trim() || null, selectedUserId, taskTargetDate || null);
       if (res.success) {
         toast.success("Tạo nhiệm vụ mẫu thành công!");
         setIsCreateOpen(false);
         setTaskTitle("");
         setTaskDesc("");
+        setTaskTargetDate("");
         loadTemplates();
       } else {
         toast.error(res.error || "Gặp lỗi tạo nhiệm vụ");
@@ -258,13 +272,14 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
 
     setActionLoading(true);
     try {
-      const res = await updateManagerChecklistTask(editingTask.id, taskTitle.trim(), taskDesc.trim(), editingTask.active);
+      const res = await updateManagerChecklistTask(editingTask.id, taskTitle.trim(), taskDesc.trim() || null, editingTask.active, taskTargetDate || null);
       if (res.success) {
         toast.success("Cập nhật nhiệm vụ thành công!");
         setIsEditOpen(false);
         setEditingTask(null);
         setTaskTitle("");
         setTaskDesc("");
+        setTaskTargetDate("");
         loadTemplates();
       } else {
         toast.error(res.error || "Gặp lỗi cập nhật");
@@ -279,7 +294,7 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
   const handleToggleTaskActive = async (task: ChecklistItem) => {
     try {
       const nextActive = !task.active;
-      const res = await updateManagerChecklistTask(task.id, task.title, task.description, nextActive);
+      const res = await updateManagerChecklistTask(task.id, task.title, task.description, nextActive, task.targetDate);
       if (res.success) {
         toast.success(nextActive ? "Đã kích hoạt nhiệm vụ mẫu" : "Đã tạm dừng nhiệm vụ mẫu");
         loadTemplates();
@@ -311,6 +326,7 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
     setEditingTask(task);
     setTaskTitle(task.title);
     setTaskDesc(task.description || "");
+    setTaskTargetDate(task.targetDate || "");
     setIsEditOpen(true);
   };
 
@@ -885,7 +901,12 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
                 Thiết lập các nhiệm vụ lặp lại hàng ngày bắt buộc phải tích chọn cho từng nhân sự.
               </CardDescription>
             </div>
-            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 font-bold" onClick={() => setIsCreateOpen(true)}>
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 font-bold" onClick={() => {
+              setTaskTitle("");
+              setTaskDesc("");
+              setTaskTargetDate("");
+              setIsCreateOpen(true);
+            }}>
               <Plus className="h-4 w-4 mr-1.5" /> Thêm Nhiệm Vụ Mới
             </Button>
           </CardHeader>
@@ -905,11 +926,20 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
                 {templates.map((task) => (
                   <div key={task.id} className="flex justify-between items-center p-4 hover:bg-slate-50 gap-4">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${task.active ? "bg-green-500" : "bg-slate-300"}`} />
                         <h4 className={`text-sm font-semibold text-slate-800 break-words ${!task.active ? "text-slate-400 font-normal" : ""}`}>
                           {task.title}
                         </h4>
+                        {task.targetDate ? (
+                          <Badge variant="secondary" className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] py-0.5 px-1.5 font-bold">
+                            Chỉ ngày: {task.targetDate}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] py-0.5 px-1.5 font-semibold">
+                            Hằng ngày
+                          </Badge>
+                        )}
                       </div>
                       {task.description && (
                         <p className={`text-xs text-muted-foreground mt-1 ml-4 ${!task.active ? "text-slate-300" : ""}`}>
@@ -1096,6 +1126,15 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
                   rows={3}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="target-date" className="text-xs font-bold text-slate-700">Ngày áp dụng (Bỏ trống nếu muốn lặp lại hằng ngày)</Label>
+                <Input
+                  id="target-date"
+                  type="date"
+                  value={taskTargetDate}
+                  onChange={(e) => setTaskTargetDate(e.target.value)}
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" size="sm" onClick={() => setIsCreateOpen(false)}>
@@ -1139,6 +1178,15 @@ export function ManagerTasksClient({ currentUser, users }: ManagerTasksClientPro
                   value={taskDesc}
                   onChange={(e) => setTaskDesc(e.target.value)}
                   rows={3}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-target-date" className="text-xs font-bold text-slate-700">Ngày áp dụng (Bỏ trống nếu muốn lặp lại hằng ngày)</Label>
+                <Input
+                  id="edit-target-date"
+                  type="date"
+                  value={taskTargetDate}
+                  onChange={(e) => setTaskTargetDate(e.target.value)}
                 />
               </div>
             </div>

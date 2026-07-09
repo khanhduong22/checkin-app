@@ -419,6 +419,7 @@ model ManagerChecklistTask {
   description String?
   assigneeId  String
   active      Boolean  @default(true)
+  targetDate  String?  // format: YYYY-MM-DD, null means daily recurring
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
