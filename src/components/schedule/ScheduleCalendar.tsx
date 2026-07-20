@@ -262,6 +262,9 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         if (firstName === 'trang') {
             return { bg: '#a7f3d0', text: '#065f46' }; // Mint green
         }
+        if (firstName === 'nhi') {
+            return { bg: '#a5f3fc', text: '#0e7490' }; // Cyan pastel
+        }
 
         // Default behavior (keep existing color for Phượng, Trang, etc.)
         return { bg: stringToColor(cleanName), text: '#ffffff' };
