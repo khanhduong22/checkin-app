@@ -494,6 +494,18 @@ export default function AdminStaffTaskClient({
                             </Button>
                           </div>
                         )}
+                        {task.status === "REJECTED" && (
+                          <div className="flex gap-2 pt-1" onClick={e => e.stopPropagation()}>
+                            <Button 
+                              size="sm" 
+                              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-7 text-[10px] gap-1"
+                              onClick={(e) => handleApprove(task, e)}
+                              disabled={loading}
+                            >
+                              <Check className="h-3 w-3" /> Duyệt
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </Card>
                   ))
@@ -694,15 +706,17 @@ export default function AdminStaffTaskClient({
               <Button variant="outline" className="gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50" onClick={(e) => handleOpenEdit(selectedTask, e)}>
                 <Edit2 className="h-3.5 w-3.5" /> Sửa
               </Button>
-              {selectedTask.status === "DONE" && (
+              {(selectedTask.status === "DONE" || selectedTask.status === "REJECTED") && (
                 <>
-                  <Button 
-                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
-                    onClick={() => setShowRejectDialog(true)}
-                    disabled={loading}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5 mr-1" /> Trả lại sửa
-                  </Button>
+                  {selectedTask.status === "DONE" && (
+                    <Button 
+                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                      onClick={() => setShowRejectDialog(true)}
+                      disabled={loading}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" /> Trả lại sửa
+                    </Button>
+                  )}
                   <Button 
                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                     onClick={(e) => handleApprove(selectedTask, e)}
