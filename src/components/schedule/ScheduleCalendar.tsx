@@ -81,7 +81,24 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
     const displayedEvents = events.filter(e => {
         if (hideFullTime && e.employmentType === 'FULL_TIME') return false;
-        if (!showAllShifts && e.resource?.userId !== userId && !e.resource?.isOpenForSwap) return false;
+        
+        // If it belongs to the current user, they can always see it
+        if (e.resource?.userId === userId) return true;
+        
+        // If it is open for swap, they can always see it
+        if (e.resource?.isOpenForSwap) return true;
+        
+        // For other people's normal shifts:
+        if (!isAdmin) {
+            // Staff can only see other people's shifts if they checked "showAllShifts" AND the shift week is locked (public)
+            if (!showAllShifts || !isShiftLocked(e.start)) {
+                return false;
+            }
+        } else {
+            // Admin can see other people's shifts if "showAllShifts" is checked
+            if (!showAllShifts) return false;
+        }
+        
         return true;
     });
 
