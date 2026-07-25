@@ -77,9 +77,11 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
     }
 
     const [hideFullTime, setHideFullTime] = useState(true);
+    const [showAllShifts, setShowAllShifts] = useState(isAdmin);
 
     const displayedEvents = events.filter(e => {
         if (hideFullTime && e.employmentType === 'FULL_TIME') return false;
+        if (!showAllShifts && e.resource?.userId !== userId && !e.resource?.isOpenForSwap) return false;
         return true;
     });
 
@@ -305,13 +307,23 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
     return (
         <div id="schedule-calendar-container" className="h-[750px] bg-white p-4 rounded-xl shadow-sm border flex flex-col">
-            <div className="flex items-center justify-end space-x-2 mb-2 px-2 pb-2 border-b">
-                <Switch 
-                    id="hide-full-time" 
-                    checked={hideFullTime} 
-                    onCheckedChange={setHideFullTime} 
-                />
-                <Label htmlFor="hide-full-time" className="cursor-pointer text-sm font-medium">Ẩn nhân viên Full-time</Label>
+            <div className="flex items-center justify-end space-x-6 mb-2 px-2 pb-2 border-b">
+                <div className="flex items-center space-x-2">
+                    <Switch 
+                        id="show-all-shifts" 
+                        checked={showAllShifts} 
+                        onCheckedChange={setShowAllShifts} 
+                    />
+                    <Label htmlFor="show-all-shifts" className="cursor-pointer text-sm font-medium">Xem lịch toàn cửa hàng</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Switch 
+                        id="hide-full-time" 
+                        checked={hideFullTime} 
+                        onCheckedChange={setHideFullTime} 
+                    />
+                    <Label htmlFor="hide-full-time" className="cursor-pointer text-sm font-medium">Ẩn nhân viên Full-time</Label>
+                </div>
             </div>
 
             <DnDCalendar

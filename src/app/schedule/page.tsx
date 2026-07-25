@@ -22,15 +22,7 @@ export default async function SchedulePage() {
     const startRange = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     
     const shifts = await prisma.workShift.findMany({
-        where: currentUser.role === 'ADMIN'
-            ? { start: { gte: startRange } }
-            : {
-                start: { gte: startRange },
-                OR: [
-                    { userId: currentUser.id },
-                    { isOpenForSwap: true }
-                ]
-              },
+        where: { start: { gte: startRange } },
         include: { user: true }
     });
 
