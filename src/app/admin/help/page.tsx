@@ -3,13 +3,13 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Send, FileText, Bot, Loader2, Volume2, VolumeX, Mic, MicOff } from "lucide-react";
+import { Send, FileText, Bot, Loader2, Volume2, VolumeX, Mic, MicOff, Plus, Trash, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getDocuments } from "./actions";
+import { getDocuments, uploadDocument, deleteDocument } from "./actions";
 
 type Message = {
   id: string;
@@ -29,12 +29,76 @@ export default function HelpCenterPage() {
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     getDocuments().then((docs: any[]) => {
       setDocuments(docs);
       if (docs.length > 0) setSelectedDoc(docs[0]);
     });
   }, []);
+
+  const reloadDocs = async () => {
+    const docs = await getDocuments();
+    setDocuments(docs);
+    if (docs.length > 0) {
+      if (!docs.some(d => d.id === selectedDoc?.id)) {
+        setSelectedDoc(docs[0]);
+      }
+    } else {
+      setSelectedDoc(null);
+    }
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile || !uploadTitle.trim() || isUploading) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      formData.append("title", uploadTitle);
+
+      const res = await uploadDocument(formData);
+      if (res.success) {
+        setUploadTitle("");
+        setUploadFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        setShowUpload(false);
+        await reloadDocs();
+        alert("Tải tài liệu lên thành công!");
+      } else {
+        alert(res.error || "Gặp lỗi khi tải tài liệu lên.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Đã xảy ra lỗi mạng.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteDoc = async (id: string, title: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa tài liệu "${title}"? Tất cả các đoạn dữ liệu AI đã lưu của tài liệu này cũng sẽ bị xóa bỏ.`)) return;
+
+    try {
+      const res = await deleteDocument(id);
+      if (res.success) {
+        await reloadDocs();
+        alert("Xóa tài liệu thành công!");
+      } else {
+        alert(res.error || "Không thể xóa tài liệu.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Đã xảy ra lỗi khi thực hiện thao tác xóa.");
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -261,18 +325,75 @@ export default function HelpCenterPage() {
 
         <TabsContent value="docs" className="h-[calc(100vh-220px)]">
           <Card className="h-full flex overflow-hidden">
-            <div className="w-64 border-r bg-muted/30 shrink-0 flex flex-col">
-              <div className="p-4 border-b font-medium text-sm">Danh mục tài liệu</div>
+            <div className="w-80 border-r bg-muted/30 shrink-0 flex flex-col">
+              <div className="p-4 border-b font-semibold text-sm flex justify-between items-center bg-white shrink-0">
+                <span>Danh mục tài liệu</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowUpload(!showUpload)}
+                  className="h-8 w-8 p-0"
+                  title="Tải tài liệu mới lên"
+                >
+                  {showUpload ? <X className="w-4 h-4 text-red-500" /> : <Plus className="w-4 h-4 text-indigo-600" />}
+                </Button>
+              </div>
+
+              {showUpload && (
+                <div className="p-4 border-b bg-indigo-50/50 space-y-3 shrink-0">
+                  <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Tải tài liệu mới (.docx, .txt)</h4>
+                  <form onSubmit={handleUploadSubmit} className="space-y-2">
+                    <Input
+                      type="text"
+                      placeholder="Tiêu đề tài liệu..."
+                      value={uploadTitle}
+                      onChange={(e) => setUploadTitle(e.target.value)}
+                      required
+                      className="bg-white h-8 text-xs"
+                    />
+                    <Input
+                      type="file"
+                      ref={fileInputRef}
+                      accept=".docx,.txt"
+                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      required
+                      className="bg-white h-8 text-xs file:mr-2 file:py-0 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                    <Button type="submit" size="sm" className="w-full h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white" disabled={isUploading}>
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                          Đang xử lý...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5 mr-1.5" />
+                          Tải lên
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </div>
+              )}
+
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
                   {documents.map((doc) => (
-                    <button
-                      key={doc.id}
-                      onClick={() => setSelectedDoc(doc)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedDoc?.id === doc.id ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"}`}
-                    >
-                      {doc.title}
-                    </button>
+                    <div key={doc.id} className="flex items-center justify-between group rounded-md transition-colors hover:bg-muted/60 pr-1">
+                      <button
+                        onClick={() => setSelectedDoc(doc)}
+                        className={`flex-1 text-left px-3 py-2 rounded-md text-sm transition-colors truncate ${selectedDoc?.id === doc.id ? "bg-primary text-primary-foreground font-medium" : ""}`}
+                      >
+                        {doc.title}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDoc(doc.id, doc.title)}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Xóa tài liệu"
+                      >
+                        <Trash className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   ))}
                   {documents.length === 0 && (
                     <p className="text-sm text-muted-foreground p-3">Chưa có tài liệu nào.</p>
