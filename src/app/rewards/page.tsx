@@ -55,7 +55,7 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
     const pointTasks = await prisma.userTask.findMany({
         where: {
             status: "APPROVED",
-            updatedAt: { gte: startDate, lte: endDate },
+            submittedAt: { gte: startDate, lte: endDate },
             taskDefinition: { unit: 'điểm' },
             user: {
                 role: {
@@ -83,7 +83,7 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
     const carryingTasks = await prisma.userTask.findMany({
         where: {
             status: "APPROVED",
-            updatedAt: { gte: startDate, lte: endDate },
+            submittedAt: { gte: startDate, lte: endDate },
             taskDefinition: { unit: 'điểm-bưng' },
             user: {
                 role: {

@@ -29,7 +29,7 @@ export default async function PackingPage({ searchParams }: { searchParams?: Pro
   let pendingCount = 0;
 
   userPackingTasks.forEach((t: any) => {
-    const taskDate = new Date(t.updatedAt || t.createdAt);
+    const taskDate = new Date(t.submittedAt || t.createdAt);
     if (taskDate >= currentMonthStart && taskDate <= currentMonthEnd) {
       if (t.status === 'APPROVED') {
         totalPoints += (t.finalAmount || 0);

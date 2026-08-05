@@ -447,6 +447,7 @@ export async function reviewTask(userTaskId: string, decision: "APPROVED" | "REJ
             userId: task.userId,
             amount: Math.round(finalAmount), // PayrollAdjustment uses Int
             reason: `Task: ${taskName} - ${updated.quantity}x${noteSuffix}`,
+            date: task.submittedAt || task.createdAt || new Date(),
           }
         });
       }
