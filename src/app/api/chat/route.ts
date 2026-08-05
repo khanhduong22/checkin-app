@@ -7,10 +7,14 @@
 
 import { prisma } from "@/lib/prisma";
 import { streamText } from "ai";
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+const genAI = new GoogleGenerativeAI(geminiApiKey!);
+const googleProvider = createGoogleGenerativeAI({
+  apiKey: geminiApiKey,
+});
 
 type SimilarChunk = {
   content: string;
@@ -66,7 +70,7 @@ export async function POST(req: Request) {
 
     // 4. Stream LLM response
     const response = await streamText({
-      model: google("gemini-2.5-flash"),
+      model: googleProvider("gemini-2.5-flash"),
       messages,
       system: systemPrompt,
     });
