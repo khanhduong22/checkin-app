@@ -100,11 +100,11 @@ export default function AnnouncementBar({ announcements }: { announcements: Anno
                                         {new Date(a.createdAt).toLocaleDateString('vi-VN')}
                                     </span>
                                 </div>
-                                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-1.5">
-                                    <Icon className="h-4 w-4 shrink-0" />
+                                <h3 className="font-extrabold text-gray-900 text-base md:text-lg flex items-start gap-2 leading-snug">
+                                    <Icon className="h-5 w-5 shrink-0 mt-0.5 text-orange-500" />
                                     {a.title}
                                 </h3>
-                                <p className="text-gray-600 text-xs mt-2 leading-relaxed whitespace-pre-line bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
+                                <p className="text-gray-700 text-sm mt-2.5 leading-relaxed whitespace-pre-line bg-gray-50/70 p-3 rounded-lg border border-gray-100">
                                     {a.content}
                                 </p>
                             </div>
