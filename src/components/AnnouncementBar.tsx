@@ -93,18 +93,18 @@ export default function AnnouncementBar({ announcements }: { announcements: Anno
                         return (
                             <div key={a.id} className={`p-4 rounded-xl border shadow-sm transition-all duration-200 ${borderStyle}`}>
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className={`text-xs uppercase font-extrabold tracking-wider px-3 py-1 rounded-full border ${badgeStyle}`}>
+                                    <span className={`text-sm uppercase font-extrabold tracking-wider px-3 py-1 rounded-full border ${badgeStyle}`}>
                                         {typeText}
                                     </span>
-                                    <span className="text-xs text-gray-400 font-bold">
+                                    <span className="text-sm text-gray-400 font-bold">
                                         {new Date(a.createdAt).toLocaleDateString('vi-VN')}
                                     </span>
                                 </div>
-                                <h3 className="font-extrabold text-gray-900 text-xl md:text-2xl flex items-start gap-2.5 leading-snug">
-                                    <Icon className="h-6 w-6 shrink-0 mt-1 text-orange-500" />
+                                <h3 className="font-extrabold text-gray-900 text-lg md:text-xl flex items-start gap-2.5 leading-snug">
+                                    <Icon className="h-5 w-5 shrink-0 mt-1 text-orange-500" />
                                     {a.title}
                                 </h3>
-                                <p className="text-gray-800 text-base md:text-lg mt-3 leading-relaxed whitespace-pre-line bg-gray-50/70 p-4 rounded-xl border border-gray-100 font-medium">
+                                <p className="text-gray-800 text-sm mt-3 leading-relaxed whitespace-pre-line bg-gray-50/70 p-4 rounded-xl border border-gray-100 font-semibold">
                                     {a.content}
                                 </p>
                             </div>
@@ -116,7 +116,7 @@ export default function AnnouncementBar({ announcements }: { announcements: Anno
                 <div className="p-4 bg-white border-t border-gray-100 flex justify-end shadow-inner">
                     <button
                         onClick={handleMarkAsRead}
-                        className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-extrabold rounded-xl shadow-lg hover:shadow-orange-500/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white text-lg font-extrabold rounded-xl shadow-lg hover:shadow-orange-500/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
                     >
                         <Check className="h-5 w-5" />
                         ĐÃ ĐỌC THÔNG BÁO
