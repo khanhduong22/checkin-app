@@ -92,19 +92,19 @@ export default function AnnouncementBar({ announcements }: { announcements: Anno
 
                         return (
                             <div key={a.id} className={`p-4 rounded-xl border shadow-sm transition-all duration-200 ${borderStyle}`}>
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border ${badgeStyle}`}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className={`text-xs uppercase font-extrabold tracking-wider px-3 py-1 rounded-full border ${badgeStyle}`}>
                                         {typeText}
                                     </span>
-                                    <span className="text-[10px] text-gray-400 font-medium">
+                                    <span className="text-xs text-gray-400 font-bold">
                                         {new Date(a.createdAt).toLocaleDateString('vi-VN')}
                                     </span>
                                 </div>
-                                <h3 className="font-extrabold text-gray-900 text-base md:text-lg flex items-start gap-2 leading-snug">
-                                    <Icon className="h-5 w-5 shrink-0 mt-0.5 text-orange-500" />
+                                <h3 className="font-extrabold text-gray-900 text-xl md:text-2xl flex items-start gap-2.5 leading-snug">
+                                    <Icon className="h-6 w-6 shrink-0 mt-1 text-orange-500" />
                                     {a.title}
                                 </h3>
-                                <p className="text-gray-700 text-sm mt-2.5 leading-relaxed whitespace-pre-line bg-gray-50/70 p-3 rounded-lg border border-gray-100">
+                                <p className="text-gray-800 text-base md:text-lg mt-3 leading-relaxed whitespace-pre-line bg-gray-50/70 p-4 rounded-xl border border-gray-100 font-medium">
                                     {a.content}
                                 </p>
                             </div>
