@@ -30,6 +30,7 @@ interface DailyDetail {
 export interface MonthlyStats {
   totalHours: number;
   totalOvertimeHours: number;
+  leaderboardOvertimeHours: number;
   daysWorked: number;
   checkinCount: number;
   baseSalary: number;
@@ -304,6 +305,7 @@ export async function getUserMonthlyStats(
   // 4. Daily Loop
   let totalHours = 0;
   let totalOvertimeHours = 0;
+  let leaderboardOvertimeHours = 0;
   const dailyDetails: DailyDetail[] = [];
   const allDates = new Set([...Object.keys(checkinsByDay), ...Array.from(wfhMap.keys())]);
 
@@ -397,6 +399,23 @@ export async function getUserMonthlyStats(
       totalHours += dayHours;
       if (canEarnOT && dayHours > scheduledHours) {
         totalOvertimeHours += (dayHours - scheduledHours);
+      }
+
+      // Calculate Leaderboard OT starting from August 2026
+      if (vnYear > 2026 || (vnYear === 2026 && vnMonth >= 7)) {
+        if (user.employmentType === 'PART_TIME') {
+          if (dayHours > 5) {
+            leaderboardOvertimeHours += (dayHours - 5);
+          }
+        } else {
+          if (dayHours > 8) {
+            leaderboardOvertimeHours += (dayHours - 8);
+          }
+        }
+      } else {
+        if (canEarnOT && dayHours > scheduledHours) {
+          leaderboardOvertimeHours += (dayHours - scheduledHours);
+        }
       }
     }
 
@@ -521,6 +540,7 @@ export async function getUserMonthlyStats(
   let statsResult = {
     totalHours,
     totalOvertimeHours,
+    leaderboardOvertimeHours,
     daysWorked: daysWorked.size,
     checkinCount: checkins.length,
     baseSalary,

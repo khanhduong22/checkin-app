@@ -162,3 +162,118 @@ describe("getUserMonthlyStats() - Early Check-in Capping Logic", () => {
     expect(stats.dailyDetails[0].rawHours).toBeCloseTo(7.82, 1);
   });
 });
+
+describe("getUserMonthlyStats() - Leaderboard Overtime Calculations", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const ptUser = {
+    id: "user-pt",
+    name: "Part-time Employee",
+    email: "pt@example.com",
+    role: "USER",
+    employmentType: "PART_TIME",
+    hourlyRate: 20000,
+    monthlySalary: 0,
+    adjustments: [],
+  };
+
+  const ftUser = {
+    id: "user-ft",
+    name: "Full-time Employee",
+    email: "ft@example.com",
+    role: "USER",
+    employmentType: "FULL_TIME",
+    hourlyRate: 30000,
+    monthlySalary: 6000000,
+    adjustments: [],
+  };
+
+  it("calculates leaderboardOvertimeHours matching standard OT before August 2026", async () => {
+    mockUserFindUnique.mockResolvedValue(ptUser);
+    mockHolidayFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+    
+    // Shift duration: 4 hours (12:00 to 16:00 Local)
+    mockShiftFindMany.mockResolvedValue([
+      {
+        id: 1,
+        userId: "user-pt",
+        start: new Date("2026-06-13T05:00:00.000Z"), // 12:00 Local
+        end: new Date("2026-06-13T09:00:00.000Z"),   // 16:00 Local
+        status: "APPROVED"
+      }
+    ]);
+
+    // Checkin: 12:00 Local (UTC 05:00)
+    // Checkout: 17:00 Local (UTC 10:00) -> 5 hours worked (1 hour OT above shift)
+    mockCheckInFindMany.mockResolvedValue([
+      { type: "checkin", timestamp: new Date("2026-06-13T05:00:00.000Z") },
+      { type: "checkout", timestamp: new Date("2026-06-13T10:00:00.000Z") }
+    ]);
+
+    // June 2026 (before August 2026)
+    const targetDateBefore = new Date("2026-06-15T12:00:00+07:00");
+    const stats = await getUserMonthlyStats(ptUser.id, targetDateBefore);
+
+    expect(stats.totalOvertimeHours).toBeCloseTo(1.0, 1);
+    expect(stats.leaderboardOvertimeHours).toBeCloseTo(1.0, 1);
+  });
+
+  it("calculates leaderboardOvertimeHours with new rule (>5h for PT) from August 2026 onwards", async () => {
+    mockUserFindUnique.mockResolvedValue(ptUser);
+    mockHolidayFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+    
+    // Shift duration: 4 hours (12:00 to 16:00 Local)
+    mockShiftFindMany.mockResolvedValue([
+      {
+        id: 1,
+        userId: "user-pt",
+        start: new Date("2026-08-13T05:00:00.000Z"), // 12:00 Local
+        end: new Date("2026-08-13T09:00:00.000Z"),   // 16:00 Local
+        status: "APPROVED"
+      }
+    ]);
+
+    // Checkin: 12:00 Local
+    // Checkout: 18:30 Local -> 6.5 hours worked.
+    // Standard OT: 6.5 - 4 (shift duration) = 2.5 hours.
+    // Leaderboard OT: 6.5 - 5 = 1.5 hours.
+    mockCheckInFindMany.mockResolvedValue([
+      { type: "checkin", timestamp: new Date("2026-08-13T05:00:00.000Z") },
+      { type: "checkout", timestamp: new Date("2026-08-13T11:30:00.000Z") }
+    ]);
+
+    // August 2026 (starts new rule)
+    const targetDateAfter = new Date("2026-08-15T12:00:00+07:00");
+    const stats = await getUserMonthlyStats(ptUser.id, targetDateAfter);
+
+    expect(stats.totalOvertimeHours).toBeCloseTo(2.5, 1);
+    expect(stats.leaderboardOvertimeHours).toBeCloseTo(1.5, 1);
+  });
+
+  it("calculates leaderboardOvertimeHours with new rule (>8h for FT) from August 2026 onwards", async () => {
+    mockUserFindUnique.mockResolvedValue(ftUser);
+    mockHolidayFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+    mockShiftFindMany.mockResolvedValue([]); // No shift
+
+    // Checkin: 08:30 Local (01:30 UTC)
+    // Checkout: 18:30 Local (11:30 UTC) -> 10 hours worked.
+    // Standard OT: 10 - 8 = 2 hours.
+    // Leaderboard OT: 10 - 8 = 2 hours.
+    mockCheckInFindMany.mockResolvedValue([
+      { type: "checkin", timestamp: new Date("2026-08-13T01:30:00.000Z") },
+      { type: "checkout", timestamp: new Date("2026-08-13T11:30:00.000Z") }
+    ]);
+
+    // August 2026 (starts new rule)
+    const targetDateAfter = new Date("2026-08-15T12:00:00+07:00");
+    const stats = await getUserMonthlyStats(ftUser.id, targetDateAfter);
+
+    expect(stats.totalOvertimeHours).toBeCloseTo(2.0, 1);
+    expect(stats.leaderboardOvertimeHours).toBeCloseTo(2.0, 1);
+  });
+});

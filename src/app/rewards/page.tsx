@@ -22,7 +22,8 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
     const payroll = await calculatePayroll(month, year);
 
     // Filter out inactive users who have quit and admins
-    const excludedNames = ['Nía'];
+    const useNewOTRule = year > 2026 || (year === 2026 && month >= 8);
+    const excludedNames = useNewOTRule ? ['Nía', 'Na'] : ['Nía'];
     const activePayroll = payroll.filter((p: any) => !excludedNames.includes(p.name) && p.role !== 'ADMIN');
     report.topDiscipline = report.topDiscipline.filter((u: any) => !excludedNames.includes(u.user.name));
 
@@ -43,8 +44,14 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
 
     // Top 3 Overtime (Average per day)
     const topOvertime = [...activePayroll]
-        .filter((p: any) => p.totalOvertimeHours && p.totalOvertimeHours > 0 && p.daysWorked >= minDays)
-        .map((p: any) => ({ ...p, avgOvertime: p.totalOvertimeHours / p.daysWorked }))
+        .filter((p: any) => {
+            const otHours = useNewOTRule ? p.leaderboardOvertimeHours : p.totalOvertimeHours;
+            return otHours && otHours > 0 && p.daysWorked >= minDays;
+        })
+        .map((p: any) => {
+            const otHours = useNewOTRule ? p.leaderboardOvertimeHours : p.totalOvertimeHours;
+            return { ...p, displayOvertimeHours: otHours, avgOvertime: otHours / p.daysWorked };
+        })
         .sort((a, b) => b.avgOvertime - a.avgOvertime)
         .slice(0, 3);
 
@@ -231,7 +238,7 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
                                         </div>
                                         <div className="text-right">
                                             <div className="text-xl font-bold text-pink-600">{u.avgOvertime.toFixed(1)}h<span className="text-sm font-normal">/ca</span></div>
-                                            <div className="text-xs text-muted-foreground">Tổng: {u.totalOvertimeHours.toFixed(1)}h</div>
+                                            <div className="text-xs text-muted-foreground">Tổng: {u.displayOvertimeHours.toFixed(1)}h</div>
                                         </div>
                                     </div>
                                 ))}
