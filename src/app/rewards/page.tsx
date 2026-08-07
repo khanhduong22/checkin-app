@@ -159,7 +159,7 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
                             <CardTitle className="flex items-center gap-2 text-orange-700">
                                 🐝 Top Chăm Chỉ
                             </CardTitle>
-                            <CardDescription>Nhân viên có tổng giờ làm cao nhất</CardDescription>
+                            <CardDescription>Nhân viên có tổng giờ làm cao nhất (Top 1 làm tối thiểu 130h được thưởng 200k)</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
