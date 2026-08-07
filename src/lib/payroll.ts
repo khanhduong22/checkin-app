@@ -126,5 +126,69 @@ export async function calculatePayroll(month: number, year: number) {
     };
   }));
 
-  return payrollData;
+  // Apply hardworking bonus (top 1 part-time user working >= 130 hours gets 200k)
+  return applyHardworkingBonus(payrollData, month, year, false);
 }
+
+export function applyHardworkingBonus(payrollList: any[], month: number, year: number, isNestedStats: boolean) {
+  const useNewOTRule = year > 2026 || (year === 2026 && month >= 8);
+  const excludedNames = useNewOTRule ? ['Nía', 'Na'] : ['Nía'];
+
+  // Filter eligible users: PART_TIME, not ADMIN, not in excludedNames
+  const eligible = payrollList.filter(p => {
+    const name = p.name;
+    const role = p.role;
+    const empType = isNestedStats ? p.stats?.employmentType : p.employmentType;
+    return empType !== 'FULL_TIME' && role !== 'ADMIN' && !excludedNames.includes(name);
+  });
+
+  if (eligible.length === 0) return payrollList;
+
+  // Find the top 1 hardworking user (highest totalHours)
+  const sorted = [...eligible].sort((a, b) => {
+    const hoursA = isNestedStats ? a.stats.totalHours : a.totalHours;
+    const hoursB = isNestedStats ? b.stats.totalHours : b.totalHours;
+    return hoursB - hoursA;
+  });
+
+  const topUser = sorted[0];
+  const topHours = isNestedStats ? topUser.stats.totalHours : topUser.totalHours;
+
+  if (topHours >= 130) {
+    const allTopUsers = sorted.filter(u => {
+      const hours = isNestedStats ? u.stats.totalHours : u.totalHours;
+      return hours === topHours;
+    });
+
+    for (const u of allTopUsers) {
+      const targetStats = isNestedStats ? u.stats : u;
+
+      // Add a synthetic adjustment to adjustments array
+      const bonusAdjustment = {
+        id: `hardworking-bonus-${month}-${year}`,
+        userId: u.id,
+        amount: 200000,
+        reason: 'Thưởng Top 1 Chăm Chỉ (Làm tối thiểu 130h)',
+        date: new Date(year, month - 1, 28)
+      };
+
+      if (!targetStats.adjustments) {
+        targetStats.adjustments = [];
+      }
+      // Ensure we don't add it twice (idempotency check in memory)
+      const hasBonus = targetStats.adjustments.some((adj: any) => adj.reason === bonusAdjustment.reason);
+      if (!hasBonus) {
+        targetStats.adjustments = [bonusAdjustment, ...targetStats.adjustments];
+        targetStats.totalAdjustments = (targetStats.totalAdjustments || 0) + 200000;
+        targetStats.totalSalary = (targetStats.totalSalary || 0) + 200000;
+        targetStats.projectedSalary = (targetStats.projectedSalary || 0) + 200000;
+        if (targetStats.finalNet !== undefined) {
+          targetStats.finalNet = (targetStats.finalNet || 0) + 200000;
+        }
+      }
+    }
+  }
+
+  return payrollList;
+}
+

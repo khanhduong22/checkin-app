@@ -184,10 +184,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                                             {idx + 1}
                                         </div>
                                         <div>
-                                            <div className="font-bold">
+                                            <div className="font-bold flex items-center gap-2">
                                                 <Link href={`/admin/employees/${u.id}`} className="hover:underline">
                                                     {u.name}
                                                 </Link>
+                                                {idx === 0 && u.totalHours >= 130 && (
+                                                    <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-[9px] px-1.5 py-0.5 font-bold animate-pulse">
+                                                        🏆 Thưởng +200k
+                                                    </Badge>
+                                                )}
                                             </div>
                                             <div className="text-xs text-muted-foreground">{u.daysWorked} ngày công</div>
                                         </div>

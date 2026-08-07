@@ -25,6 +25,8 @@ updated: 2026-03-03
 | [thu-payroll.test.ts](../../tests/unit/thu-payroll.test.ts) | `isThuKpiSalary`, Thư base/KPI salary calculations & revenue bonus overrides | 100% |
 | [manager-checklist.test.ts](../../tests/unit/manager-checklist.test.ts) | `getUserMonthlyStats` (Manager Checklist compliance) | 100% |
 | [shift-audit.test.ts](../../tests/unit/shift-audit.test.ts) | `logShiftAction`, `getShiftAuditLogs` (Shift Audit Logging) | 100% |
+| [hardworking-bonus.test.ts](../../tests/unit/hardworking-bonus.test.ts) | `applyHardworkingBonus` | 100% |
+
 
 ### E2E Tests (Playwright)
 | File | Flow |

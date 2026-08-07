@@ -307,8 +307,17 @@ async function StreakAndSwapWidget({ userId }: { userId: string }) {
 }
 
 async function PrivacyStatsWrapper({ userId }: { userId: string }) {
-    const { getUserMonthlyStats } = await import("@/lib/stats");
-    const stats = await getUserMonthlyStats(userId);
+    const { calculatePayroll } = await import("@/lib/payroll");
+    const now = new Date();
+    const payrollData = await calculatePayroll(now.getMonth() + 1, now.getFullYear());
+    const userPayroll = payrollData.find(p => p.id === userId);
+    
+    let stats = userPayroll;
+    if (!stats) {
+        const { getUserMonthlyStats } = await import("@/lib/stats");
+        stats = await getUserMonthlyStats(userId) as any;
+    }
+    
     const PrivacyStats = (await import("@/components/PrivacyStats")).default;
 
     return (

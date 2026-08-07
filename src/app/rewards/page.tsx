@@ -170,7 +170,14 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
                                                 {idx + 1}
                                             </div>
                                             <div>
-                                                <div className="font-bold text-gray-800">{u.name}</div>
+                                                <div className="font-bold text-gray-800 flex items-center gap-2">
+                                                    {u.name}
+                                                    {idx === 0 && u.totalHours >= 130 && (
+                                                        <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-[9px] px-1.5 py-0.5 font-bold animate-pulse">
+                                                            🏆 Thưởng +200k
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                                 <div className="text-xs text-muted-foreground">{u.daysWorked} ngày công</div>
                                             </div>
                                         </div>

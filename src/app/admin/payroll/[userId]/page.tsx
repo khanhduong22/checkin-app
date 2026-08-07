@@ -65,13 +65,20 @@ export default async function AdminEmployeePayrollPage({
         stats = payslip.content as any;
     } else {
         // Open month: live calculation + apply bonus preview from PayrollPeriod
-        const liveStats = await getUserMonthlyStats(userId, targetDate);
+        // Open month: live calculation + apply bonus preview from PayrollPeriod
+        const { calculatePayroll } = await import("@/lib/payroll");
+        const payrollData = await calculatePayroll(selectedMonth, selectedYear);
+        const userPayroll = payrollData.find(p => p.id === userId);
+        
+        // Destructure stats out of user payroll details
+        const { id: _id, name: _name, email: _email, role: _role, employmentType: _empType, ...liveStats } = userPayroll || {};
+        
         const bonusPercent = period?.bonusPercent || 0;
         const bonusTargets: string[] = (period?.bonusTargets as string[]) || ['PART_TIME'];
 
         const shouldApplyBonus = bonusPercent > 0 && bonusTargets.includes(targetUser.employmentType);
-        const bonusAmount = shouldApplyBonus ? liveStats.baseSalary * (bonusPercent / 100) : 0;
-        const finalNet = liveStats.totalSalary + bonusAmount;
+        const bonusAmount = shouldApplyBonus ? (liveStats.baseSalary || 0) * (bonusPercent / 100) : 0;
+        const finalNet = (liveStats.totalSalary || 0) + bonusAmount;
 
         stats = {
             ...liveStats,
