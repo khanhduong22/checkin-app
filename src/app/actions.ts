@@ -21,10 +21,12 @@ export async function getIPStatus() {
     ? true
     : isIPMatch(realIp, prefixes);
 
+  const matchedIp = isAllowed ? allowedIps.find((ip: any) => isIPMatch(realIp, [ip.prefix])) : null;
+
   return {
     ip: realIp,
     isAllowed,
-    locationName: isAllowed ? (allowedIps.find((ip: any) => realIp.startsWith(ip.prefix))?.label || "Văn phòng") : "Ngoài vùng phủ sóng"
+    locationName: isAllowed ? (matchedIp?.label || "Văn phòng") : "Ngoài vùng phủ sóng"
   };
 }
 
@@ -38,20 +40,17 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
   const allowedIps = await prisma.allowedIP.findMany();
   const prefixes = allowedIps.map((r: { prefix: string }) => r.prefix);
 
-  // If no allowed IPs defined yet, allow localhost for setup (Optional safety)
-  if (prefixes.length === 0) {
-    // Warning: No security if empty list? Or Fail closed?
-    // Let's allow setup by returning a specific error inviting to add IP
-    // But for user experience, let's Fail if not match.
-  }
-
   // Check IP
   const isAllowed = isIPMatch(realIp, prefixes);
 
   if (!isAllowed) {
+    const isIPv6 = realIp.includes(':');
+    const helpTip = isIPv6
+      ? `\n💡 Gợi ý: IP này là IPv6. Bạn có thể sao chép phần đầu (ví dụ: ${realIp.split(':').slice(0, 4).join(':')}:) để cấu hình cho cả văn phòng.`
+      : '';
     return {
       success: false,
-      message: `❌ IP không hợp lệ: ${realIp}. Vui lòng kết nối Wi-Fi văn phòng.`
+      message: `❌ IP không hợp lệ: ${realIp}. Vui lòng kết nối Wi-Fi văn phòng.${helpTip}`
     };
   }
 

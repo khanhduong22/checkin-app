@@ -23,20 +23,26 @@ export default function IPManager({ ips }: { ips: any[] }) {
         <Card id="ip-manager-card">
             <CardHeader>
                 <CardTitle>Cấu hình IP Văn Phòng</CardTitle>
-                <CardDescription>Chỉ những IP này mới được phép Check-in</CardDescription>
+                <CardDescription>
+                    Chỉ những địa chỉ IP thuộc danh sách này mới được phép Check-in.
+                    <span className="block mt-1 text-xs text-muted-foreground font-normal">
+                        💡 Hỗ trợ cả IPv4 & IPv6, định dạng CIDR (ví dụ: <code>192.168.1.0/24</code>, <code>2001:ee0:4b74:34c0::/64</code>). 
+                        Với IPv6, hệ thống tự động so khớp tiền tố 4 nhóm đầu (<code>/64</code>) nên bạn có thể thêm một IPv6 bất kỳ trong văn phòng để dùng cho tất cả thiết bị.
+                    </span>
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex gap-2 mb-6">
                     <input 
                         type="text" 
-                        placeholder="IP Prefix (e.g. 192.168.1.)" 
+                        placeholder="IP Prefix hoặc CIDR (e.g. 192.168.1. hoặc 2001:ee0:4b74:34c0::/64)" 
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         value={prefix}
                         onChange={e => setPrefix(e.target.value)}
                     />
                      <input 
                         type="text" 
-                        placeholder="Mô tả (e.g. Tầng 1)" 
+                        placeholder="Mô tả (e.g. Wi-Fi Văn Phòng)" 
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         value={label}
                         onChange={e => setLabel(e.target.value)}

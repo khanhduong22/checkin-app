@@ -124,10 +124,13 @@ Nhân viên chỉ được check-in khi IP của họ khớp với danh sách n�
 4. Nhấn **Lưu**.
 
 > [!TIP]
-> Để tìm IP public hiện tại của văn phòng: Google **"What is my IP"** khi đang ở văn phòng, lấy địa chỉ IPv4 hiện ra.
+> **Hỗ trợ IPv6 và dải mạng (CIDR)**:
+> - Nếu văn phòng sử dụng IPv6 (đặc biệt khi dùng tên miền như `limart.khanhdp.com`), hệ thống tự động so khớp tiền tố `/64` (4 nhóm đầu tiên của IPv6). Bạn chỉ cần sao chép địa chỉ IPv6 đầy đủ của một thiết bị bất kỳ trong văn phòng (ví dụ: `2001:ee0:4b74:34c0:5e02:5ccf:e156:835b`) để cho phép toàn bộ văn phòng sử dụng chung.
+> - Bạn cũng có thể nhập định dạng CIDR (ví dụ: `192.168.1.0/24` cho IPv4 hoặc `2001:ee0:4b74:34c0::/64` cho IPv6).
+> - Để tìm IP public hiện tại của văn phòng: Google **"What is my IP"** khi đang kết nối Wi-Fi tại văn phòng.
 
 > [!NOTE]
-> IP điện thoại dùng data 4G sẽ **không được chấp nhận** (đây là cơ chế chống chấm công hộ).
+> IP điện thoại dùng data 4G/5G sẽ **không được chấp nhận** (đây là cơ chế chống chấm công hộ).
 
 ---
 
