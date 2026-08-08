@@ -21,6 +21,8 @@ updated: 2026-08-08
 | [carrying-bonus.test.ts](../../tests/unit/carrying-bonus.test.ts) | `runCarryingBonus` | 100% |
 | [packing-bonus.test.ts](../../tests/unit/packing-bonus.test.ts) | `runPackingBonus` | 100% |
 | [ip-utils.test.ts](../../tests/unit/ip-utils.test.ts) | `normalizeIP`, `isIPMatch`, `expandIPv6`, `matchCIDR` | 100% |
+| [schedule-lock.test.ts](../../tests/unit/schedule-lock.test.ts) | `isShiftLocked` (Sunday 00:00 lock) | 100% |
+| [schedule-register.test.ts](../../tests/unit/schedule-register.test.ts) | `registerShift` (late registration check & 50k penalty) | 100% |
 | [staff-task.test.ts](../../tests/unit/staff-task.test.ts) | `getStaffTasks`, `createStaffTask`, `updateStaffTask`, `toggleUserStaffTasksAllowed`, `getStaffTaskPerformanceStats` | 100% |
 | [thu-payroll.test.ts](../../tests/unit/thu-payroll.test.ts) | `isThuKpiSalary`, Thư base/KPI salary calculations & revenue bonus overrides | 100% |
 | [manager-checklist.test.ts](../../tests/unit/manager-checklist.test.ts) | `getUserMonthlyStats` (Manager Checklist compliance) | 100% |

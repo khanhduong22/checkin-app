@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { isShiftLocked } from "@/lib/schedule-lock";
+import { isShiftLocked, toVietnamTime } from "@/lib/schedule-lock";
 import { logShiftAction } from "@/lib/audit";
 
 export async function registerShift(start: Date, end: Date, override: boolean = false, targetUserId?: string) {
@@ -31,6 +31,52 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
   // Lock check: normal users cannot register shifts if it's locked
   if (requester.role !== 'ADMIN' && isShiftLocked(start)) {
     return { success: false, error: 'Lịch làm việc của tuần này đã được chốt, không thể thay đổi!' };
+  }
+
+  // Check if penalty applies (registering for next week after Saturday 00:00 VN time)
+  const shiftVN = toVietnamTime(start);
+  const nowVN = toVietnamTime(new Date());
+
+  const day = shiftVN.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const mondayVN = new Date(shiftVN.getTime());
+  mondayVN.setDate(shiftVN.getDate() + diffToMonday);
+  mondayVN.setHours(0, 0, 0, 0);
+
+  // Penalty deadline is Saturday 00:00:00 (2 days before Monday)
+  const penaltyDeadlineVN = new Date(mondayVN.getTime());
+  penaltyDeadlineVN.setDate(mondayVN.getDate() - 2);
+  penaltyDeadlineVN.setHours(0, 0, 0, 0);
+
+  if (requester.role !== 'ADMIN' && nowVN.getTime() >= penaltyDeadlineVN.getTime()) {
+    const mondayDate = new Date(mondayVN);
+    
+    // Check if they already have a late penalty for this week
+    const existingAdjustment = await prisma.payrollAdjustment.findFirst({
+      where: {
+        userId: targetUser.id,
+        date: mondayDate,
+        reason: { contains: "Phạt đăng ký lịch muộn" }
+      }
+    });
+
+    if (!existingAdjustment) {
+      const sundayVN = new Date(mondayVN.getTime());
+      sundayVN.setDate(mondayVN.getDate() + 6);
+      
+      const monStr = mondayVN.getDate().toString().padStart(2, '0') + '/' + (mondayVN.getMonth() + 1).toString().padStart(2, '0');
+      const sunStr = sundayVN.getDate().toString().padStart(2, '0') + '/' + (sundayVN.getMonth() + 1).toString().padStart(2, '0');
+      const weekStr = `${monStr} - ${sunStr}`;
+      
+      await prisma.payrollAdjustment.create({
+        data: {
+          userId: targetUser.id,
+          amount: -50000,
+          reason: `Phạt đăng ký lịch muộn tuần ${weekStr}`,
+          date: mondayDate,
+        }
+      });
+    }
   }
 
   // Check self overlap (for targetUser)

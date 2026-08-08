@@ -33,9 +33,9 @@ export function isShiftLocked(shiftDate: Date | string | number): boolean {
   mondayVN.setDate(shiftVN.getDate() + diffToMonday);
   mondayVN.setHours(0, 0, 0, 0);
   
-  // Lock deadline is Saturday 00:00 of the previous week (2 days before Monday)
+  // Lock deadline is Sunday 00:00 of the previous week (1 day before Monday)
   const lockDeadlineVN = new Date(mondayVN.getTime());
-  lockDeadlineVN.setDate(mondayVN.getDate() - 2);
+  lockDeadlineVN.setDate(mondayVN.getDate() - 1);
   lockDeadlineVN.setHours(0, 0, 0, 0);
   
   return nowVN.getTime() >= lockDeadlineVN.getTime();

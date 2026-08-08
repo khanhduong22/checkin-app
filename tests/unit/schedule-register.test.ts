@@ -16,6 +16,10 @@ vi.mock("../../src/lib/prisma", () => ({
     shiftAuditLog: {
       create: vi.fn(),
     },
+    payrollAdjustment: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+    },
   },
 }));
 
@@ -32,6 +36,8 @@ const mockUserFindUnique = prisma.user.findUnique as ReturnType<typeof vi.fn>;
 const mockShiftCount = prisma.workShift.count as ReturnType<typeof vi.fn>;
 const mockShiftFindMany = prisma.workShift.findMany as ReturnType<typeof vi.fn>;
 const mockShiftCreate = prisma.workShift.create as ReturnType<typeof vi.fn>;
+const mockAdjustmentFindFirst = prisma.payrollAdjustment.findFirst as ReturnType<typeof vi.fn>;
+const mockAdjustmentCreate = prisma.payrollAdjustment.create as ReturnType<typeof vi.fn>;
 
 describe("registerShift Limit", () => {
   beforeEach(() => {
@@ -67,6 +73,9 @@ describe("registerShift Limit", () => {
       end: new Date(),
       status: "APPROVED",
     });
+
+    mockAdjustmentFindFirst.mockResolvedValue(null);
+    mockAdjustmentCreate.mockResolvedValue({ id: "adj-123" });
   });
 
   afterEach(() => {
@@ -152,5 +161,73 @@ describe("registerShift Limit", () => {
 
     expect(result.success).toBe(true);
     expect(mockShiftCreate).toHaveBeenCalledOnce();
+  });
+
+  describe("Late Registration Penalty", () => {
+    it("deducts 50k for registering next week's schedule after Saturday 00:00 VN time", async () => {
+      // Shift starts on Wednesday, July 1, 2026 09:00 VN
+      // Monday of that week is June 29.
+      // Saturday 00:00 VN is June 27.
+      // Mock "now" as Saturday, June 27, 2026 10:00:00 VN (03:00 UTC)
+      const mockNow = new Date("2026-06-27T03:00:00Z");
+      vi.setSystemTime(mockNow);
+
+      const start = new Date("2026-07-01T01:00:00Z");
+      const end = new Date("2026-07-01T05:00:00Z");
+      mockShiftFindMany.mockResolvedValue([]);
+
+      const result = await registerShift(start, end, false);
+
+      expect(result.success).toBe(true);
+      expect(mockAdjustmentCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            amount: -50000,
+            reason: expect.stringContaining("Phạt đăng ký lịch muộn"),
+          }),
+        })
+      );
+    });
+
+    it("does not deduct 50k if late registration penalty was already applied for this week", async () => {
+      // Mock "now" as Saturday, June 27, 2026 10:00:00 VN (03:00 UTC)
+      const mockNow = new Date("2026-06-27T03:00:00Z");
+      vi.setSystemTime(mockNow);
+
+      const start = new Date("2026-07-01T01:00:00Z");
+      const end = new Date("2026-07-01T05:00:00Z");
+      mockShiftFindMany.mockResolvedValue([]);
+
+      // Mock that adjustment already exists
+      mockAdjustmentFindFirst.mockResolvedValue({ id: "adj-already-applied" });
+
+      const result = await registerShift(start, end, false);
+
+      expect(result.success).toBe(true);
+      expect(mockAdjustmentCreate).not.toHaveBeenCalled();
+    });
+
+    it("does not deduct 50k if Admin registers shift for Staff after Saturday 00:00 VN time", async () => {
+      // Mock "now" as Saturday, June 27, 2026 10:00:00 VN (03:00 UTC)
+      const mockNow = new Date("2026-06-27T03:00:00Z");
+      vi.setSystemTime(mockNow);
+
+      const start = new Date("2026-07-01T01:00:00Z");
+      const end = new Date("2026-07-01T05:00:00Z");
+      mockShiftFindMany.mockResolvedValue([]);
+
+      // Mock requester as ADMIN
+      mockUserFindUnique.mockResolvedValue({
+        id: "user-admin",
+        email: "admin@example.com",
+        role: "ADMIN",
+        employmentType: "PART_TIME",
+      });
+
+      const result = await registerShift(start, end, false, "user-staff");
+
+      expect(result.success).toBe(true);
+      expect(mockAdjustmentCreate).not.toHaveBeenCalled();
+    });
   });
 });

@@ -154,6 +154,11 @@ Nếu nhân viên muốn nhờ người khác làm thay:
 
 Admin có thể xem lịch làm việc của tất cả nhân viên theo tuần/tháng.
 
+### 5.4 Thời hạn đăng ký và Quy định phạt trễ hạn
+- **Thời hạn tự đăng ký không phạt**: Trước **00:00 sáng thứ Bảy** của tuần trước (ví dụ: đăng ký ca làm của tuần tới thì phải đăng ký trước 00:00 sáng thứ Bảy tuần này).
+- **Đăng ký trễ hạn (Có phạt)**: Đăng ký trong khoảng từ **00:00 sáng thứ Bảy** đến **00:00 sáng Chủ nhật** vẫn được phép tự đăng ký trên điện thoại/hệ thống, nhưng hệ thống sẽ **tự động trừ 50,000 VND** vào bảng lương của tuần đó (tạo phiếu trừ lương điều chỉnh, tối đa phạt 1 lần/tuần).
+- **Khóa lịch hoàn toàn**: Lịch làm việc tuần sau sẽ **khóa hẳn vào 00:00 sáng Chủ nhật** hàng tuần. Sau thời gian này, nhân viên không thể tự đăng ký/sửa/xóa lịch làm, chỉ có Admin mới có quyền chỉnh sửa.
+
 ---
 
 ## 6. Task Marketplace
