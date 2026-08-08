@@ -136,7 +136,20 @@ function calculateFullTimeMetrics(user: User, vnYear: number, vnMonth: number, l
     const current = new Date(vnYear, vnMonth, d);
     if (current.getDay() === 0) sundays++;
   }
-  const standardDays = daysInMonth - sundays;
+  
+  let standardDays = daysInMonth - sundays;
+
+  // From August 2026 onwards, Na (admin) has 1.5 days off per week
+  const isNa15DaysOff = (user.email === 'maithina4040@gmail.com' || user.name === 'Na') && (vnYear > 2026 || (vnYear === 2026 && vnMonth >= 7));
+  if (isNa15DaysOff) {
+    let saturdays = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const current = new Date(vnYear, vnMonth, d);
+      if (current.getDay() === 6) saturdays++;
+    }
+    standardDays = daysInMonth - sundays - (saturdays * 0.5);
+  }
+
   const dailySalary = (user.monthlySalary || 0) / (standardDays || 1);
   const dynamicHourlyRate = dailySalary / 8;
   const deduction = leaveCount * dailySalary;

@@ -276,4 +276,63 @@ describe("getUserMonthlyStats() - Leaderboard Overtime Calculations", () => {
     expect(stats.totalOvertimeHours).toBeCloseTo(2.0, 1);
     expect(stats.leaderboardOvertimeHours).toBeCloseTo(2.0, 1);
   });
+
+  it("calculates standardDays and dailySalary for Na with 1.5 days off per week from August 2026 onwards", async () => {
+    const naUser = {
+      id: "user-na",
+      name: "Na",
+      email: "maithina4040@gmail.com",
+      role: "ADMIN",
+      employmentType: "FULL_TIME",
+      hourlyRate: 30000,
+      monthlySalary: 6000000,
+      adjustments: [],
+    };
+
+    mockUserFindUnique.mockResolvedValue(naUser);
+    mockHolidayFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+    mockShiftFindMany.mockResolvedValue([]);
+    mockCheckInFindMany.mockResolvedValue([]);
+
+    // Target date: August 15, 2026 (month index 7)
+    // August 2026 has 31 days, 5 Sundays, 5 Saturdays.
+    // Na gets 1.5 days off per week.
+    // standardDays: 31 - 5 (Sundays) - 5 * 0.5 (Saturdays) = 23.5 days.
+    const targetDate = new Date("2026-08-15T12:00:00+07:00");
+    const stats = await getUserMonthlyStats(naUser.id, targetDate);
+
+    expect(stats.standardDays).toBe(23.5);
+    expect(stats.dailySalary).toBeCloseTo(6000000 / 23.5, 2);
+    expect(stats.dynamicHourlyRate).toBeCloseTo((6000000 / 23.5) / 8, 2);
+  });
+
+  it("calculates normal standardDays for Na before August 2026 (e.g. July 2026)", async () => {
+    const naUser = {
+      id: "user-na",
+      name: "Na",
+      email: "maithina4040@gmail.com",
+      role: "ADMIN",
+      employmentType: "FULL_TIME",
+      hourlyRate: 30000,
+      monthlySalary: 6000000,
+      adjustments: [],
+    };
+
+    mockUserFindUnique.mockResolvedValue(naUser);
+    mockHolidayFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+    mockShiftFindMany.mockResolvedValue([]);
+    mockCheckInFindMany.mockResolvedValue([]);
+
+    // July 2026 (month index 6)
+    // July 2026 has 31 days, 4 Sundays.
+    // Na gets 1 day off per week (Sunday).
+    // standardDays: 31 - 4 = 27 days.
+    const targetDate = new Date("2026-07-15T12:00:00+07:00");
+    const stats = await getUserMonthlyStats(naUser.id, targetDate);
+
+    expect(stats.standardDays).toBe(27);
+    expect(stats.dailySalary).toBeCloseTo(6000000 / 27, 2);
+  });
 });
