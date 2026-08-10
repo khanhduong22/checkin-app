@@ -78,6 +78,11 @@ export async function uploadDocument(formData: FormData) {
       return { success: false, error: "Thiếu file hoặc tiêu đề" };
     }
 
+    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    if (!geminiApiKey) {
+      return { success: false, error: "Gemini API key is not configured" };
+    }
+
     const fileName = file.name;
     const fileExtension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
 
@@ -87,8 +92,31 @@ export async function uploadDocument(formData: FormData) {
     } else if (fileExtension === ".docx") {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      const result = await mammoth.extractRawText({ buffer });
-      content = result.value;
+      
+      try {
+        const result = await mammoth.convertToHtml({ buffer });
+        const rawHtml = result.value;
+        
+        const genAI = new GoogleGenerativeAI(geminiApiKey);
+        const structureModel = genAI.getGenerativeModel({
+          model: "gemini-2.5-flash",
+          systemInstruction: "Bạn là chuyên gia chuyển đổi tài liệu. Hãy chuyển đổi mã HTML sau đây thành định dạng Markdown chuẩn (GFM - GitHub Flavored Markdown), giữ nguyên các bảng biểu (Markdown tables), danh sách, và định dạng tiêu đề. Chỉ trả về chuỗi Markdown sạch, không có thẻ codeblock ```markdown bao quanh."
+        });
+        const prompt = `Chuyển HTML này sang Markdown:\n\n${rawHtml}`;
+        const responseResult = await structureModel.generateContent(prompt);
+        let markdown = responseResult.response.text().trim();
+        
+        if (markdown.startsWith("```")) {
+          markdown = markdown.replace(/^```[a-zA-Z]*\n/, "");
+          markdown = markdown.replace(/\n```$/, "");
+        }
+        content = markdown.trim();
+      } catch (geminiError) {
+        console.error("Lỗi khi chuyển đổi HTML bằng Gemini:", geminiError);
+        // Fallback sang text thô nếu lỗi
+        const result = await mammoth.extractRawText({ buffer });
+        content = result.value;
+      }
     } else {
       return { success: false, error: "Chỉ hỗ trợ file .docx hoặc .txt" };
     }
@@ -111,11 +139,6 @@ export async function uploadDocument(formData: FormData) {
 
     // Chunk text
     const chunks = chunkText(content);
-
-    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!geminiApiKey) {
-      return { success: false, error: "Gemini API key is not configured" };
-    }
 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
