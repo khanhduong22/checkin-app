@@ -229,7 +229,7 @@ export default function HelpCenterPage() {
         <TabsList className="w-full max-w-md grid grid-cols-2 mb-4">
           <TabsTrigger value="ai" className="flex items-center gap-2">
             <Bot className="w-4 h-4" />
-            Trợ lý AI
+            Trợ lí Capy
           </TabsTrigger>
           <TabsTrigger value="docs" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
@@ -242,7 +242,7 @@ export default function HelpCenterPage() {
             <CardHeader className="border-b shrink-0 py-4">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Bot className="w-5 h-5 text-indigo-500" />
-                <span>Trợ lý AI Hướng dẫn nội bộ</span>
+                <span>Trợ lí Capy Hướng dẫn nội bộ</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col p-0 overflow-hidden relative">
@@ -251,7 +251,7 @@ export default function HelpCenterPage() {
                   <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground space-y-4 py-20">
                     <Bot className="w-16 h-16 opacity-20" />
                     <div>
-                      <p>Chào bạn! Tôi là trợ lý AI nội bộ của dự án.</p>
+                      <p>Chào bạn! Tôi là Trợ lí Capy, trợ lý AI nội bộ của dự án.</p>
                       <p className="text-sm">Hãy đặt câu hỏi về cách sử dụng phần mềm, quy trình, hoặc các tính năng.</p>
                     </div>
                   </div>
@@ -262,7 +262,7 @@ export default function HelpCenterPage() {
                         <div className={`max-w-[80%] rounded-lg p-4 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                           <div className="flex items-center justify-between mb-1 gap-2">
                             <span className="font-semibold text-sm opacity-70">
-                              {m.role === "user" ? "Bạn" : "AI Assistant"}
+                              {m.role === "user" ? "Bạn" : "Trợ lí Capy"}
                             </span>
                             {m.role === "assistant" && m.content && (
                               <button

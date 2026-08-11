@@ -24,7 +24,7 @@ linked-to: [[Planning-MOC]]
 ## Q3 2026: Intelligence & Automation
 - [ ] **Smart Scheduling**: Auto-assign shifts based on availability.
 - [ ] **Payroll Analytics**: Trends analysis, budget forecasting for admins.
-- [ ] **AI Assistant**: Chatbot for "How many leave days do I have?" type queries.
+- [x] **AI Assistant**: Chatbot for guidelines and queries (Trợ lí Capy)
 
 ## Backlog / Future Ideas
 - **External Integrations**: Slack/Discord notifications.

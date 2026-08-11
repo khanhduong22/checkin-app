@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       return acc + `--- TÀI LIỆU ${index + 1}: ${chunk.title} (${chunk.path}) ---\n${chunk.content}\n\n`;
     }, "Đây là thông tin trích xuất từ tài liệu cấu hình của phần mềm Checkin App:\n\n");
 
-    const systemPrompt = `Bạn là một trợ lý AI nội bộ cho phần mềm "Checkin App" của công ty LimArt. 
+    const systemPrompt = `Bạn là Trợ lí Capy - trợ lý AI nội bộ cho phần mềm "Checkin App" của công ty LimArt. 
     Lợi thế của bạn là bạn biết rõ mọi tài liệu hướng dẫn kỹ thuật và cách sử dụng của hệ thống.
     
     NGUYÊN TẮC:

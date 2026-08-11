@@ -142,10 +142,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                             </a>
                         </div>
 
-                        {/* Sticky Notes Widget */}
+                        {/* Capy Assistant Widget */}
                         <div id="home-sticky" className="pt-2">
-                            <Suspense fallback={<StickyBoardSkeleton />}>
-                                <StickyBoardWrapper currentUser={session?.user} />
+                            <Suspense fallback={<CapyAssistantSkeleton />}>
+                                <CapyAssistantWrapper currentUser={session?.user} />
                             </Suspense>
                         </div>
 
@@ -428,21 +428,9 @@ async function GachaWrapper({ userId, isAdmin }: { userId: string, isAdmin: bool
     return <GachaButton userId={userId} hasCheckedIn={!!hasCheckedInToday} isAdmin={isAdmin} />;
 }
 
-async function StickyBoardWrapper({ currentUser }: { currentUser: any }) {
-    const notes = await prisma.stickyNote.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 6,
-        include: { user: true }
-    });
-
-    const serializedNotes = notes.map((n: any) => ({
-        ...n,
-        createdAt: n.createdAt.toISOString()
-    }));
-
-    const StickyBoard = (await import("@/components/StickyBoard")).default;
-
-    return <StickyBoard notes={serializedNotes} currentUser={currentUser} />;
+async function CapyAssistantWrapper({ currentUser }: { currentUser: any }) {
+    const CapyAssistant = (await import("@/components/CapyAssistant")).default;
+    return <CapyAssistant currentUser={currentUser} />;
 }
 
 async function StaffTasksButtonBadgeWrapper({ userId }: { userId: string }) {
@@ -510,14 +498,11 @@ function GachaSkeleton() {
     );
 }
 
-function StickyBoardSkeleton() {
+function CapyAssistantSkeleton() {
     return (
         <div className="space-y-2 animate-pulse">
             <div className="h-4 bg-gray-200/50 rounded-md w-1/4" />
-            <div className="grid grid-cols-2 gap-2">
-                <div className="h-24 bg-gray-200/50 rounded-lg" />
-                <div className="h-24 bg-gray-200/50 rounded-lg" />
-            </div>
+            <div className="h-[420px] bg-gray-200/50 rounded-2xl w-full" />
         </div>
     );
 }
