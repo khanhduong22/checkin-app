@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import ScheduleCalendar from "@/components/schedule/ScheduleCalendar";
 import UploadScheduleButton from "@/components/schedule/UploadScheduleButton";
 import ShiftHistoryDialog from "@/components/admin/ShiftHistoryDialog";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import ScheduleCalendar from "@/components/schedule/ScheduleCalendarWrapper";
 
 export const dynamic = 'force-dynamic';
 

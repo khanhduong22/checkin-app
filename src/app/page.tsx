@@ -130,6 +130,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                             </Suspense>
                         </div>
 
+                        {/* Home Announcements (Read multiple times) */}
+                        <div id="home-announcements-list">
+                            <Suspense fallback={<HomeAnnouncementsSkeleton />}>
+                                <HomeAnnouncementsWrapper />
+                            </Suspense>
+                        </div>
+
                         {/* Gacha Game */}
                         <div id="home-gacha" className="pt-2 space-y-3">
                             <Suspense fallback={<GachaSkeleton />}>
@@ -433,6 +440,15 @@ async function CapyAssistantWrapper({ currentUser }: { currentUser: any }) {
     return <CapyAssistant currentUser={currentUser} />;
 }
 
+async function HomeAnnouncementsWrapper() {
+    const announcements = await prisma.announcement.findMany({
+        where: { active: true },
+        orderBy: { createdAt: 'desc' }
+    });
+    const HomeAnnouncements = (await import("@/components/HomeAnnouncements")).default;
+    return <HomeAnnouncements announcements={announcements} />;
+}
+
 async function StaffTasksButtonBadgeWrapper({ userId }: { userId: string }) {
     const rejectedTasksCount = await prisma.staffTask.count({
         where: {
@@ -503,6 +519,15 @@ function CapyAssistantSkeleton() {
         <div className="space-y-2 animate-pulse">
             <div className="h-4 bg-gray-200/50 rounded-md w-1/4" />
             <div className="h-[420px] bg-gray-200/50 rounded-2xl w-full" />
+        </div>
+    );
+}
+
+function HomeAnnouncementsSkeleton() {
+    return (
+        <div className="space-y-2 p-3 bg-gray-50/50 border rounded-xl animate-pulse">
+            <div className="h-4 bg-gray-200/50 rounded-md w-1/4" />
+            <div className="h-10 bg-gray-200/50 rounded-lg w-full" />
         </div>
     );
 }

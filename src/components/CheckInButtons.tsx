@@ -51,7 +51,16 @@ export default function CheckInButtons({ userId, todayCheckins, todayShift }: { 
     const [reason, setReason] = useState("");
 
     useEffect(() => {
-        getIPStatus().then(setIpStatus);
+        getIPStatus()
+            .then(setIpStatus)
+            .catch(err => {
+                console.error("Error loading IP status:", err);
+                setIpStatus({
+                    isAllowed: false,
+                    locationName: "Lỗi kết nối IP",
+                    ip: "Không rõ"
+                });
+            });
     }, []);
 
     const executeCheckIn = async (type: 'checkin' | 'checkout', note?: string) => {
@@ -108,23 +117,30 @@ export default function CheckInButtons({ userId, todayCheckins, todayShift }: { 
     return (
         <div className="space-y-4">
             {/* Wifi Status Badge */}
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-1.5">
                 {!ipStatus ? (
                     <div className="h-6 w-32 bg-gray-200 animate-pulse rounded-full" />
                 ) : (
-                    <Badge variant={ipStatus.isAllowed ? "default" : "destructive"} className={cn("px-3 py-1 flex items-center gap-1.5", ipStatus.isAllowed ? "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200" : "")}>
-                        {ipStatus.isAllowed ? (
-                            <>
-                                <span className="relative flex h-2 w-2">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                </span>
-                                {ipStatus.locationName}
-                            </>
-                        ) : (
-                             <>🚫 {ipStatus.locationName} ({ipStatus.ip})</>
+                    <>
+                        <Badge variant={ipStatus.isAllowed ? "default" : "destructive"} className={cn("px-3 py-1 flex items-center gap-1.5", ipStatus.isAllowed ? "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200" : "")}>
+                            {ipStatus.isAllowed ? (
+                                <>
+                                    <span className="relative flex h-2 w-2">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </span>
+                                    {ipStatus.locationName}
+                                </>
+                            ) : (
+                                 <>🚫 {ipStatus.locationName}</>
+                            )}
+                        </Badge>
+                        {!ipStatus.isAllowed && (
+                            <div className="text-[10px] font-mono text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 max-w-full break-all text-center">
+                                IP hiện tại: {ipStatus.ip}
+                            </div>
                         )}
-                    </Badge>
+                    </>
                 )}
             </div>
 

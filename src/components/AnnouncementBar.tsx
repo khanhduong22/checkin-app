@@ -15,6 +15,8 @@ interface Announcement {
 export default function AnnouncementBar({ announcements }: { announcements: Announcement[] }) {
     const [showPopup, setShowPopup] = useState(false);
     const [unreadAnnouncements, setUnreadAnnouncements] = useState<Announcement[]>([]);
+    const [countdown, setCountdown] = useState(10);
+    const [isAgreed, setIsAgreed] = useState(false);
 
     useEffect(() => {
         if (!announcements || announcements.length === 0) return;
@@ -31,7 +33,26 @@ export default function AnnouncementBar({ announcements }: { announcements: Anno
         }
     }, [announcements]);
 
+    useEffect(() => {
+        if (showPopup) {
+            setCountdown(10);
+            setIsAgreed(false);
+            const timer = setInterval(() => {
+                setCountdown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+    }, [showPopup]);
+
     const handleMarkAsRead = () => {
+        if (countdown > 0 || !isAgreed) return;
+
         const readIdsStr = localStorage.getItem('read_announcement_ids');
         const readIds: string[] = readIdsStr ? JSON.parse(readIdsStr) : [];
         
@@ -113,13 +134,25 @@ export default function AnnouncementBar({ announcements }: { announcements: Anno
                 </div>
 
                 {/* Footer Action */}
-                <div className="p-4 bg-white border-t border-gray-100 flex justify-end shadow-inner">
+                <div className="p-4 bg-white border-t border-gray-100 flex flex-col gap-3 shadow-inner">
+                    <label className="flex items-center gap-2.5 px-1 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={isAgreed}
+                            onChange={(e) => setIsAgreed(e.target.checked)}
+                            className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500 cursor-pointer"
+                        />
+                        <span className="text-sm font-bold text-gray-700">
+                            Tôi đã đọc và hiểu rõ nội dung thông báo
+                        </span>
+                    </label>
                     <button
                         onClick={handleMarkAsRead}
-                        className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white text-lg font-extrabold rounded-xl shadow-lg hover:shadow-orange-500/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
+                        disabled={countdown > 0 || !isAgreed}
+                        className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white text-lg font-extrabold rounded-xl shadow-lg hover:shadow-orange-500/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
                     >
                         <Check className="h-5 w-5" />
-                        ĐÃ ĐỌC THÔNG BÁO
+                        {countdown > 0 ? `ĐÃ ĐỌC THÔNG BÁO (${countdown}s)` : 'ĐÃ ĐỌC THÔNG BÁO'}
                     </button>
                 </div>
 
