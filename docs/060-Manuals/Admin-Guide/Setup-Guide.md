@@ -156,8 +156,11 @@ Admin có thể xem lịch làm việc của tất cả nhân viên theo tuần/
 
 ### 5.4 Thời hạn đăng ký và Quy định phạt trễ hạn
 - **Thời hạn tự đăng ký không phạt**: Trước **00:00 sáng thứ Bảy** của tuần trước (ví dụ: đăng ký ca làm của tuần tới thì phải đăng ký trước 00:00 sáng thứ Bảy tuần này).
-- **Đăng ký trễ hạn (Có phạt)**: Đăng ký trong khoảng từ **00:00 sáng thứ Bảy** đến **00:00 sáng Chủ nhật** vẫn được phép tự đăng ký trên điện thoại/hệ thống, nhưng hệ thống sẽ **tự động trừ 50,000 VND** vào bảng lương của tuần đó (tạo phiếu trừ lương điều chỉnh, tối đa phạt 1 lần/tuần).
-- **Khóa lịch hoàn toàn**: Lịch làm việc tuần sau sẽ **khóa hẳn vào 00:00 sáng Chủ nhật** hàng tuần. Sau thời gian này, nhân viên không thể tự đăng ký/sửa/xóa lịch làm, chỉ có Admin mới có quyền chỉnh sửa.
+- **Đăng ký trễ hạn hoặc Admin xếp hộ sau hạn (Có phạt)**: 
+  - Đăng ký sau **00:00 sáng thứ Bảy**, hệ thống sẽ **tự động trừ 50,000 VND** vào bảng lương của tuần đó (tạo phiếu trừ lương điều chỉnh với lý do `Phạt đăng ký lịch muộn tuần {dd/MM - dd/MM}`, tối đa phạt 1 lần/tuần/người).
+  - Áp dụng cho cả trường hợp **nhân viên tự đăng ký trễ** và trường hợp **nhân viên quên đăng ký khiến Admin phải vào xếp hộ ca sau hạn**.
+  - **Trường hợp nghỉ cả tuần**: Nếu nhân viên xin nghỉ cả tuần và không phát sinh bất kỳ ca làm việc nào trong tuần đó, hệ thống **hoàn toàn không phạt**.
+- **Khóa lịch tự động**: Lịch làm việc tuần sau sẽ **khóa hẳn đối với nhân viên vào 00:00 sáng Chủ nhật** hàng tuần. Sau thời gian này, chỉ có Admin mới có quyền gán/chỉnh sửa ca. Admin có thể truyền tùy chọn `skipPenalty = true` nếu muốn miễn phạt cho nhân viên có lý do chính đáng.
 
 ---
 

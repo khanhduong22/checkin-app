@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { isShiftLocked } from "@/lib/schedule-lock";
 import { logShiftAction } from "@/lib/audit";
+import { applyLateSchedulePenalty } from "@/lib/schedule-penalty";
 
 export async function registerShift(dateStr: string, shift: string) {
   const session = await getServerSession(authOptions);
@@ -92,7 +93,7 @@ export async function cancelShift(shiftId: number) {
   return { success: true, message: "Đã hủy ca." };
 }
 
-export async function assignCustomShift(userId: string, dateStr: string, startTime: string, endTime: string) {
+export async function assignCustomShift(userId: string, dateStr: string, startTime: string, endTime: string, skipPenalty: boolean = false) {
   const session = await getServerSession(authOptions);
   // @ts-ignore
   if (session?.user?.role !== 'ADMIN') return { success: false, message: "Forbidden" };
@@ -114,6 +115,8 @@ export async function assignCustomShift(userId: string, dateStr: string, startTi
 
     // Validate end > start
     if (end <= start) return { success: false, message: "Giờ kết thúc phải sau giờ bắt đầu" };
+
+    await applyLateSchedulePenalty(userId, start, skipPenalty);
 
     const newShift = await prisma.workShift.create({
       data: {

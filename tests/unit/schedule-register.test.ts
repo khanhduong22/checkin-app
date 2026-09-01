@@ -207,7 +207,11 @@ describe("registerShift Limit", () => {
       expect(mockAdjustmentCreate).not.toHaveBeenCalled();
     });
 
-    it("does not deduct 50k if Admin registers shift for Staff after Saturday 00:00 VN time", async () => {
+    it("deducts 50k when Admin registers shift for Part-time Staff after Saturday 00:00 VN time", async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { email: "admin@example.com" },
+      });
+
       // Mock "now" as Saturday, June 27, 2026 10:00:00 VN (03:00 UTC)
       const mockNow = new Date("2026-06-27T03:00:00Z");
       vi.setSystemTime(mockNow);
@@ -216,15 +220,84 @@ describe("registerShift Limit", () => {
       const end = new Date("2026-07-01T05:00:00Z");
       mockShiftFindMany.mockResolvedValue([]);
 
-      // Mock requester as ADMIN
-      mockUserFindUnique.mockResolvedValue({
-        id: "user-admin",
-        email: "admin@example.com",
-        role: "ADMIN",
-        employmentType: "PART_TIME",
+      mockUserFindUnique.mockImplementation(async ({ where }: any) => {
+        if (where.email === "admin@example.com") {
+          return {
+            id: "user-admin",
+            email: "admin@example.com",
+            role: "ADMIN",
+            employmentType: "PART_TIME",
+          };
+        }
+        if (where.id === "user-staff") {
+          return {
+            id: "user-staff",
+            email: "staff@example.com",
+            role: "STAFF",
+            employmentType: "PART_TIME",
+          };
+        }
+        return null;
       });
 
       const result = await registerShift(start, end, false, "user-staff");
+
+      expect(result.success).toBe(true);
+      expect(mockAdjustmentCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: "user-staff",
+            amount: -50000,
+            reason: expect.stringContaining("Phạt đăng ký lịch muộn"),
+          }),
+        })
+      );
+    });
+
+    it("does not deduct 50k when Admin registers shift with skipPenalty=true", async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { email: "admin@example.com" },
+      });
+
+      const mockNow = new Date("2026-06-27T03:00:00Z");
+      vi.setSystemTime(mockNow);
+
+      const start = new Date("2026-07-01T01:00:00Z");
+      const end = new Date("2026-07-01T05:00:00Z");
+      mockShiftFindMany.mockResolvedValue([]);
+
+      mockUserFindUnique.mockImplementation(async ({ where }: any) => {
+        if (where.email === "admin@example.com") {
+          return { id: "user-admin", email: "admin@example.com", role: "ADMIN" };
+        }
+        if (where.id === "user-staff") {
+          return { id: "user-staff", email: "staff@example.com", role: "STAFF", employmentType: "PART_TIME" };
+        }
+        return null;
+      });
+
+      const result = await registerShift(start, end, false, "user-staff", true);
+
+      expect(result.success).toBe(true);
+      expect(mockAdjustmentCreate).not.toHaveBeenCalled();
+    });
+
+    it("does not deduct 50k for Full-time staff even if registered after deadline", async () => {
+      const mockNow = new Date("2026-06-27T03:00:00Z");
+      vi.setSystemTime(mockNow);
+
+      const start = new Date("2026-07-01T01:00:00Z");
+      const end = new Date("2026-07-01T05:00:00Z");
+      mockShiftFindMany.mockResolvedValue([]);
+
+      mockUserFindUnique.mockResolvedValue({
+        id: "user-ft",
+        email: "staff@example.com",
+        role: "STAFF",
+        employmentType: "FULL_TIME",
+      });
+
+      const result = await registerShift(start, end, false);
 
       expect(result.success).toBe(true);
       expect(mockAdjustmentCreate).not.toHaveBeenCalled();
