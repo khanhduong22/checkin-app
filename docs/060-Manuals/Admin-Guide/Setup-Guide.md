@@ -241,12 +241,11 @@ Nhân viên có thể gửi 3 loại yêu cầu:
 
 **Ví dụ**: Trễ 6 lần → trừ 3 giờ lương (3 lần × 1 giờ).
 
-### 8.3 Điều chỉnh thủ công
-
-Admin có thể thêm/bớt khoản điều chỉnh đặc biệt:
-1. Nhấn **"Thêm điều chỉnh"** bên cạnh nhân viên.
-2. Nhập số tiền (+ để thêm, - để trừ) và lý do.
-3. Nhấn Lưu.
+### 8.3 Điều chỉnh thủ công & Thưởng danh hiệu tháng
+Admin xem bảng xếp hạng vinh danh tại `/admin/reports` hoặc `/rewards` (Top 1 Chăm Chỉ, Vua Đóng Hàng, Chiến Thần Bưng Hàng, v.v.) và chủ động nhập khoản thưởng tương ứng:
+1. Nhấn nút **"±" (Thưởng/Phạt)** bên cạnh nhân viên đạt giải trên trang Bảng Lương.
+2. Nhập số tiền thưởng (VD: `200000` hoặc `100000`) và ghi rõ lý do (VD: `"Thưởng Top 1 Chăm Chỉ"` hoặc `"Thưởng Vua Đóng Hàng"`).
+3. Nhấn Lưu để ghi nhận vào bảng lương tháng của nhân viên.
 
 ### 8.4 Export bảng lương
 

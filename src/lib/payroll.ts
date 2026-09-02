@@ -126,8 +126,7 @@ export async function calculatePayroll(month: number, year: number) {
     };
   }));
 
-  // Apply hardworking bonus (top 1 part-time user working >= 130 hours gets 200k)
-  return applyHardworkingBonus(payrollData, month, year, false);
+  return payrollData;
 }
 
 export function applyHardworkingBonus(payrollList: any[], month: number, year: number, isNestedStats: boolean) {

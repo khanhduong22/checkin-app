@@ -142,7 +142,6 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
         });
 
         const { getUserMonthlyStats } = await import("@/lib/stats");
-        const { applyHardworkingBonus } = await import("@/lib/payroll");
 
         const rawPayrollData = await Promise.all(
             users.map(async (u) => {
@@ -172,7 +171,7 @@ export default async function AdminPayrollPage({ searchParams }: { searchParams:
             })
         );
 
-        payrollData = applyHardworkingBonus(rawPayrollData, month, year, true);
+        payrollData = rawPayrollData;
     }
 
     return (
