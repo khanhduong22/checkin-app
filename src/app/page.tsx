@@ -319,11 +319,13 @@ async function PrivacyStatsWrapper({ userId }: { userId: string }) {
     const payrollData = await calculatePayroll(now.getMonth() + 1, now.getFullYear());
     const userPayroll = payrollData.find(p => p.id === userId);
     
-    let stats = userPayroll;
+    let stats: any = userPayroll;
     if (!stats) {
         const { getUserMonthlyStats } = await import("@/lib/stats");
-        stats = await getUserMonthlyStats(userId) as any;
+        stats = (await getUserMonthlyStats(userId)) as any;
     }
+    
+    if (!stats) return null;
     
     const PrivacyStats = (await import("@/components/PrivacyStats")).default;
 

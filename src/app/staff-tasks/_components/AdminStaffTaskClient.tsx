@@ -16,9 +16,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Calendar, User, Plus, Edit2, Trash2, Check, RotateCcw, Filter, UserCheck, AlertCircle, FileText } from "lucide-react";
+import { 
+  Calendar, User, Plus, Edit2, Trash2, Check, RotateCcw, 
+  Filter, UserCheck, AlertCircle, FileText, Sparkles, 
+  History, ArrowRight, CheckCircle2 
+} from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  getMergedTaskSuggestions, 
+  filterTaskSuggestions, 
+  type TaskSuggestion, 
+  DEFAULT_STAFF_TASK_TEMPLATES 
+} from "@/lib/staff-task-templates";
 
 interface UserOption {
   id: string;
@@ -57,6 +67,30 @@ export default function AdminStaffTaskClient({
     adminNote: ""
   });
 
+  // Autocomplete / Template Suggestions state
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+  // Merge history tasks and preset templates
+  const allSuggestions = useMemo(() => {
+    return getMergedTaskSuggestions(tasks);
+  }, [tasks]);
+
+  // Filtered suggestions based on user query in taskForm.title
+  const filteredSuggestions = useMemo(() => {
+    return filterTaskSuggestions(allSuggestions, taskForm.title);
+  }, [allSuggestions, taskForm.title]);
+
+  const handleSelectSuggestion = (suggestion: TaskSuggestion) => {
+    setTaskForm(prev => ({
+      ...prev,
+      title: suggestion.title,
+      description: suggestion.description || prev.description
+    }));
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
+  };
+
   // Performance stats per employee
   const [userStats, setUserStats] = useState<Record<string, {
     monthly: StaffPerformanceStats;
@@ -89,6 +123,8 @@ export default function AdminStaffTaskClient({
       deadline: "",
       adminNote: ""
     });
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
     setShowCreateDialog(true);
   };
 
@@ -529,15 +565,130 @@ export default function AdminStaffTaskClient({
           </DialogHeader>
 
           <form onSubmit={handleSubmitForm} className="space-y-4 text-sm">
-            <div className="space-y-1">
-              <Label htmlFor="task-title">Tiêu đề nhiệm vụ <span className="text-red-500">*</span></Label>
-              <Input 
-                id="task-title"
-                value={taskForm.title}
-                onChange={e => setTaskForm(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="VD: Đăng 3 bài viết Facebook mới..."
-                required
-              />
+            {/* Title with Autocomplete & Presets */}
+            <div className="space-y-1.5 relative">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="task-title" className="font-semibold text-slate-800">
+                  Tiêu đề nhiệm vụ <span className="text-red-500">*</span>
+                </Label>
+                {allSuggestions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSuggestions(prev => !prev)}
+                    className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 transition-colors"
+                  >
+                    <Sparkles className="h-3 w-3 text-indigo-500" />
+                    {showSuggestions ? "Ẩn danh sách gợi ý" : "Xem gợi ý & task cũ"}
+                  </button>
+                )}
+              </div>
+
+              <div className="relative">
+                <Input 
+                  id="task-title"
+                  value={taskForm.title}
+                  onChange={e => {
+                    setTaskForm(prev => ({ ...prev, title: e.target.value }));
+                    setShowSuggestions(true);
+                    setHighlightedIndex(-1);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onKeyDown={e => {
+                    if (!showSuggestions || filteredSuggestions.length === 0) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setHighlightedIndex(prev => (prev < filteredSuggestions.length - 1 ? prev + 1 : 0));
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : filteredSuggestions.length - 1));
+                    } else if (e.key === "Enter" && highlightedIndex >= 0) {
+                      e.preventDefault();
+                      handleSelectSuggestion(filteredSuggestions[highlightedIndex]);
+                    } else if (e.key === "Escape") {
+                      setShowSuggestions(false);
+                    }
+                  }}
+                  placeholder="VD: Đăng bài fb, livestream, làm video, đăng kí..."
+                  autoComplete="off"
+                  required
+                />
+
+                {/* Suggestions Popover Dropdown */}
+                {showSuggestions && filteredSuggestions.length > 0 && (
+                  <div 
+                    className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-100"
+                  >
+                    <div className="p-2 bg-slate-50/90 border-b border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                      <span className="flex items-center gap-1 text-indigo-700">
+                        <Sparkles className="h-3 w-3 text-indigo-500" /> Danh sách mẫu & Lịch sử
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-normal">
+                        Tự động điền Tiêu đề + Mô tả
+                      </span>
+                    </div>
+
+                    {filteredSuggestions.map((item, idx) => {
+                      const isHighlighted = idx === highlightedIndex;
+                      return (
+                        <div
+                          key={`${item.title}-${idx}`}
+                          className={`p-2.5 text-left cursor-pointer transition-colors ${
+                            isHighlighted ? "bg-indigo-50/90 text-indigo-950" : "hover:bg-slate-50"
+                          }`}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSelectSuggestion(item);
+                          }}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                              {item.source === "template" ? (
+                                <Sparkles className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                              ) : (
+                                <History className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                              )}
+                              <span>{item.title}</span>
+                            </div>
+                            <Badge 
+                              variant="secondary" 
+                              className={`text-[9px] px-1.5 py-0 font-medium ${
+                                item.source === "template" 
+                                  ? "bg-indigo-50 text-indigo-700 border-indigo-200" 
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                              }`}
+                            >
+                              {item.badgeLabel}
+                            </Badge>
+                          </div>
+                          {item.description && (
+                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-relaxed pl-5">
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Template Selector Chips */}
+              <div className="pt-1">
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[11px] text-slate-400 font-medium mr-0.5">Mẫu nhanh:</span>
+                  {DEFAULT_STAFF_TASK_TEMPLATES.map((tmpl) => (
+                    <button
+                      key={tmpl.title}
+                      type="button"
+                      onClick={() => handleSelectSuggestion(tmpl)}
+                      className="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-slate-700 border border-slate-200 rounded-md px-2 py-0.5 transition-all duration-150 flex items-center gap-1"
+                    >
+                      <Plus className="h-2.5 w-2.5 opacity-60" />
+                      {tmpl.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="space-y-1">

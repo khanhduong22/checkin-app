@@ -36,3 +36,18 @@ export function checkTimeStatus(date: Date, type: 'checkin' | 'checkout') {
 
   return null;
 }
+
+/**
+ * Normalizes Vietnamese string by removing diacritical marks and tone accents.
+ * e.g., "Đăng bài" -> "dang bai", "Làm video" -> "lam video", "Đăng kí" -> "dang ki"
+ */
+export function normalizeVietnamese(str: string | null | undefined): string {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "d")
+    .toLowerCase()
+    .trim();
+}

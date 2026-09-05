@@ -155,6 +155,30 @@ describe("Staff Tasks Actions", () => {
       expect(res.success).toBe(false);
       expect(res.error).toContain("chỉ có quyền cập nhật trạng thái");
     });
+
+    it("does not auto-duplicate recurring tasks when approved by admin", async () => {
+      mockGetServerSession.mockResolvedValue({ user: { email: "admin@example.com" } });
+      mockUserFindUnique.mockResolvedValue({ id: "admin-1", role: "ADMIN" });
+      mockTaskFindUnique.mockResolvedValue({ 
+        id: "task-rec", 
+        title: "làm video", 
+        status: "DONE", 
+        assigneeId: "staff-1" 
+      });
+      mockTaskUpdate.mockResolvedValue({ 
+        id: "task-rec", 
+        title: "làm video", 
+        status: "APPROVED",
+        assignee: { id: "staff-1", email: "cuccung123456789@gmail.com", name: "Thư" },
+        createdBy: { id: "admin-1", name: "Admin" }
+      });
+
+      const res = await updateStaffTask("task-rec", { status: "APPROVED" });
+      expect(res.success).toBe(true);
+      expect(mockTaskUpdate).toHaveBeenCalled();
+      // Verify prisma.staffTask.create was NOT called
+      expect(mockTaskCreate).not.toHaveBeenCalled();
+    });
   });
 
   describe("toggleUserStaffTasksAllowed", () => {

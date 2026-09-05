@@ -55,7 +55,8 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
         const userPayroll = payrollData.find(p => p.id === userId);
         
         // Destructure stats out of user payroll details
-        const { id: _id, name: _name, email: _email, role: _role, employmentType: _empType, ...liveStats } = userPayroll || {};
+        const { id: _id, name: _name, email: _email, role: _role, employmentType: _empType, ...restStats } = userPayroll || {};
+        const liveStats: any = restStats;
         
         const bonusPercent = period?.bonusPercent || 0;
         const bonusTargets: string[] = (period?.bonusTargets as string[]) || ['PART_TIME'];
