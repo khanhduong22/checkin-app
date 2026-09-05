@@ -3,6 +3,7 @@ import {
   DEFAULT_STAFF_TASK_TEMPLATES,
   getMergedTaskSuggestions,
   filterTaskSuggestions,
+  findBestMatchingTemplate,
 } from "@/lib/staff-task-templates";
 
 describe("Staff Task Templates & Suggestions", () => {
@@ -96,6 +97,40 @@ describe("Staff Task Templates & Suggestions", () => {
     it("returns empty array for queries matching nothing", () => {
       const results = filterTaskSuggestions(sampleSuggestions, "xyz_not_exist_query_123");
       expect(results).toHaveLength(0);
+    });
+  });
+
+  describe("findBestMatchingTemplate()", () => {
+    const suggestions = getMergedTaskSuggestions([]);
+
+    it("returns null for empty or single char query", () => {
+      expect(findBestMatchingTemplate(suggestions, "")).toBeNull();
+      expect(findBestMatchingTemplate(suggestions, "a")).toBeNull();
+    });
+
+    it("matches 'Đăng bài' or 'dang bai' directly", () => {
+      const match = findBestMatchingTemplate(suggestions, "Đăng bài");
+      expect(match).toBeDefined();
+      expect(match?.title).toContain("Đăng bài");
+      expect(match?.description).toContain("Facebook");
+    });
+
+    it("matches 'live' for livestream template", () => {
+      const match = findBestMatchingTemplate(suggestions, "live");
+      expect(match).toBeDefined();
+      expect(match?.title).toContain("Live stream");
+    });
+
+    it("matches 'tạo' / 'làm video' for video template", () => {
+      const match = findBestMatchingTemplate(suggestions, "tạo");
+      expect(match).toBeDefined();
+      expect(match?.title).toBe("Làm video");
+    });
+
+    it("matches 'đăng kí' for promotion template", () => {
+      const match = findBestMatchingTemplate(suggestions, "đăng kí");
+      expect(match).toBeDefined();
+      expect(match?.title).toContain("Đăng kí chương trình");
     });
   });
 });

@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { 
   getMergedTaskSuggestions, 
   filterTaskSuggestions, 
+  findBestMatchingTemplate,
   type TaskSuggestion, 
   DEFAULT_STAFF_TASK_TEMPLATES 
 } from "@/lib/staff-task-templates";
@@ -70,6 +71,7 @@ export default function AdminStaffTaskClient({
   // Autocomplete / Template Suggestions state
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [autoFilledTemplateTitle, setAutoFilledTemplateTitle] = useState<string | null>(null);
 
   // Merge history tasks and preset templates
   const allSuggestions = useMemo(() => {
@@ -81,12 +83,33 @@ export default function AdminStaffTaskClient({
     return filterTaskSuggestions(allSuggestions, taskForm.title);
   }, [allSuggestions, taskForm.title]);
 
+  const handleTitleChange = (newTitle: string) => {
+    setTaskForm(prev => {
+      let newDesc = prev.description;
+      // If description is empty or was previously auto-filled, auto-fill it from the best matching template
+      if (!prev.description || prev.description.trim() === "" || autoFilledTemplateTitle !== null) {
+        const bestMatch = findBestMatchingTemplate(allSuggestions, newTitle);
+        if (bestMatch && bestMatch.description) {
+          newDesc = bestMatch.description;
+          setAutoFilledTemplateTitle(bestMatch.title);
+        } else if (autoFilledTemplateTitle !== null && !newTitle.trim()) {
+          newDesc = "";
+          setAutoFilledTemplateTitle(null);
+        }
+      }
+      return { ...prev, title: newTitle, description: newDesc };
+    });
+    setShowSuggestions(true);
+    setHighlightedIndex(-1);
+  };
+
   const handleSelectSuggestion = (suggestion: TaskSuggestion) => {
     setTaskForm(prev => ({
       ...prev,
       title: suggestion.title,
       description: suggestion.description || prev.description
     }));
+    setAutoFilledTemplateTitle(suggestion.title);
     setShowSuggestions(false);
     setHighlightedIndex(-1);
   };
@@ -587,11 +610,7 @@ export default function AdminStaffTaskClient({
                 <Input 
                   id="task-title"
                   value={taskForm.title}
-                  onChange={e => {
-                    setTaskForm(prev => ({ ...prev, title: e.target.value }));
-                    setShowSuggestions(true);
-                    setHighlightedIndex(-1);
-                  }}
+                  onChange={e => handleTitleChange(e.target.value)}
                   onFocus={() => setShowSuggestions(true)}
                   onKeyDown={e => {
                     if (!showSuggestions || filteredSuggestions.length === 0) return;
@@ -692,14 +711,39 @@ export default function AdminStaffTaskClient({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="task-desc">Mô tả chi tiết</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="task-desc">Mô tả chi tiết</Label>
+                {autoFilledTemplateTitle && (
+                  <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Tự động điền theo mẫu
+                  </span>
+                )}
+              </div>
               <Textarea 
                 id="task-desc"
                 value={taskForm.description}
-                onChange={e => setTaskForm(prev => ({ ...prev, description: e.target.value }))}
+                onChange={e => {
+                  setTaskForm(prev => ({ ...prev, description: e.target.value }));
+                  setAutoFilledTemplateTitle(null);
+                }}
                 placeholder="Yêu cầu cụ thể, đường link, số lượng, lưu ý..."
                 rows={4}
               />
+              {autoFilledTemplateTitle && (
+                <p className="text-[11px] text-emerald-700 bg-emerald-50/80 border border-emerald-200/60 rounded px-2 py-1 flex items-center justify-between">
+                  <span>✨ Đã lấy nội dung từ <b>{autoFilledTemplateTitle}</b></span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTaskForm(prev => ({ ...prev, description: "" }));
+                      setAutoFilledTemplateTitle(null);
+                    }}
+                    className="text-slate-500 hover:text-red-600 underline text-[10px]"
+                  >
+                    Xóa
+                  </button>
+                </p>
+              )}
             </div>
 
             <div className="space-y-1">

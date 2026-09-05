@@ -101,3 +101,34 @@ export function filterTaskSuggestions(
     return tokens.every(token => normTitle.includes(token) || normDesc.includes(token));
   });
 }
+
+/**
+ * Finds the single best matching template or past task when user types keywords.
+ * (e.g. typing "đăng bài" -> matches "Đăng bài fb, ins, thread")
+ */
+export function findBestMatchingTemplate(
+  suggestions: TaskSuggestion[],
+  query: string
+): TaskSuggestion | null {
+  const normQuery = normalizeVietnamese(query);
+  if (!normQuery || normQuery.length < 2) return null;
+
+  // 1. Exact match or startsWith title
+  const exactOrPrefix = suggestions.find(s => {
+    const normTitle = normalizeVietnamese(s.title);
+    return normTitle === normQuery || normTitle.startsWith(normQuery);
+  });
+  if (exactOrPrefix) return exactOrPrefix;
+
+  // 2. Contains query in title
+  for (const s of suggestions) {
+    const normTitle = normalizeVietnamese(s.title);
+    if (normTitle.includes(normQuery) || normQuery.includes(normTitle)) {
+      return s;
+    }
+  }
+
+  // 3. Fallback: filter matches
+  const filtered = filterTaskSuggestions(suggestions, query);
+  return filtered.length > 0 ? filtered[0] : null;
+}
