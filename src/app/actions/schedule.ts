@@ -34,8 +34,10 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
     return { success: false, error: 'Lịch làm việc của tuần này đã được chốt, không thể thay đổi!' };
   }
 
-  // Apply late registration penalty if registered or assigned after Saturday 00:00 (for Part-time staff)
-  await applyLateSchedulePenalty(targetUser.id, start, skipPenalty);
+  // Chỉ áp dụng phạt đăng ký muộn khi chính nhân viên tự đăng ký (Admin xếp/gán lịch hộ thì KHÔNG phạt)
+  if (requester.role !== 'ADMIN') {
+    await applyLateSchedulePenalty(targetUser.id, start, skipPenalty);
+  }
 
   // Check self overlap (for targetUser)
   const overlap = await prisma.workShift.count({

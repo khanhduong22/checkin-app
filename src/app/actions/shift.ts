@@ -35,8 +35,11 @@ export async function registerShift(dateStr: string, shift: string) {
       end.setHours(17, 0, 0, 0);
     }
 
-    if (user.role !== 'ADMIN' && isShiftLocked(start)) {
-      return { success: false, message: "Lịch làm việc của tuần này đã được chốt, không thể thay đổi!" };
+    if (user.role !== 'ADMIN') {
+      if (isShiftLocked(start)) {
+        return { success: false, message: "Lịch làm việc của tuần này đã được chốt, không thể thay đổi!" };
+      }
+      await applyLateSchedulePenalty(user.id, start);
     }
 
     const newShift = await prisma.workShift.create({
@@ -116,7 +119,7 @@ export async function assignCustomShift(userId: string, dateStr: string, startTi
     // Validate end > start
     if (end <= start) return { success: false, message: "Giờ kết thúc phải sau giờ bắt đầu" };
 
-    await applyLateSchedulePenalty(userId, start, skipPenalty);
+    // Admin gán ca tùy chỉnh cho nhân viên nên không áp dụng phạt muộn
 
     const newShift = await prisma.workShift.create({
       data: {
