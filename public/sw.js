@@ -1,4 +1,4 @@
-const CACHE_NAME = 'limart-attendance-v2';
+const CACHE_NAME = 'limart-attendance-v3';
 const ASSETS_TO_CACHE = [
   '/logo.png',
   '/icon-192.png',
@@ -11,6 +11,7 @@ const ASSETS_TO_CACHE = [
   '/icons/capy_calendar.png',
   '/icons/capy_dashboard.png',
   '/icons/capy_hr.png',
+  '/icons/capy_kpi.png',
   '/icons/capy_manager.png',
   '/icons/capy_payroll.png',
   '/icons/capy_request.png',

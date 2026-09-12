@@ -26,7 +26,7 @@ export default function AdminNavLinks({
         { href: "/admin/lucky-wheel", label: "Vòng quay", icon: "/icons/capy_wheel.png" },
         { href: "/admin/tasks", label: "Duyệt WFH & Đóng gói", badge: pendingTasksCount, icon: "/icons/capy_wfh.png" },
         { href: "/admin/manager-tasks", label: "Manager Tasks", icon: "/icons/capy_manager.png" },
-        { href: "/admin/staff-tasks", label: "Công việc và KPI", icon: "/icons/capy_manager.png" },
+        { href: "/admin/staff-tasks", label: "Công việc và KPI", icon: "/icons/capy_kpi.png" },
         { href: "/admin/settings", label: "Cấu hình (IP)", icon: "/icons/capy_settings.png" },
         { href: "/admin/help", label: "Trợ lí Capy", icon: "/icons/capy_ai.png" },
     ];
