@@ -28,7 +28,7 @@ export default function AdminNavLinks({
         { href: "/admin/manager-tasks", label: "Manager Tasks", icon: "/icons/capy_manager.png" },
         { href: "/admin/staff-tasks", label: "Công việc và KPI", icon: "/icons/capy_manager.png" },
         { href: "/admin/settings", label: "Cấu hình (IP)", icon: "/icons/capy_settings.png" },
-        { href: "/admin/help", label: "AI Trợ giúp", icon: "/icons/capy_ai.png" },
+        { href: "/admin/help", label: "Trợ lí Capy", icon: "/icons/capy_ai.png" },
     ];
 
     return (
