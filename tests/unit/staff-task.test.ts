@@ -6,7 +6,10 @@ import {
   deleteStaffTask, 
   toggleUserStaffTasksAllowed,
   getStaffTaskPerformanceStats,
-  getBatchStaffTaskPerformanceStats
+  getBatchStaffTaskPerformanceStats,
+  getUserUpcomingShifts,
+  getTodayStaffTasks,
+  getTasksForShiftDate
 } from "@/actions/staff-task-actions";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -24,6 +27,9 @@ vi.mock("@/lib/prisma", () => ({
       update: vi.fn(),
       delete: vi.fn(),
       findUnique: vi.fn(),
+    },
+    workShift: {
+      findMany: vi.fn(),
     },
   },
 }));
@@ -44,6 +50,7 @@ const mockTaskCreate = prisma.staffTask.create as ReturnType<typeof vi.fn>;
 const mockTaskUpdate = prisma.staffTask.update as ReturnType<typeof vi.fn>;
 const mockTaskDelete = prisma.staffTask.delete as ReturnType<typeof vi.fn>;
 const mockTaskFindUnique = prisma.staffTask.findUnique as ReturnType<typeof vi.fn>;
+const mockWorkShiftFindMany = prisma.workShift.findMany as ReturnType<typeof vi.fn>;
 
 describe("Staff Tasks Actions", () => {
   beforeEach(() => {
@@ -254,6 +261,70 @@ describe("Staff Tasks Actions", () => {
       expect(res.success).toBe(true);
       expect(res.data?.["staff-1"]).toBeDefined();
       expect(res.data?.["staff-2"]).toBeUndefined();
+    });
+  });
+
+  describe("deleteStaffTask", () => {
+    it("allows admin to delete an existing task", async () => {
+      mockGetServerSession.mockResolvedValue({ user: { email: "admin@example.com", role: "ADMIN" } });
+      mockTaskDelete.mockResolvedValue({ id: "task-1", assigneeId: "staff-1" });
+
+      const res = await deleteStaffTask("task-1");
+      expect(res.success).toBe(true);
+      expect(mockTaskDelete).toHaveBeenCalledWith({ where: { id: "task-1" } });
+    });
+
+    it("prevents non-admin from deleting tasks", async () => {
+      mockGetServerSession.mockResolvedValue({ user: { email: "staff@example.com", role: "USER" } });
+
+      const res = await deleteStaffTask("task-1");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Admin role required");
+      expect(mockTaskDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getUserUpcomingShifts", () => {
+    it("returns formatted upcoming shifts for a user", async () => {
+      const shiftStart = new Date("2026-09-28T08:00:00Z");
+      const shiftEnd = new Date("2026-09-28T12:00:00Z");
+
+      mockWorkShiftFindMany.mockResolvedValue([
+        { id: 101, userId: "staff-1", start: shiftStart, end: shiftEnd, shiftType: "PART_TIME" }
+      ]);
+
+      const res = await getUserUpcomingShifts("staff-1");
+      expect(res.success).toBe(true);
+      expect(res.data).toHaveLength(1);
+      expect(res.data?.[0].id).toBe(101);
+      expect(res.data?.[0].dateStr).toBeDefined();
+      expect(res.data?.[0].displayLabel).toBeDefined();
+    });
+  });
+
+  describe("getTodayStaffTasks", () => {
+    it("returns today's assigned tasks for an employee", async () => {
+      mockTaskFindMany.mockResolvedValue([
+        { id: "task-today-1", title: "Kiểm tra hàng tồn", description: "Đếm số lượng quầy 1", status: "TODO" }
+      ]);
+
+      const res = await getTodayStaffTasks("staff-1");
+      expect(res.success).toBe(true);
+      expect(res.data).toHaveLength(1);
+      expect(res.data?.[0].title).toBe("Kiểm tra hàng tồn");
+    });
+  });
+
+  describe("getTasksForShiftDate", () => {
+    it("returns tasks matching shift date", async () => {
+      mockTaskFindMany.mockResolvedValue([
+        { id: "shift-task-1", title: "Dọn dẹp quầy kệ ca sáng", description: "Lau kính và kệ sách", status: "TODO" }
+      ]);
+
+      const res = await getTasksForShiftDate("staff-1", "2026-09-28");
+      expect(res.success).toBe(true);
+      expect(res.data).toHaveLength(1);
+      expect(res.data?.[0].title).toBe("Dọn dẹp quầy kệ ca sáng");
     });
   });
 });

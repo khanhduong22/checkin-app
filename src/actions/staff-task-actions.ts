@@ -47,7 +47,14 @@ export async function getStaffTasks(userId?: string) {
     let targetUserId = userId;
     if (!isAdmin) {
       // Regular users can only access their own tasks
-      if (!user.staffTasksAllowed) {
+      let hasTasks = false;
+      if (!user.staffTasksAllowed && typeof prisma.staffTask.count === "function") {
+        try {
+          const count = await prisma.staffTask.count({ where: { assigneeId: user.id } });
+          hasTasks = count > 0;
+        } catch {}
+      }
+      if (!user.staffTasksAllowed && !hasTasks) {
         return { success: false, error: "Bạn không có quyền truy cập Công việc và KPI" };
       }
       targetUserId = user.id;
@@ -196,7 +203,142 @@ export async function deleteStaffTask(id: string) {
     revalidatePath("/staff-tasks");
     revalidatePath("/admin/staff-tasks");
     revalidatePath(`/admin/employees/${task.assigneeId}`);
+    revalidatePath("/schedule");
+    revalidatePath("/admin/schedule");
+    revalidatePath("/");
     return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function getUserUpcomingShifts(userId: string) {
+  try {
+    const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const now = new Date();
+    const vnNow = new Date(now.getTime() + VN_OFFSET_MS);
+    const vnYear = vnNow.getUTCFullYear();
+    const vnMonth = vnNow.getUTCMonth();
+    const vnDate = vnNow.getUTCDate();
+
+    // From start of today (VN) to +14 days
+    const rangeStart = new Date(Date.UTC(vnYear, vnMonth, vnDate, 0, 0, 0, 0) - VN_OFFSET_MS);
+    const rangeEnd = new Date(rangeStart.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+    const shifts = await prisma.workShift.findMany({
+      where: {
+        userId,
+        start: { gte: rangeStart, lte: rangeEnd },
+      },
+      orderBy: { start: 'asc' },
+    });
+
+    const formatted = shifts.map(s => {
+      const sStart = new Date(s.start);
+      const sEnd = new Date(s.end);
+      const sStartVN = new Date(sStart.getTime() + VN_OFFSET_MS);
+      const y = sStartVN.getUTCFullYear();
+      const m = String(sStartVN.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(sStartVN.getUTCDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
+
+      const dayNames = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+      const dayName = dayNames[sStartVN.getUTCDay()];
+
+      const timeStr = `${sStart.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })} - ${sEnd.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })}`;
+
+      return {
+        id: s.id,
+        dateStr,
+        displayLabel: `${dayName}, ${d}/${m} (${timeStr})`,
+        start: s.start.toISOString(),
+        end: s.end.toISOString(),
+      };
+    });
+
+    return { success: true, data: formatted };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function getTodayStaffTasks(userId: string) {
+  try {
+    const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const now = new Date();
+    const vnNow = new Date(now.getTime() + VN_OFFSET_MS);
+    const vnYear = vnNow.getUTCFullYear();
+    const vnMonth = vnNow.getUTCMonth();
+    const vnDate = vnNow.getUTCDate();
+
+    const dayStart = new Date(Date.UTC(vnYear, vnMonth, vnDate, 0, 0, 0, 0) - VN_OFFSET_MS);
+    const dayEnd = new Date(Date.UTC(vnYear, vnMonth, vnDate, 23, 59, 59, 999) - VN_OFFSET_MS);
+
+    const tasks = await prisma.staffTask.findMany({
+      where: {
+        assigneeId: userId,
+        OR: [
+          {
+            startDate: {
+              gte: dayStart,
+              lte: dayEnd,
+            },
+          },
+          {
+            AND: [
+              { startDate: null },
+              { createdAt: { gte: dayStart, lte: dayEnd } },
+            ],
+          },
+          {
+            AND: [
+              { deadline: { gte: dayStart, lte: dayEnd } },
+              { status: { in: ['TODO', 'DOING'] } },
+            ],
+          },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        startDate: true,
+        deadline: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return { success: true, data: tasks };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function getTasksForShiftDate(userId: string, dateStr: string) {
+  try {
+    const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dayStart = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0) - VN_OFFSET_MS);
+    const dayEnd = new Date(Date.UTC(y, m - 1, d, 23, 59, 59, 999) - VN_OFFSET_MS);
+
+    const tasks = await prisma.staffTask.findMany({
+      where: {
+        assigneeId: userId,
+        OR: [
+          { startDate: { gte: dayStart, lte: dayEnd } },
+          {
+            AND: [
+              { startDate: null },
+              { createdAt: { gte: dayStart, lte: dayEnd } },
+            ],
+          },
+        ],
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return { success: true, data: tasks };
   } catch (e: any) {
     return { success: false, error: e.message };
   }
@@ -293,8 +435,10 @@ export async function getStaffTaskPerformanceStats(userId: string) {
 
     const monthlyTasks = monthlyTasksRaw.filter(t => {
       const dateToUse = t.startDate || t.createdAt || new Date(monthStart.getTime() + 15 * 24 * 60 * 60 * 1000);
+      const inMonth = dateToUse >= monthStart && dateToUse <= monthEnd;
       const thursday = getWeekThursday(dateToUse);
-      return thursday >= monthStart && thursday <= monthEnd;
+      const thursdayInMonth = thursday >= monthStart && thursday <= monthEnd;
+      return inMonth || thursdayInMonth;
     });
 
     // 3. Compute stats
@@ -444,8 +588,10 @@ export async function getBatchStaffTaskPerformanceStats(userIds: string[]) {
 
       const monthlyTasks = userTasks.filter(t => {
         const dateToUse = t.startDate || t.createdAt || new Date(monthStart.getTime() + 15 * 24 * 60 * 60 * 1000);
+        const inMonth = dateToUse >= monthStart && dateToUse <= monthEnd;
         const thursday = getWeekThursday(dateToUse);
-        return thursday >= monthStart && thursday <= monthEnd;
+        const thursdayInMonth = thursday >= monthStart && thursday <= monthEnd;
+        return inMonth || thursdayInMonth;
       });
 
       const weeklyTasks = userTasks.filter(t => {

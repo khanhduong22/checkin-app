@@ -137,16 +137,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                             </Suspense>
                         </div>
 
-                        {/* Gacha Game */}
-                        <div id="home-gacha" className="pt-2 space-y-3">
-                            <Suspense fallback={<GachaSkeleton />}>
-                                <GachaWrapper userId={user?.id!} isAdmin={user?.role === 'ADMIN'} />
+                        {/* Shift Duties Widget - Nhiệm vụ ca làm việc */}
+                        <div id="home-shift-duties" className="pt-2">
+                            <Suspense fallback={<ShiftDutySkeleton />}>
+                                <ShiftDutyWidgetWrapper userId={user?.id!} isAdmin={user?.role === 'ADMIN'} />
                             </Suspense>
-                            <a href="/rewards" className="block w-full">
-                                <Button variant="outline" className="w-full h-11 text-sm font-bold border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 text-orange-700 hover:from-yellow-100 hover:to-orange-100 shadow-sm transition-all hover:scale-[1.01]">
-                                    🏆 Bảng Vàng & Khen Thưởng
-                                </Button>
-                            </a>
                         </div>
 
                         {/* Capy Assistant Widget */}
@@ -201,7 +196,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                                 </a>
                             </div>
 
-                            {(user?.staffTasksAllowed || user?.role === 'ADMIN') && (
+                            {((user?.staffTasksAllowed || user?.role === 'ADMIN') || (user?.id ? (await prisma.staffTask.count({ where: { assigneeId: user.id } })) > 0 : false)) && (
                                 <div className="mt-3">
                                     <a href="/staff-tasks" className="block w-full">
                                         <Button variant="default" className="w-full h-11 text-sm font-bold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md transition-all hover:scale-[1.01] relative flex items-center justify-center gap-2">
@@ -213,6 +208,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ v
                                     </a>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Gacha Game - Đưa xuống dưới cùng */}
+                        <div id="home-gacha" className="pt-4 space-y-3 border-t border-dashed mt-4">
+                            <Suspense fallback={<GachaSkeleton />}>
+                                <GachaWrapper userId={user?.id!} isAdmin={user?.role === 'ADMIN'} />
+                            </Suspense>
+                            <a href="/rewards" className="block w-full">
+                                <Button variant="outline" className="w-full h-11 text-sm font-bold border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 text-orange-700 hover:from-yellow-100 hover:to-orange-100 shadow-sm transition-all hover:scale-[1.01]">
+                                    🏆 Bảng Vàng & Khen Thưởng
+                                </Button>
+                            </a>
                         </div>
                         {/* Admin Link... */}
                         {user?.role === 'ADMIN' && (
@@ -468,6 +475,19 @@ async function StaffTasksButtonBadgeWrapper({ userId }: { userId: string }) {
     );
 }
 
+async function ShiftDutyWidgetWrapper({ userId, isAdmin }: { userId: string, isAdmin: boolean }) {
+    let activeUsers: { id: string; name: string | null; email: string | null }[] = [];
+    if (isAdmin) {
+        activeUsers = await prisma.user.findMany({
+            where: { isActive: true },
+            select: { id: true, name: true, email: true },
+            orderBy: { name: 'asc' }
+        });
+    }
+    const ShiftDutyHomeWidget = (await import("@/components/shift-duty/ShiftDutyHomeWidget")).default;
+    return <ShiftDutyHomeWidget currentUserId={userId} isAdmin={isAdmin} activeUsers={activeUsers} />;
+}
+
 // --- Loading Skeletons ---
 
 function AnnouncementSkeleton() {
@@ -531,5 +551,11 @@ function HomeAnnouncementsSkeleton() {
             <div className="h-4 bg-gray-200/50 rounded-md w-1/4" />
             <div className="h-10 bg-gray-200/50 rounded-lg w-full" />
         </div>
+    );
+}
+
+function ShiftDutySkeleton() {
+    return (
+        <div className="h-14 bg-gray-200/50 animate-pulse rounded-2xl w-full" />
     );
 }

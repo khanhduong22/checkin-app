@@ -30,7 +30,13 @@ export default async function StaffTasksPage() {
 
   // Check access permission for regular users
   if (!isAdmin && !currentUser.staffTasksAllowed) {
-    return (
+    const hasAssignedTasks = await prisma.staffTask.findFirst({
+      where: { assigneeId: currentUser.id },
+      select: { id: true },
+    });
+
+    if (!hasAssignedTasks) {
+      return (
       <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
         <Card className="w-full max-w-md border-red-100 bg-red-50/20 shadow-lg text-center p-6 space-y-4">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
@@ -54,7 +60,8 @@ export default async function StaffTasksPage() {
           </div>
         </Card>
       </main>
-    );
+      );
+    }
   }
 
   if (isAdmin) {

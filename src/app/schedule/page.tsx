@@ -21,20 +21,45 @@ export default async function SchedulePage() {
     const today = new Date();
     const startRange = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     
-    const shifts = await prisma.workShift.findMany({
-        where: { start: { gte: startRange } },
-        include: { user: true }
-    });
+    // Get all shifts and duties for current view range
+    const [shifts, allDuties] = await Promise.all([
+        prisma.workShift.findMany({
+            where: { start: { gte: startRange } },
+            include: { user: true }
+        }),
+        prisma.shiftDuty.findMany({
+            where: { date: { gte: startRange } },
+            select: {
+                id: true,
+                title: true,
+                description: true,
+                isCompleted: true,
+                userId: true,
+                shiftId: true,
+                date: true,
+            },
+            orderBy: { createdAt: 'asc' }
+        })
+    ]);
 
-    const events = shifts.map((s: any) => ({
-        id: s.id,
-        title: s.user.name || 'Staff',
-        start: s.start,
-        end: s.end,
-        userId: s.userId,
-        isOpenForSwap: s.isOpenForSwap,
-        employmentType: s.user.employmentType,
-    }));
+    const events = shifts.map((s: any) => {
+        const sDateStr = new Date(s.start).toDateString();
+        const shiftDuties = allDuties.filter((d: any) =>
+            d.shiftId === s.id ||
+            (d.userId === s.userId && new Date(d.date).toDateString() === sDateStr)
+        );
+
+        return {
+            id: s.id,
+            title: s.user.name || 'Staff',
+            start: s.start,
+            end: s.end,
+            userId: s.userId,
+            isOpenForSwap: s.isOpenForSwap,
+            employmentType: s.user.employmentType,
+            duties: shiftDuties,
+        };
+    });
 
     // Serialization for Client Component Props safety
     const safeEvents = events.map((e: any) => ({

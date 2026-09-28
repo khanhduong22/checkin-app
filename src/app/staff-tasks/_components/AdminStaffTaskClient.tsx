@@ -7,8 +7,10 @@ import {
   updateStaffTask, 
   deleteStaffTask, 
   getStaffTaskPerformanceStats,
-  getBatchStaffTaskPerformanceStats
+  getBatchStaffTaskPerformanceStats,
+  getUserUpcomingShifts
 } from "@/actions/staff-task-actions";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +48,7 @@ export default function AdminStaffTaskClient({
   initialTasks: StaffTask[]; 
   users: UserOption[]; 
 }) {
+  const assignableUsers = useMemo(() => users, [users]);
   const allowedUsers = useMemo(() => users.filter(u => u.staffTasksAllowed), [users]);
 
   const [tasks, setTasks] = useState<StaffTask[]>(initialTasks);
@@ -62,11 +65,43 @@ export default function AdminStaffTaskClient({
   const [taskForm, setTaskForm] = useState({
     title: "",
     description: "",
-    assigneeId: allowedUsers[0]?.id || "",
+    assigneeId: assignableUsers[0]?.id || "",
     startDate: "",
     deadline: "",
     adminNote: ""
   });
+
+  // Upcoming shifts for shift-based task assignment
+  const [userUpcomingShifts, setUserUpcomingShifts] = useState<any[]>([]);
+  const [loadingShifts, setLoadingShifts] = useState(false);
+
+  useEffect(() => {
+    if (!taskForm.assigneeId) {
+      setUserUpcomingShifts([]);
+      return;
+    }
+    let active = true;
+    setLoadingShifts(true);
+    getUserUpcomingShifts(taskForm.assigneeId)
+      .then(res => {
+        if (active && res.success && res.data) {
+          setUserUpcomingShifts(res.data);
+        }
+      })
+      .catch(err => console.error("Error fetching user shifts:", err))
+      .finally(() => {
+        if (active) setLoadingShifts(false);
+      });
+    return () => { active = false; };
+  }, [taskForm.assigneeId]);
+
+  const handleSelectShiftDate = (dateStr: string) => {
+    setTaskForm(prev => ({
+      ...prev,
+      startDate: dateStr,
+      deadline: prev.deadline || dateStr,
+    }));
+  };
 
   // Autocomplete / Template Suggestions state
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -141,7 +176,7 @@ export default function AdminStaffTaskClient({
     setTaskForm({
       title: "",
       description: "",
-      assigneeId: allowedUsers[0]?.id || "",
+      assigneeId: selectedUserFilter !== "ALL" ? selectedUserFilter : (assignableUsers[0]?.id || ""),
       startDate: "",
       deadline: "",
       adminNote: ""
@@ -214,12 +249,15 @@ export default function AdminStaffTaskClient({
 
   const handleDelete = async (taskId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Bạn có chắc chắn muốn xóa nhiệm vụ này không?")) return;
+    const taskToDelete = tasks.find(t => t.id === taskId);
+    const taskTitle = taskToDelete?.title ? `"${taskToDelete.title}"` : "nhiệm vụ này";
+    const assigneeName = taskToDelete?.assignee?.name || "nhân viên";
+    if (!confirm(`Bạn có chắc chắn muốn xóa nhiệm vụ ${taskTitle} của ${assigneeName} không? (Thao tác này giúp Admin thu hồi nếu lỡ giao nhầm)`)) return;
     setLoading(true);
     const res = await deleteStaffTask(taskId);
     setLoading(false);
     if (res.success) {
-      toast.success("Xóa nhiệm vụ thành công!");
+      toast.success("Đã xóa nhiệm vụ thành công!");
       setTasks(prev => prev.filter(t => t.id !== taskId));
       if (selectedTask?.id === taskId) setSelectedTask(null);
     } else {
@@ -755,10 +793,51 @@ export default function AdminStaffTaskClient({
                 className="w-full border rounded-lg p-2 bg-white"
                 required
               >
-                {allowedUsers.map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                {assignableUsers.map(u => (
+                  <option key={u.id} value={u.id}>{u.name || u.email} {u.email ? `(${u.email})` : ''}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Upcoming Shifts based task assignment */}
+            <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-indigo-600" />
+                  Gán theo ca làm việc (Nhấn để chọn nhanh ngày):
+                </span>
+                {loadingShifts && <span className="text-[10px] text-slate-400 animate-pulse">Đang tải lịch...</span>}
+              </div>
+
+              {userUpcomingShifts.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 pt-1 max-h-36 overflow-y-auto">
+                  {userUpcomingShifts.map((s: any) => {
+                    const isSelected = taskForm.startDate === s.dateStr;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => handleSelectShiftDate(s.dateStr)}
+                        className={cn(
+                          "text-[11px] px-2.5 py-1 rounded-lg border font-medium transition-all text-left flex items-center gap-1",
+                          isSelected 
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-xs" 
+                            : "bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50"
+                        )}
+                      >
+                        <span>{s.displayLabel}</span>
+                        {isSelected && <Check className="h-3 w-3 inline ml-0.5" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                !loadingShifts && (
+                  <p className="text-[11px] text-slate-500 italic pt-0.5">
+                    Nhân viên chưa có lịch làm trong 14 ngày tới. Bạn có thể chọn ngày thủ công bên dưới.
+                  </p>
+                )
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

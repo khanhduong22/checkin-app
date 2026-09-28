@@ -176,12 +176,46 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
 
     revalidatePath('/'); // Refresh UI
 
+    // Query today's assigned shift duties if checkin
+    let todayDuties: any[] = [];
+    if (type === 'checkin') {
+      try {
+        const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+        const now = new Date();
+        const vnNow = new Date(now.getTime() + VN_OFFSET_MS);
+        const vnYear = vnNow.getUTCFullYear();
+        const vnMonth = vnNow.getUTCMonth();
+        const vnDate = vnNow.getUTCDate();
+
+        const dayStart = new Date(Date.UTC(vnYear, vnMonth, vnDate, 0, 0, 0, 0) - VN_OFFSET_MS);
+        const dayEnd = new Date(Date.UTC(vnYear, vnMonth, vnDate, 23, 59, 59, 999) - VN_OFFSET_MS);
+
+        todayDuties = await prisma.shiftDuty.findMany({
+          where: {
+            userId,
+            date: { gte: dayStart, lte: dayEnd },
+          },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            isCompleted: true,
+            date: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+      } catch (err) {
+        console.error("Error fetching today's shift duties on checkin:", err);
+      }
+    }
+
     const timeStr = new Date().toLocaleTimeString('vi-VN');
     return {
       success: true,
       message: type === 'checkin'
         ? `✅ Check-in thành công lúc ${timeStr}`
-        : `👋 Check-out thành công lúc ${timeStr}${extraMessage}`
+        : `👋 Check-out thành công lúc ${timeStr}${extraMessage}`,
+      todayDuties: type === 'checkin' ? todayDuties : undefined,
     };
   } catch (e) {
     console.error(e);

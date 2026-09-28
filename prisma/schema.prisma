@@ -79,18 +79,21 @@ model User {
   staffTasksAssigned    StaffTask[]            @relation("StaffTaskAssignee")
   shiftAuditLogs        ShiftAuditLog[]        @relation("UserShiftsLogs")
   changedShiftLogs      ShiftAuditLog[]        @relation("ChangedByShiftsLogs")
+  shiftDuties           ShiftDuty[]            @relation("UserShiftDuties")
+  shiftDutiesCreated    ShiftDuty[]            @relation("CreatedShiftDuties")
 }
 
 model WorkShift {
-  id            Int      @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   userId        String
   start         DateTime
   end           DateTime
   shiftType     String?
-  status        String   @default("APPROVED")
-  isOpenForSwap Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        String      @default("APPROVED")
+  isOpenForSwap Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  duties        ShiftDuty[]
 
   @@index([userId, start])
   @@index([start])
@@ -458,4 +461,26 @@ model ManagerWeeklyTask {
   assignee      User      @relation("ManagerWeeklyAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
 
   @@index([assigneeId, weekStart])
+}
+
+model ShiftDuty {
+  id          String     @id @default(cuid())
+  shiftId     Int?
+  userId      String
+  createdById String
+  date        DateTime
+  title       String
+  description String?
+  isCompleted Boolean    @default(false)
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user        User       @relation("UserShiftDuties", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy   User       @relation("CreatedShiftDuties", fields: [createdById], references: [id])
+  shift       WorkShift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@index([date])
+  @@index([shiftId])
 }

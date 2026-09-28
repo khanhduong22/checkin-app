@@ -6,7 +6,7 @@ import moment from 'moment'
 import 'moment/locale/vi'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from "sonner";
 import { registerShift, deleteShift, updateShift } from "@/app/actions/schedule"; 
 import { toggleShiftSwap, takeShift } from "@/app/actions/shift";
@@ -21,8 +21,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, RefreshCw } from 'lucide-react'
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, RefreshCw, Trash2, ListTodo } from 'lucide-react'
+import { getShiftDutiesForShift, createShiftDuty, deleteShiftDuty } from "@/actions/shift-duty-actions"
+import { cn } from "@/lib/utils"
 
 moment.locale('vi');
 const localizer = momentLocalizer(moment)
@@ -36,6 +48,8 @@ interface CalendarEvent {
     resource?: any; 
     isOwner?: boolean; 
     employmentType?: string;
+    duties?: any[];
+    allDay?: boolean;
 }
 
 export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false, defaultDate, users = [] }: { initialEvents: any[], userId: string, isAdmin?: boolean, defaultDate?: Date, users?: any[] }) {
@@ -79,6 +93,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
             resource: e,
             isOwner: e.userId === userId || isAdmin,
             employmentType: e.employmentType || 'PART_TIME',
+            duties: e.duties || [],
             allDay: false,
         };
     });
@@ -93,6 +108,9 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
     const [hideFullTime, setHideFullTime] = useState(true);
     const [showAllShifts, setShowAllShifts] = useState(isAdmin);
+    const [currentCalDate, setCurrentCalDate] = useState<Date>(() => defaultDate || calDate);
+    const [showDutyDetails, setShowDutyDetails] = useState(false);
+    const [dutySheetOpen, setDutySheetOpen] = useState(false);
 
     const displayedEvents = events.filter(e => {
         if (hideFullTime && e.employmentType === 'FULL_TIME') return false;
@@ -117,12 +135,123 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         return true;
     });
 
+    // Week boundaries and duties calculations for Sheet
+    const weekStart = moment(currentCalDate).startOf('isoWeek').toDate();
+    const weekEnd = moment(currentCalDate).endOf('isoWeek').toDate();
+
+    const weekEventsWithDuties = displayedEvents.filter(e => {
+        const evStart = new Date(e.start);
+        const dList = e.duties || e.resource?.duties || [];
+        return evStart >= weekStart && evStart <= weekEnd && dList.length > 0;
+    });
+
+    const totalWeekDuties = weekEventsWithDuties.reduce((acc, e) => {
+        const dList = e.duties || e.resource?.duties || [];
+        return acc + dList.length;
+    }, 0);
+
+    const sheetWeekDays = [0, 1, 2, 3, 4, 5, 6].map(offset => {
+        const dayMoment = moment(weekStart).add(offset, 'days');
+        const dayEvents = displayedEvents.filter(e => {
+            return moment(e.start).isSame(dayMoment, 'day');
+        }).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+
+        return {
+            dateStr: dayMoment.format('YYYY-MM-DD'),
+            dayTitle: dayMoment.format('dddd, [ngày] DD/MM'),
+            isToday: dayMoment.isSame(moment(), 'day'),
+            events: dayEvents,
+        };
+    });
+
     const [modalOpen, setModalOpen] = useState(false);
     const [pendingEvent, setPendingEvent] = useState<{start: Date, end: Date} | null>(null);
     const [targetUserId, setTargetUserId] = useState<string>(userId);
 
     const [actionModalOpen, setActionModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+
+    // Shift Task Management for Admin
+    const [shiftTasks, setShiftTasks] = useState<any[]>([]);
+    const [loadingShiftTasks, setLoadingShiftTasks] = useState(false);
+    const [showAddShiftTask, setShowAddShiftTask] = useState(false);
+    const [newShiftTaskTitle, setNewShiftTaskTitle] = useState("");
+    const [newShiftTaskDesc, setNewShiftTaskDesc] = useState("");
+    const [savingShiftTask, setSavingShiftTask] = useState(false);
+
+    useEffect(() => {
+        if (!actionModalOpen || !selectedEvent || !isAdmin) {
+            setShiftTasks([]);
+            setShowAddShiftTask(false);
+            setNewShiftTaskTitle("");
+            setNewShiftTaskDesc("");
+            return;
+        }
+        setLoadingShiftTasks(true);
+        getShiftDutiesForShift(Number(selectedEvent.id))
+            .then(res => {
+                if (res.success && res.data) {
+                    setShiftTasks(res.data);
+                }
+            })
+            .catch(err => console.error("Error loading shift duties:", err))
+            .finally(() => setLoadingShiftTasks(false));
+    }, [actionModalOpen, selectedEvent, isAdmin]);
+
+    const handleCreateShiftTask = async () => {
+        if (!newShiftTaskTitle.trim()) {
+            toast.error("Vui lòng nhập tên công việc");
+            return;
+        }
+        if (!selectedEvent) return;
+        const targetId = selectedEvent.resource?.userId || userId;
+        setSavingShiftTask(true);
+        const res = await createShiftDuty({
+            title: newShiftTaskTitle.trim(),
+            description: newShiftTaskDesc.trim() || null,
+            userId: targetId,
+            shiftId: Number(selectedEvent.id),
+            date: new Date(selectedEvent.start),
+        });
+        setSavingShiftTask(false);
+        if (res.success && res.data) {
+            toast.success("Đã giao nhiệm vụ cho ca làm!");
+            const newDuty = res.data;
+            setShiftTasks(prev => [...prev, newDuty]);
+            setEvents(prev => prev.map(ev => {
+                if (ev.id === selectedEvent.id) {
+                    const curDuties = ev.duties || ev.resource?.duties || [];
+                    const nextDuties = [...curDuties, newDuty];
+                    return { ...ev, duties: nextDuties, resource: { ...ev.resource, duties: nextDuties } };
+                }
+                return ev;
+            }));
+            setNewShiftTaskTitle("");
+            setNewShiftTaskDesc("");
+            setShowAddShiftTask(false);
+        } else {
+            toast.error(res.error || "Lỗi khi giao việc");
+        }
+    };
+
+    const handleDeleteShiftTask = async (dutyId: string, dutyTitle: string) => {
+        if (!confirm(`Bạn có chắc muốn xóa nhiệm vụ "${dutyTitle}" không? (Dành cho Admin khi giao nhầm việc)`)) return;
+        const res = await deleteShiftDuty(dutyId);
+        if (res.success) {
+            toast.success("Đã xóa nhiệm vụ!");
+            setShiftTasks(prev => prev.filter(t => t.id !== dutyId));
+            setEvents(prev => prev.map(ev => {
+                const curDuties = ev.duties || ev.resource?.duties || [];
+                if (curDuties.some((d: any) => d.id === dutyId)) {
+                    const nextDuties = curDuties.filter((d: any) => d.id !== dutyId);
+                    return { ...ev, duties: nextDuties, resource: { ...ev.resource, duties: nextDuties } };
+                }
+                return ev;
+            }));
+        } else {
+            toast.error(res.error || "Lỗi khi xóa nhiệm vụ");
+        }
+    };
 
     const handleEventUpdate = useCallback(
         async ({ event, start, end }: any) => {
@@ -315,6 +444,50 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         []
     )
 
+    const CustomEventComponent = useCallback(({ event }: { event: any }) => {
+        const duties = event.duties || event.resource?.duties || [];
+        const count = duties.length;
+        const completedCount = duties.filter((d: any) => d.isCompleted).length;
+
+        return (
+            <div className="flex flex-col h-full justify-between text-xs py-0.5 leading-tight overflow-hidden">
+                <div className="font-semibold truncate leading-snug">
+                    {event.title}
+                </div>
+                {count > 0 && (
+                    <div className="mt-auto pt-0.5 pointer-events-none">
+                        {!showDutyDetails ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/30 text-white backdrop-blur-xs border border-white/20 shadow-xs">
+                                📋 {count} việc {completedCount > 0 ? `(${completedCount}/${count})` : ''}
+                            </span>
+                        ) : (
+                            <div className="bg-black/35 rounded p-1 text-[10px] space-y-0.5 mt-0.5 border border-white/15">
+                                <div className="font-bold text-amber-200 flex items-center justify-between">
+                                    <span>📋 {count} việc:</span>
+                                    {completedCount > 0 && (
+                                        <span className="text-[9px] text-emerald-300">({completedCount} xong)</span>
+                                    )}
+                                </div>
+                                {duties.slice(0, 3).map((d: any, idx: number) => (
+                                    <div key={idx} className={cn("truncate text-[10px]", d.isCompleted ? "line-through opacity-70 text-emerald-200" : "text-white")}>
+                                        • {d.title}
+                                    </div>
+                                ))}
+                                {count > 3 && (
+                                    <div className="text-[9px] opacity-80 italic text-white/80">+{count - 3} việc nữa...</div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    }, [showDutyDetails]);
+
+    const components = useMemo(() => ({
+        event: CustomEventComponent
+    }), [CustomEventComponent]);
+
     // Time Selection dropdown helper values
     const timeOptions = [];
     for (let h = 7; h <= 23; h++) {
@@ -406,23 +579,38 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                 // --- MOBILE INTERFACE ---
                 <div className="flex flex-col flex-1 space-y-4 relative pb-16">
                     {/* Settings Row */}
-                    <div className="flex flex-wrap gap-4 items-center justify-between bg-gray-50 p-3 rounded-lg border text-sm">
-                        <div className="flex items-center space-x-2">
-                            <Switch 
-                                id="show-all-shifts-mobile" 
-                                checked={showAllShifts} 
-                                onCheckedChange={setShowAllShifts} 
-                            />
-                            <Label htmlFor="show-all-shifts-mobile" className="cursor-pointer text-xs font-semibold">Xem lịch cửa hàng</Label>
+                    <div className="flex flex-col gap-2 bg-gray-50 p-3 rounded-lg border text-sm">
+                        <div className="flex flex-wrap gap-4 items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                                <Switch 
+                                    id="show-all-shifts-mobile" 
+                                    checked={showAllShifts} 
+                                    onCheckedChange={setShowAllShifts} 
+                                />
+                                <Label htmlFor="show-all-shifts-mobile" className="cursor-pointer text-xs font-semibold">Xem lịch cửa hàng</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Switch 
+                                    id="hide-full-time-mobile" 
+                                    checked={hideFullTime} 
+                                    onCheckedChange={setHideFullTime} 
+                                />
+                                <Label htmlFor="hide-full-time-mobile" className="cursor-pointer text-xs font-semibold">Ẩn Full-time</Label>
+                            </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <Switch 
-                                id="hide-full-time-mobile" 
-                                checked={hideFullTime} 
-                                onCheckedChange={setHideFullTime} 
-                            />
-                            <Label htmlFor="hide-full-time-mobile" className="cursor-pointer text-xs font-semibold">Ẩn Full-time</Label>
-                        </div>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDutySheetOpen(true)}
+                            className="w-full mt-1 border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700 font-semibold flex items-center justify-center gap-1.5 text-xs py-1.5 h-8"
+                        >
+                            <ListTodo className="h-3.5 w-3.5 text-indigo-600" />
+                            <span>Bảng nhiệm vụ tuần này</span>
+                            <span className="ml-1 bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                                {totalWeekDuties}
+                            </span>
+                        </Button>
                     </div>
 
                     {/* Date Selector Strip Header */}
@@ -507,10 +695,20 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                                                 ({moment.duration(moment(event.end).diff(moment(event.start))).asHours().toFixed(1)}h)
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                                        <div className="flex items-center gap-2 text-xs font-medium text-gray-600 flex-wrap">
                                             <span className="font-semibold text-gray-700">{event.title}</span>
                                             {event.employmentType === 'FULL_TIME' && (
                                                 <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px]">Full-time</span>
+                                            )}
+                                            {event.duties && event.duties.length > 0 && (
+                                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                                                    📋 {event.duties.length} việc
+                                                    {event.duties.some((d: any) => d.isCompleted) && (
+                                                        <span className="text-emerald-600 font-semibold">
+                                                            ({event.duties.filter((d: any) => d.isCompleted).length}/{event.duties.length})
+                                                        </span>
+                                                    )}
+                                                </span>
                                             )}
                                         </div>
                                     </div>
@@ -555,22 +753,50 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
             ) : (
                 // --- DESKTOP INTERFACE ---
                 <div className="flex flex-col flex-1">
-                    <div className="flex items-center justify-end space-x-6 mb-2 px-2 pb-2 border-b">
-                        <div className="flex items-center space-x-2">
-                            <Switch 
-                                id="show-all-shifts" 
-                                checked={showAllShifts} 
-                                onCheckedChange={setShowAllShifts} 
-                            />
-                            <Label htmlFor="show-all-shifts" className="cursor-pointer text-sm font-medium">Xem lịch toàn cửa hàng</Label>
+                    <div className="flex items-center justify-between mb-2 px-2 pb-2 border-b">
+                        <div className="flex items-center space-x-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setDutySheetOpen(true)}
+                                className="border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700 font-semibold flex items-center gap-1.5 shadow-xs h-8 text-xs"
+                            >
+                                <ListTodo className="h-4 w-4 text-indigo-600" />
+                                <span>Bảng nhiệm vụ tuần này</span>
+                                <span className={cn("ml-1 text-xs px-2 py-0.5 rounded-full font-bold", totalWeekDuties > 0 ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-600")}>
+                                    {totalWeekDuties}
+                                </span>
+                            </Button>
+
+                            <div className="flex items-center space-x-2 pl-3 border-l border-gray-200">
+                                <Switch 
+                                    id="show-duty-details" 
+                                    checked={showDutyDetails} 
+                                    onCheckedChange={setShowDutyDetails} 
+                                />
+                                <Label htmlFor="show-duty-details" className="cursor-pointer text-xs font-medium text-gray-700">
+                                    Hiện chi tiết việc trên lịch
+                                </Label>
+                            </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <Switch 
-                                id="hide-full-time" 
-                                checked={hideFullTime} 
-                                onCheckedChange={setHideFullTime} 
-                            />
-                            <Label htmlFor="hide-full-time" className="cursor-pointer text-sm font-medium">Ẩn nhân viên Full-time</Label>
+
+                        <div className="flex items-center space-x-5">
+                            <div className="flex items-center space-x-2">
+                                <Switch 
+                                    id="show-all-shifts" 
+                                    checked={showAllShifts} 
+                                    onCheckedChange={setShowAllShifts} 
+                                />
+                                <Label htmlFor="show-all-shifts" className="cursor-pointer text-sm font-medium">Xem lịch toàn cửa hàng</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Switch 
+                                    id="hide-full-time" 
+                                    checked={hideFullTime} 
+                                    onCheckedChange={setHideFullTime} 
+                                />
+                                <Label htmlFor="hide-full-time" className="cursor-pointer text-sm font-medium">Ẩn nhân viên Full-time</Label>
+                            </div>
                         </div>
                     </div>
 
@@ -580,7 +806,8 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                         startAccessor={(event: any) => new Date(event.start)}
                         endAccessor={(event: any) => new Date(event.end)}
                         defaultView={Views.WEEK}
-                        defaultDate={calDate}
+                        date={currentCalDate}
+                        onNavigate={(newDate: Date) => setCurrentCalDate(newDate)}
                         views={[Views.WEEK, Views.DAY]}
                         step={30} 
                         timeslots={2}
@@ -596,6 +823,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                         onSelectEvent={(event: any) => handleSelectEvent(event)}
                         eventPropGetter={(event: any) => eventPropGetter(event)}
                         slotPropGetter={slotPropGetter}
+                        components={components}
                         messages={{
                             next: "Sau",
                             previous: "Trước",
@@ -683,18 +911,20 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
             {/* Action / Edit / Swap Dialog */}
             <Dialog open={actionModalOpen} onOpenChange={setActionModalOpen}>
-                <DialogContent className="max-w-[400px] rounded-xl">
+                <DialogContent className="max-w-[480px] max-h-[85vh] overflow-y-auto rounded-2xl">
                     <DialogHeader>
                         <DialogTitle>
-                            {selectedEvent?.isOwner ? "Quản lý ca làm việc của bạn" : "Nhận ca làm từ đồng nghiệp"}
+                            {isAdmin 
+                                ? `Quản lý ca làm: ${selectedEvent?.title}`
+                                : (selectedEvent?.isOwner ? "Quản lý ca làm việc của bạn" : "Nhận ca làm từ đồng nghiệp")}
                         </DialogTitle>
                         <DialogDescription>
                             {selectedEvent && (
                                 <>
-                                    Khung giờ: <span className="font-bold text-emerald-600 block text-lg my-2">
+                                    Khung giờ: <span className="font-bold text-emerald-600 block text-lg my-1">
                                         {moment(selectedEvent.start).format('HH:mm')} - {moment(selectedEvent.end).format('HH:mm')}
                                     </span>
-                                    Ngày: {moment(selectedEvent.start).format('DD/MM/YYYY')}
+                                    Ngày: <span className="font-semibold text-slate-800">{moment(selectedEvent.start).format('DD/MM/YYYY')}</span>
                                 </>
                             )}
                         </DialogDescription>
@@ -702,6 +932,141 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
                     {selectedEvent && selectedEvent.isOwner ? (
                         <div className="space-y-4 py-2">
+                            {/* Admin Shift Task Management Section */}
+                            {isAdmin && (
+                                <div className="border rounded-xl p-3 bg-slate-50/60 border-slate-200/90 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-bold text-xs text-slate-800 flex items-center gap-1.5 uppercase tracking-wide">
+                                            <ListTodo className="h-4 w-4 text-emerald-600" />
+                                            Nhiệm vụ ca làm ({shiftTasks.length})
+                                        </span>
+                                        {!showAddShiftTask && (
+                                            <Button 
+                                                type="button"
+                                                size="sm" 
+                                                variant="outline"
+                                                className="h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-1 font-semibold"
+                                                onClick={() => setShowAddShiftTask(true)}
+                                            >
+                                                <Plus className="h-3 w-3" /> Giao việc ca này
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {/* New Task Form */}
+                                    {showAddShiftTask && (
+                                        <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 space-y-2 text-xs animate-in fade-in">
+                                            <div className="font-semibold text-emerald-950 flex items-center justify-between">
+                                                <span>Giao việc mới cho ca này</span>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setShowAddShiftTask(false)}
+                                                    className="text-slate-400 hover:text-slate-600 text-[10px]"
+                                                >
+                                                    Hủy
+                                                </button>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[11px] font-medium text-slate-700">Tên công việc <span className="text-red-500">*</span></Label>
+                                                <Input 
+                                                    placeholder="VD: Kiểm tra quầy hàng, kiểm kê date bánh..." 
+                                                    value={newShiftTaskTitle}
+                                                    onChange={e => setNewShiftTaskTitle(e.target.value)}
+                                                    className="h-8 text-xs bg-white"
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[11px] font-medium text-slate-700">Mô tả chi tiết</Label>
+                                                <Textarea 
+                                                    placeholder="Mô tả cụ thể công việc cần làm..." 
+                                                    value={newShiftTaskDesc}
+                                                    onChange={e => setNewShiftTaskDesc(e.target.value)}
+                                                    className="text-xs bg-white resize-none"
+                                                    rows={2}
+                                                />
+                                            </div>
+                                            <div className="flex justify-end gap-2 pt-1">
+                                                <Button 
+                                                    type="button" 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-7 text-xs" 
+                                                    onClick={() => setShowAddShiftTask(false)}
+                                                >
+                                                    Đóng
+                                                </Button>
+                                                <Button 
+                                                    type="button" 
+                                                    size="sm" 
+                                                    className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                                                    onClick={handleCreateShiftTask}
+                                                    disabled={savingShiftTask}
+                                                >
+                                                    {savingShiftTask ? "Đang lưu..." : "Lưu & Giao việc"}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Existing Shift Tasks List */}
+                                    {loadingShiftTasks ? (
+                                        <div className="text-center py-2 text-xs text-muted-foreground animate-pulse">
+                                            Đang tải nhiệm vụ ca này...
+                                        </div>
+                                    ) : shiftTasks.length === 0 ? (
+                                        !showAddShiftTask && (
+                                            <div className="text-center py-3 bg-white border border-dashed rounded-lg text-xs text-muted-foreground">
+                                                Chưa có nhiệm vụ nào được giao cho ca này.
+                                            </div>
+                                        )
+                                    ) : (
+                                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                            {shiftTasks.map((t: any) => (
+                                                <div 
+                                                    key={t.id} 
+                                                    className="border border-slate-200 rounded-lg p-2.5 bg-white shadow-2xs space-y-1 text-xs hover:border-emerald-200 transition-colors"
+                                                >
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <h5 className="font-bold text-slate-800 leading-tight">
+                                                            {t.title}
+                                                        </h5>
+                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                            <Badge 
+                                                                variant="outline" 
+                                                                className={cn(
+                                                                    "text-[9px] px-1.5 py-0 font-semibold",
+                                                                    t.isCompleted 
+                                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                                                                        : "bg-amber-50 text-amber-700 border-amber-200"
+                                                                )}
+                                                            >
+                                                                {t.isCompleted ? "✅ Đã xong" : "⏳ Chưa xong"}
+                                                            </Badge>
+                                                            <Button 
+                                                                type="button" 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                                onClick={() => handleDeleteShiftTask(t.id, t.title)}
+                                                                title="Xóa nhiệm vụ (nếu giao nhầm)"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                    {t.description && (
+                                                        <p className="text-[11px] text-slate-500 bg-slate-50 rounded p-1.5 border border-slate-100 whitespace-pre-wrap">
+                                                            {t.description}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {!isAdmin && isShiftLocked(selectedEvent.start) ? (
                                 <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold rounded-lg">
                                     ⚠️ Lịch làm của tuần này đã được chốt. Chỉ Admin mới có quyền sửa đổi.
@@ -797,6 +1162,139 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Week Duty Drawer / Sheet */}
+            <Sheet open={dutySheetOpen} onOpenChange={setDutySheetOpen}>
+                <SheetContent side="right" className="w-[90vw] sm:max-w-md md:max-w-lg flex flex-col p-0 bg-white">
+                    <SheetHeader className="p-4 sm:p-5 border-b bg-gradient-to-r from-indigo-50/50 via-white to-white">
+                        <div className="flex items-center gap-2">
+                            <div className="p-2 bg-indigo-100 rounded-lg text-indigo-700">
+                                <ListTodo className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <SheetTitle className="text-base sm:text-lg font-bold text-gray-900">
+                                    Bảng nhiệm vụ theo ca
+                                </SheetTitle>
+                                <SheetDescription className="text-xs text-gray-500">
+                                    Tuần {moment(weekStart).format('DD/MM')} - {moment(weekEnd).format('DD/MM/YYYY')} • {totalWeekDuties} nhiệm vụ
+                                </SheetDescription>
+                            </div>
+                        </div>
+                    </SheetHeader>
+
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+                        {sheetWeekDays.map((day, dIdx) => {
+                            return (
+                                <div key={dIdx} className={cn("rounded-xl border transition-all", day.isToday ? "border-indigo-300 bg-indigo-50/20 shadow-xs" : "border-gray-200 bg-white")}>
+                                    <div className="flex items-center justify-between px-3.5 py-2.5 bg-gray-50/80 border-b rounded-t-xl">
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn("text-xs font-bold uppercase", day.isToday ? "text-indigo-600" : "text-gray-700")}>
+                                                {day.dayTitle}
+                                            </span>
+                                            {day.isToday && (
+                                                <span className="bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Hôm nay</span>
+                                            )}
+                                        </div>
+                                        <span className="text-[11px] text-gray-400 font-medium">
+                                            {day.events.length} ca làm
+                                        </span>
+                                    </div>
+
+                                    <div className="p-3 space-y-2.5">
+                                        {day.events.length === 0 ? (
+                                            <p className="text-xs text-gray-400 italic py-1 text-center">Không có ca làm việc</p>
+                                        ) : (
+                                            day.events.map((ev: any) => {
+                                                const evDuties = ev.duties || ev.resource?.duties || [];
+                                                const colors = getEventColor(ev.title);
+                                                return (
+                                                    <div 
+                                                        key={ev.id} 
+                                                        className="border rounded-lg p-2.5 bg-white shadow-2xs hover:border-gray-300 transition-all space-y-2"
+                                                        style={{ borderLeftWidth: '4px', borderLeftColor: colors.bg }}
+                                                    >
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div>
+                                                                <div className="font-bold text-gray-800 text-xs sm:text-sm flex items-center gap-1.5">
+                                                                    <span>{ev.title}</span>
+                                                                    {ev.employmentType === 'FULL_TIME' && (
+                                                                        <span className="text-[9px] bg-gray-100 text-gray-600 px-1 py-0.2 rounded font-normal">Full-time</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+                                                                    <Clock className="h-3 w-3 text-gray-400" />
+                                                                    <span>{moment(ev.start).format('HH:mm')} - {moment(ev.end).format('HH:mm')}</span>
+                                                                </div>
+                                                            </div>
+
+                                                            {isAdmin && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => {
+                                                                        setSelectedEvent(ev);
+                                                                        setActionModalOpen(true);
+                                                                        setShowAddShiftTask(true);
+                                                                    }}
+                                                                    className="h-7 text-xs px-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-medium"
+                                                                >
+                                                                    <Plus className="h-3.5 w-3.5 mr-1" />
+                                                                    Giao việc
+                                                                </Button>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Duty list for this shift */}
+                                                        {evDuties.length > 0 ? (
+                                                            <div className="space-y-1.5 pt-1 border-t border-dashed border-gray-100">
+                                                                {evDuties.map((d: any) => (
+                                                                    <div key={d.id} className="flex items-start justify-between gap-2 bg-gray-50/80 p-2 rounded-md text-xs group">
+                                                                        <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                                                                            <span className={cn("mt-0.5 text-xs", d.isCompleted ? "text-emerald-500 font-bold" : "text-amber-500")}>
+                                                                                {d.isCompleted ? "✓" : "○"}
+                                                                            </span>
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <p className={cn("font-medium text-gray-800 leading-tight", d.isCompleted && "line-through text-gray-400")}>
+                                                                                    {d.title}
+                                                                                </p>
+                                                                                {d.description && (
+                                                                                    <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                                                                                        {d.description}
+                                                                                    </p>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1 shrink-0">
+                                                                            <span className={cn("text-[9px] px-1.5 py-0.5 rounded font-semibold", d.isCompleted ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
+                                                                                {d.isCompleted ? "Xong" : "Chưa xong"}
+                                                                            </span>
+                                                                            {isAdmin && (
+                                                                                <button
+                                                                                    onClick={() => handleDeleteShiftTask(d.id, d.title)}
+                                                                                    className="text-gray-300 hover:text-red-500 p-0.5 rounded transition opacity-0 group-hover:opacity-100"
+                                                                                    title="Xóa nhiệm vụ"
+                                                                                >
+                                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <p className="text-[11px] text-gray-400 italic">Chưa có nhiệm vụ nào được giao</p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
     )
 }
