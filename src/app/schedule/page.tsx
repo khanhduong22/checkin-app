@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { ensureAdminNaSchedule } from "@/lib/auto-schedule";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,9 @@ export default async function SchedulePage() {
 
     const currentUser = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!currentUser) redirect('/login');
+
+    // Tự động đảm bảo lịch làm cho Admin Na mỗi tuần từ T2-T7 9h30-17h30
+    await ensureAdminNaSchedule(8);
 
     // Get shifts for current view range (e.g. this month + next month)
     // Simplify: Get all future shifts or last 2 months

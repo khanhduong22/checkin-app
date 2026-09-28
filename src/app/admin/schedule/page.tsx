@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ensureAdminNaSchedule } from "@/lib/auto-schedule";
 import UploadScheduleButton from "@/components/schedule/UploadScheduleButton";
 import ShiftHistoryDialog from "@/components/admin/ShiftHistoryDialog";
 import { getServerSession } from "next-auth";
@@ -20,6 +21,9 @@ export default async function AdminSchedulePage() {
 
     const currentUser = await prisma.user.findUnique({ where: { email: session.user?.email! } });
     if (!currentUser) redirect('/login');
+
+    // Tự động đảm bảo lịch làm cho Admin Na mỗi tuần từ T2-T7 9h30-17h30
+    await ensureAdminNaSchedule(8);
 
     const today = new Date();
     const startRange = new Date(today.getFullYear(), today.getMonth() - 1, 1);
