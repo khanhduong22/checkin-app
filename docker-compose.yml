@@ -6,6 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: checkin-app
+    init: true
     restart: unless-stopped
     env_file:
       - .env
