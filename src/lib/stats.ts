@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { isLate as checkIsLate } from "@/lib/utils";
 import { User, EmploymentType, Request, WorkShift, CheckIn, Holiday, PayrollAdjustment, StaffTask } from "@prisma/client";
+import { getOrSetCache, invalidateCachePattern } from "@/lib/cache";
 
 // --- Interfaces ---
 
@@ -168,7 +169,39 @@ export interface PrefetchedStatsData {
   staffTasks?: StaffTask[];
 }
 
+export async function invalidateUserStatsCache(userId?: string): Promise<void> {
+  try {
+    if (userId) {
+      await invalidateCachePattern(`stats:monthly:${userId}:*`);
+    } else {
+      await invalidateCachePattern(`stats:monthly:*`);
+    }
+  } catch (e) {
+    console.warn("[Cache Warning] Failed to invalidate stats cache:", e);
+  }
+}
+
 export async function getUserMonthlyStats(
+  userId: string,
+  targetDate: Date = new Date(),
+  prefetched?: PrefetchedStatsData
+): Promise<MonthlyStats> {
+  if (prefetched) {
+    return await computeUserMonthlyStats(userId, targetDate, prefetched);
+  }
+
+  const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const vnDate = new Date(targetDate.getTime() + VN_OFFSET_MS);
+  const vnYear = vnDate.getUTCFullYear();
+  const vnMonth = vnDate.getUTCMonth();
+  const cacheKey = `stats:monthly:${userId}:${vnYear}-${vnMonth + 1}`;
+
+  return await getOrSetCache(cacheKey, 300, async () => {
+    return await computeUserMonthlyStats(userId, targetDate);
+  });
+}
+
+async function computeUserMonthlyStats(
   userId: string,
   targetDate: Date = new Date(),
   prefetched?: PrefetchedStatsData

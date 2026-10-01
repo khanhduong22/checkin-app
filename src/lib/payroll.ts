@@ -1,12 +1,27 @@
 import { prisma } from "@/lib/prisma";
 import { getUserMonthlyStats } from "@/lib/stats";
+import { getOrSetCache, invalidateCache, invalidateCachePattern } from "@/lib/cache";
+
+export async function invalidatePayrollCache(month?: number, year?: number): Promise<void> {
+  try {
+    if (month && year) {
+      await invalidateCache(`payroll:monthly:${year}-${month}`);
+    } else {
+      await invalidateCachePattern(`payroll:monthly:*`);
+    }
+  } catch (e) {
+    console.warn("[Cache Warning] Failed to invalidate payroll cache:", e);
+  }
+}
 
 export async function calculatePayroll(month: number, year: number) {
-  const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
-  const targetDate = new Date(year, month - 1, 15);
-  const vnDate = new Date(targetDate.getTime() + VN_OFFSET_MS);
-  const vnYear = vnDate.getUTCFullYear();
-  const vnMonth = vnDate.getUTCMonth();
+  const cacheKey = `payroll:monthly:${year}-${month}`;
+  return await getOrSetCache(cacheKey, 300, async () => {
+    const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const targetDate = new Date(year, month - 1, 15);
+    const vnDate = new Date(targetDate.getTime() + VN_OFFSET_MS);
+    const vnYear = vnDate.getUTCFullYear();
+    const vnMonth = vnDate.getUTCMonth();
 
   // Start = midnight VN time on the 1st = UTC - 7h
   const startDate = new Date(Date.UTC(vnYear, vnMonth, 1) - VN_OFFSET_MS);
@@ -126,7 +141,8 @@ export async function calculatePayroll(month: number, year: number) {
     };
   }));
 
-  return payrollData;
+    return payrollData;
+  });
 }
 
 export function applyHardworkingBonus(payrollList: any[], month: number, year: number, isNestedStats: boolean) {

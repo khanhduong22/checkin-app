@@ -76,6 +76,8 @@ jobs:
             RESEND_API_KEY="$RESEND_API_KEY"
             EMAIL_FROM="$EMAIL_FROM"
             CRON_SECRET="$CRON_SECRET"
+            REDIS_URL="redis://checkin-valkey:6379"
+            MEILISEARCH_HOST="http://meilisearch:7700"
             PORT=3000
             EOF
             
