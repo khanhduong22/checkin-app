@@ -11,6 +11,7 @@ services:
     environment:
       - REDIS_URL=redis://checkin-valkey:6379
       - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=kt_meilisearch_master_key_2026_safe
     env_file:
       - .env
     depends_on:

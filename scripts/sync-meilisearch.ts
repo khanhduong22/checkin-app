@@ -30,7 +30,6 @@ async function main() {
         name: true,
         email: true,
         role: true,
-        isActive: true,
         image: true,
         employmentType: true,
       },
@@ -39,13 +38,12 @@ async function main() {
     console.log(`Fetched ${users.length} users from PostgreSQL.`);
 
     // 2. Format documents with Vietnamese unaccented normalization
-    const userDocs = users.map((u) => ({
+    const userDocs = users.map((u: any) => ({
       id: u.id,
       name: u.name,
       normalizedName: normalizeVietnamese(u.name),
       email: u.email,
       role: u.role,
-      isActive: u.isActive,
       image: u.image,
       employmentType: u.employmentType,
     }));
@@ -56,7 +54,7 @@ async function main() {
     console.log("Configuring 'checkin_users' index settings...");
     await userIndex.updateSettings({
       searchableAttributes: ["name", "normalizedName", "email"],
-      filterableAttributes: ["role", "isActive", "employmentType"],
+      filterableAttributes: ["role", "employmentType"],
       sortableAttributes: ["name"],
       typoTolerance: {
         enabled: true,
