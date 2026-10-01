@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   checkin-app:
+    image: ghcr.io/khanhduong22/checkin-app:latest
     build:
       context: .
       dockerfile: Dockerfile
