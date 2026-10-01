@@ -29,6 +29,8 @@ updated: 2026-08-08
 | [manager-checklist.test.ts](../../tests/unit/manager-checklist.test.ts) | `getUserMonthlyStats` (Manager Checklist compliance) | 100% |
 | [shift-audit.test.ts](../../tests/unit/shift-audit.test.ts) | `logShiftAction`, `getShiftAuditLogs` (Shift Audit Logging) | 100% |
 | [hardworking-bonus.test.ts](../../tests/unit/hardworking-bonus.test.ts) | `applyHardworkingBonus` | 100% |
+| [cache.test.ts](../../tests/unit/cache.test.ts) | `getOrSetCache`, `invalidateCache`, graceful fallback | 100% |
+| [meilisearch.test.ts](../../tests/unit/meilisearch.test.ts) | `searchUsers`, `searchTasks`, unaccented Vietnamese, graceful fallback | 100% |
 
 
 ### E2E Tests (Playwright)
