@@ -7,8 +7,7 @@ import {
   updateStaffTask, 
   deleteStaffTask, 
   getStaffTaskPerformanceStats,
-  getBatchStaffTaskPerformanceStats,
-  getUserUpcomingShifts
+  getBatchStaffTaskPerformanceStats
 } from "@/actions/staff-task-actions";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -48,8 +47,9 @@ export default function AdminStaffTaskClient({
   initialTasks: StaffTask[]; 
   users: UserOption[]; 
 }) {
-  const assignableUsers = useMemo(() => users, [users]);
+  // Chỉ những nhân viên được cấp quyền KPI (staffTasksAllowed === true) mới được phân công & hiển thị
   const allowedUsers = useMemo(() => users.filter(u => u.staffTasksAllowed), [users]);
+  const assignableUsers = allowedUsers;
 
   const [tasks, setTasks] = useState<StaffTask[]>(initialTasks);
   const [selectedUserFilter, setSelectedUserFilter] = useState<string>("ALL");
@@ -70,38 +70,6 @@ export default function AdminStaffTaskClient({
     deadline: "",
     adminNote: ""
   });
-
-  // Upcoming shifts for shift-based task assignment
-  const [userUpcomingShifts, setUserUpcomingShifts] = useState<any[]>([]);
-  const [loadingShifts, setLoadingShifts] = useState(false);
-
-  useEffect(() => {
-    if (!taskForm.assigneeId) {
-      setUserUpcomingShifts([]);
-      return;
-    }
-    let active = true;
-    setLoadingShifts(true);
-    getUserUpcomingShifts(taskForm.assigneeId)
-      .then(res => {
-        if (active && res.success && res.data) {
-          setUserUpcomingShifts(res.data);
-        }
-      })
-      .catch(err => console.error("Error fetching user shifts:", err))
-      .finally(() => {
-        if (active) setLoadingShifts(false);
-      });
-    return () => { active = false; };
-  }, [taskForm.assigneeId]);
-
-  const handleSelectShiftDate = (dateStr: string) => {
-    setTaskForm(prev => ({
-      ...prev,
-      startDate: dateStr,
-      deadline: prev.deadline || dateStr,
-    }));
-  };
 
   // Autocomplete / Template Suggestions state
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -379,7 +347,7 @@ export default function AdminStaffTaskClient({
             onChange={e => setSelectedUserFilter(e.target.value)}
             className="border rounded-lg text-sm px-3 py-2 bg-white outline-hidden focus:ring-2 focus:ring-indigo-500"
           >
-            <option value="ALL">Tất cả nhân sự được giao việc</option>
+            <option value="ALL">Tất cả nhân sự được cấp quyền KPI</option>
             {allowedUsers.map(u => (
               <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
             ))}
@@ -786,57 +754,22 @@ export default function AdminStaffTaskClient({
 
             <div className="space-y-1">
               <Label htmlFor="task-assignee">Giao cho nhân viên <span className="text-red-500">*</span></Label>
-              <select
-                id="task-assignee"
-                value={taskForm.assigneeId}
-                onChange={e => setTaskForm(prev => ({ ...prev, assigneeId: e.target.value }))}
-                className="w-full border rounded-lg p-2 bg-white"
-                required
-              >
-                {assignableUsers.map(u => (
-                  <option key={u.id} value={u.id}>{u.name || u.email} {u.email ? `(${u.email})` : ''}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Upcoming Shifts based task assignment */}
-            <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-indigo-600" />
-                  Gán theo ca làm việc (Nhấn để chọn nhanh ngày):
-                </span>
-                {loadingShifts && <span className="text-[10px] text-slate-400 animate-pulse">Đang tải lịch...</span>}
-              </div>
-
-              {userUpcomingShifts.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5 pt-1 max-h-36 overflow-y-auto">
-                  {userUpcomingShifts.map((s: any) => {
-                    const isSelected = taskForm.startDate === s.dateStr;
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => handleSelectShiftDate(s.dateStr)}
-                        className={cn(
-                          "text-[11px] px-2.5 py-1 rounded-lg border font-medium transition-all text-left flex items-center gap-1",
-                          isSelected 
-                            ? "bg-indigo-600 text-white border-indigo-600 shadow-xs" 
-                            : "bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50"
-                        )}
-                      >
-                        <span>{s.displayLabel}</span>
-                        {isSelected && <Check className="h-3 w-3 inline ml-0.5" />}
-                      </button>
-                    );
-                  })}
+              {assignableUsers.length === 0 ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                  ⚠️ Chưa có nhân viên nào được bật cấp quyền KPI. Vui lòng vào mục <b>Quản lý nhân viên</b> để cấp quyền KPI trước khi giao việc.
                 </div>
               ) : (
-                !loadingShifts && (
-                  <p className="text-[11px] text-slate-500 italic pt-0.5">
-                    Nhân viên chưa có lịch làm trong 14 ngày tới. Bạn có thể chọn ngày thủ công bên dưới.
-                  </p>
-                )
+                <select
+                  id="task-assignee"
+                  value={taskForm.assigneeId}
+                  onChange={e => setTaskForm(prev => ({ ...prev, assigneeId: e.target.value }))}
+                  className="w-full border rounded-lg p-2 bg-white"
+                  required
+                >
+                  {assignableUsers.map(u => (
+                    <option key={u.id} value={u.id}>{u.name || u.email} {u.email ? `(${u.email})` : ''}</option>
+                  ))}
+                </select>
               )}
             </div>
 

@@ -106,8 +106,9 @@ describe("Staff Tasks Actions", () => {
   });
 
   describe("createStaffTask", () => {
-    it("allows admin to create tasks", async () => {
+    it("allows admin to create tasks for KPI-allowed user", async () => {
       mockGetServerSession.mockResolvedValue({ user: { email: "admin@example.com", id: "admin-1", role: "ADMIN" } });
+      mockUserFindUnique.mockResolvedValue({ id: "staff-1", name: "Staff", email: "staff@example.com", staffTasksAllowed: true });
       mockTaskCreate.mockResolvedValue({ id: "task-new" });
 
       const res = await createStaffTask({
@@ -117,6 +118,20 @@ describe("Staff Tasks Actions", () => {
 
       expect(res.success).toBe(true);
       expect(mockTaskCreate).toHaveBeenCalled();
+    });
+
+    it("prevents creating tasks for users who do not have KPI permission", async () => {
+      mockGetServerSession.mockResolvedValue({ user: { email: "admin@example.com", id: "admin-1", role: "ADMIN" } });
+      mockUserFindUnique.mockResolvedValue({ id: "staff-1", name: "Staff", email: "staff@example.com", staffTasksAllowed: false });
+
+      const res = await createStaffTask({
+        title: "TikTok Video",
+        assigneeId: "staff-1"
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("chưa được bật cấp quyền KPI");
+      expect(mockTaskCreate).not.toHaveBeenCalled();
     });
 
     it("prevents non-admins from creating tasks", async () => {

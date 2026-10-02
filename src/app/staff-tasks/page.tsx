@@ -28,15 +28,9 @@ export default async function StaffTasksPage() {
 
   const isAdmin = currentUser.role === "ADMIN";
 
-  // Check access permission for regular users
+  // Check access permission for regular users - chỉ người được bật cấp quyền KPI mới được vào
   if (!isAdmin && !currentUser.staffTasksAllowed) {
-    const hasAssignedTasks = await prisma.staffTask.findFirst({
-      where: { assigneeId: currentUser.id },
-      select: { id: true },
-    });
-
-    if (!hasAssignedTasks) {
-      return (
+    return (
       <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gray-50/50">
         <Card className="w-full max-w-md border-red-100 bg-red-50/20 shadow-lg text-center p-6 space-y-4">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
@@ -49,7 +43,7 @@ export default async function StaffTasksPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0 text-sm text-red-900 leading-relaxed">
-            Nội dung này chỉ hiển thị khi bạn được Chủ cửa hàng/Admin chỉ định trực tiếp và cấp quyền làm việc theo chỉ tiêu. Vui lòng liên hệ Admin để biết thêm chi tiết.
+            Nội dung này chỉ hiển thị khi email của bạn được Chủ cửa hàng/Admin chỉ định trực tiếp và cấp quyền làm việc theo chỉ tiêu. Vui lòng liên hệ Admin để biết thêm chi tiết.
           </CardContent>
           <div className="pt-2">
             <Link href="/">
@@ -60,8 +54,7 @@ export default async function StaffTasksPage() {
           </div>
         </Card>
       </main>
-      );
-    }
+    );
   }
 
   if (isAdmin) {
@@ -74,9 +67,12 @@ export default async function StaffTasksPage() {
       orderBy: { createdAt: "desc" },
     });
 
-    // 2. Fetch all users for dropdown assignee filter
+    // 2. Fetch ONLY users who are granted KPI permissions (staffTasksAllowed === true)
     const users = await prisma.user.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        staffTasksAllowed: true 
+      },
       select: {
         id: true,
         name: true,

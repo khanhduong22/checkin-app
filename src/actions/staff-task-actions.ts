@@ -46,15 +46,8 @@ export async function getStaffTasks(userId?: string) {
 
     let targetUserId = userId;
     if (!isAdmin) {
-      // Regular users can only access their own tasks
-      let hasTasks = false;
-      if (!user.staffTasksAllowed && typeof prisma.staffTask.count === "function") {
-        try {
-          const count = await prisma.staffTask.count({ where: { assigneeId: user.id } });
-          hasTasks = count > 0;
-        } catch {}
-      }
-      if (!user.staffTasksAllowed && !hasTasks) {
+      // Regular users can only access their own tasks if they have staffTasksAllowed
+      if (!user.staffTasksAllowed) {
         return { success: false, error: "Bạn không có quyền truy cập Công việc và KPI" };
       }
       targetUserId = user.id;
@@ -83,6 +76,20 @@ export async function getStaffTasks(userId?: string) {
 export async function createStaffTask(data: StaffTaskInput) {
   try {
     const session = await requireAdmin();
+
+    // Kiểm tra nhân viên được giao việc có được cấp quyền KPI không
+    const targetUser = await prisma.user.findUnique({
+      where: { id: data.assigneeId },
+      select: { id: true, name: true, email: true, staffTasksAllowed: true }
+    });
+
+    if (!targetUser?.staffTasksAllowed) {
+      return { 
+        success: false, 
+        error: `Nhân viên ${targetUser?.name || targetUser?.email || ''} chưa được bật cấp quyền KPI!` 
+      };
+    }
+
     const task = await prisma.staffTask.create({
       data: {
         ...data,
