@@ -427,17 +427,27 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
     const eventPropGetter = useCallback(
         (event: CalendarEvent) => {
             const isSwap = !event.isOwner && event.resource?.isOpenForSwap;
+            const isSenior = Boolean(event.isSenior || event.resource?.isSenior);
             const colors = isSwap ? { bg: '#8b5cf6', text: '#ffffff' } : getEventColor(event.title);
+
+            let border = event.isOwner ? '2px solid white' : '0px';
+            let boxShadow = event.isOwner ? '0 0 0 2px #000' : (isSwap ? '0 0 0 2px #8b5cf6' : 'none');
+
+            if (isSenior) {
+                border = '2px solid #fde047';
+                boxShadow = '0 0 0 2px #d97706, 0 2px 6px rgba(217, 119, 6, 0.35)';
+            }
+
             return {
                 style: {
                     backgroundColor: colors.bg,
-                    opacity: 0.9,
+                    opacity: 0.95,
                     color: colors.text,
-                    border: event.isOwner ? '2px solid white' : '0px',
+                    border,
                     display: 'block',
                     zoom: 1, 
                     fontSize: '0.75rem', 
-                    boxShadow: event.isOwner ? '0 0 0 2px #000' : (isSwap ? '0 0 0 2px #8b5cf6' : 'none'),
+                    boxShadow,
                 },
             }
         },
@@ -464,19 +474,20 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         const isSenior = Boolean(event.isSenior || event.resource?.isSenior);
 
         return (
-            <div className="flex flex-col h-full justify-between text-xs py-0.5 leading-tight overflow-hidden">
-                <div className="min-w-0">
-                    <div className="flex items-center gap-1 flex-wrap">
-                        <span className="font-bold truncate leading-snug">
-                            {event.title}
-                        </span>
-                        {isSenior && (
-                            <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9px] font-extrabold bg-amber-400 text-amber-950 border border-amber-300 shadow-xs shrink-0" title="Trưởng ca (+3k/h)">
-                                👑 Trưởng ca
-                            </span>
-                        )}
-                    </div>
+            <div className="flex flex-col h-full justify-between text-xs py-0.5 leading-tight overflow-hidden relative">
+                <div className="min-w-0 pr-6">
+                    <span className="font-bold truncate leading-snug block">
+                        {event.title}
+                    </span>
                 </div>
+                {isSenior && (
+                    <span 
+                        className="absolute -top-0.5 right-0 text-base sm:text-lg select-none leading-none filter drop-shadow-xs" 
+                        title="Trưởng ca"
+                    >
+                        👑
+                    </span>
+                )}
                 {count > 0 && (
                     <div className="mt-auto pt-0.5 pointer-events-none">
                         {!showDutyDetails ? (
@@ -723,7 +734,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                                             <span className="font-semibold text-gray-700">{event.title}</span>
                                             {(event.isSenior || event.resource?.isSenior) && (
                                                 <span className="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1 shadow-2xs">
-                                                    👑 Trưởng ca (+3k/h)
+                                                    👑 Trưởng ca{(isAdmin || event.resource?.userId === userId) ? " (+3k/h)" : ""}
                                                 </span>
                                             )}
                                             {event.employmentType === 'FULL_TIME' && (
@@ -975,7 +986,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                                     {(selectedEvent.isSenior || selectedEvent.resource?.isSenior) && (
                                         <div className="mt-2">
                                             <span className="inline-flex items-center gap-1 bg-amber-400 text-amber-950 px-2.5 py-0.5 rounded-full text-xs font-bold border border-amber-300 shadow-2xs">
-                                                👑 Trưởng ca hôm nay (+3k/h)
+                                                👑 Trưởng ca hôm nay{(isAdmin || selectedEvent.resource?.userId === userId) ? " (+3k/h)" : ""}
                                             </span>
                                         </div>
                                     )}
