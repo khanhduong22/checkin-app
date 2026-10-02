@@ -1,0 +1,399 @@
+import React, { useState } from "react";
+import useSWR from "swr";
+import {
+  fetcher,
+  DEFAULT_HOME_DATA,
+  StaffHomeData,
+  CheckinRecord,
+} from "@/lib/api-client";
+import CheckInButtons from "@/components/CheckInButtons";
+import GachaButton from "@/components/GachaButton";
+import HomeTour from "@/components/home/HomeTour";
+import TourHelpButton from "@/components/TourHelpButton";
+import SpecialDaysWidget from "@/components/home/SpecialDaysWidget";
+import AnnouncementBar from "@/components/AnnouncementBar";
+import HomeAnnouncements from "@/components/HomeAnnouncements";
+import PrivacyStats from "@/components/PrivacyStats";
+import ShiftDutyHomeWidget from "@/components/shift-duty/ShiftDutyHomeWidget";
+import CapyAssistant from "@/components/CapyAssistant";
+import { Button } from "@/components/ui/button";
+import { Link } from "@/lib/router";
+
+export const HomeCheckinView: React.FC = () => {
+  const { data: response, mutate } = useSWR<{ success: boolean; data: StaffHomeData }>(
+    "/api/staff/home-data",
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      revalidateIfStale: true,
+    }
+  );
+
+  const [tourForceRun, setTourForceRun] = useState(false);
+
+  const homeData: StaffHomeData = response?.data || DEFAULT_HOME_DATA;
+  const {
+    user,
+    streak,
+    swapCount,
+    announcements,
+    rejectedTasksCount,
+    stats,
+    todayCheckins,
+    todayShift,
+    todayDuties,
+    hasCheckedInToday,
+    specialUsers,
+    activeUsers,
+  } = homeData;
+
+  const handleCheckinSuccess = () => {
+    mutate();
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center p-2 sm:p-3 w-full bg-transparent">
+      <div className="w-full max-w-md space-y-3 animate-in fade-in duration-300 pb-20">
+        {/* Interactive Tour Guide & Tour Help Button */}
+        <HomeTour forceRun={tourForceRun} />
+        <TourHelpButton onRestart={() => setTourForceRun(true)} />
+
+        {/* Special Days Widget (Birthdays, Anniversaries, Holidays) */}
+        <div id="home-special-days">
+          <SpecialDaysWidget
+            specialUsers={specialUsers || []}
+            currentUserId={user?.id}
+            enableCalendar={false}
+          />
+        </div>
+
+        {/* Announcements Modal Popup */}
+        <div id="home-announcement">
+          <AnnouncementBar announcements={announcements || []} />
+        </div>
+
+        {/* Rejected Tasks Alert */}
+        {rejectedTasksCount > 0 && (
+          <div className="border border-rose-200 bg-rose-50/90 rounded-xl p-4 flex items-start gap-3 shadow-xs animate-in fade-in slide-in-from-top-3 duration-300">
+            <div className="p-2 bg-rose-100 rounded-full text-rose-700 leading-none">
+              <span className="text-base">⚠️</span>
+            </div>
+            <div className="flex-grow space-y-1">
+              <h3 className="text-sm font-bold text-rose-800">
+                Yêu cầu sửa đổi công việc
+              </h3>
+              <p className="text-xs text-rose-700 leading-relaxed">
+                Bạn có{" "}
+                <span className="font-extrabold text-rose-900">
+                  {rejectedTasksCount}
+                </span>{" "}
+                công việc khoán/KPI bị Admin từ chối và yêu cầu sửa đổi.
+              </p>
+              <div className="pt-1.5">
+                <Link to="/tasks">
+                  <Button
+                    size="sm"
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold h-7 text-xs px-3 shadow-xs cursor-pointer"
+                  >
+                    Xem chi tiết & sửa ngay
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main Card Container */}
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm relative overflow-hidden">
+          {/* Streak & Swap Badges */}
+          <div className="absolute top-4 right-4 flex gap-2 z-10">
+            {swapCount > 0 && (
+              <Link
+                to="/schedule"
+                className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-[10px] font-bold border border-purple-200 shadow-sm animate-pulse hover:bg-purple-200 transition-colors"
+              >
+                🎁 {swapCount} kèo thơm
+              </Link>
+            )}
+            {streak > 0 && (
+              <div className="bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-[10px] font-bold border border-orange-200 shadow-sm">
+                🔥 {streak}
+              </div>
+            )}
+          </div>
+
+          {/* User Welcome Header */}
+          <div className="p-4 sm:p-5 pb-3 flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-gray-900">
+                Chấm Công
+              </h1>
+              <div
+                id="home-user-info"
+                className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5"
+              >
+                <span>Xin chào, {user?.name || "Bạn"}</span>
+                {user?.achievements?.map((a: any) => {
+                  if (a.code === "LUCKY_STAR")
+                    return (
+                      <span key={a.id} title="Ngôi Sao May Mắn">
+                        🌟
+                      </span>
+                    );
+                  if (a.code === "GACHA_KING")
+                    return (
+                      <span key={a.id} title="Vua Nhân Phẩm">
+                        👑
+                      </span>
+                    );
+                  return null;
+                })}
+                <Link
+                  to="/profile"
+                  className="inline-flex items-center text-[10px] text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/70 px-1.5 py-0.2 rounded-md font-semibold transition-colors ml-1"
+                  title="Chuyển tài khoản"
+                >
+                  Đổi
+                </Link>
+              </div>
+            </div>
+
+            {/* Official LimArt Logo */}
+            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-yellow-50 overflow-hidden shadow-xs border border-yellow-100">
+              <img
+                src="/logo.png"
+                alt="LimArt"
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.target as any).src = "/icon-192.png";
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="px-6 pb-6 space-y-6">
+            {/* Late Warning Alert Banner (if late >= 2) */}
+            {stats && stats.lateCount !== undefined && stats.lateCount >= 2 && (
+              <div
+                className={`border rounded-lg p-3 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 ${
+                  stats.lateCount >= 4
+                    ? "bg-red-100 border-red-400"
+                    : "bg-red-50 border-red-200"
+                }`}
+              >
+                <div
+                  className={`p-2 rounded-full ${
+                    stats.lateCount >= 4 ? "bg-red-200" : "bg-red-100"
+                  }`}
+                >
+                  <span className="text-xl">{stats.lateCount >= 4 ? "🚨" : "⚠️"}</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-red-800">
+                    {stats.lateCount >= 4
+                      ? "⛔ Bị trừ lương do đi trễ"
+                      : "Cảnh báo đi trễ"}
+                  </h3>
+                  <p className="text-xs text-red-700 mt-1">
+                    Bạn đã đi trễ <span className="font-bold">{stats.lateCount}</span>{" "}
+                    lần trong tháng này.
+                  </p>
+                  {stats.latePenaltyHours !== undefined &&
+                    stats.latePenaltyHours > 0 && (
+                      <div className="mt-2 bg-red-200/60 rounded-md px-2 py-1.5 text-xs text-red-900 space-y-0.5">
+                        <div className="flex justify-between">
+                          <span>⏱ Số giờ bị trừ:</span>
+                          <span className="font-bold">
+                            {stats.latePenaltyHours} giờ
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-t border-red-300/60 pt-0.5">
+                          <span>💸 Tiền bị trừ:</span>
+                          <span className="font-bold text-red-700">
+                            −{" "}
+                            {new Intl.NumberFormat("vi-VN", {
+                              style: "currency",
+                              currency: "VND",
+                            }).format(stats.latePenaltyAmount || 0)}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-red-600 pt-0.5 border-t border-red-300/60">
+                          Từ lần trễ thứ 4, mỗi lần trễ thêm sẽ bị trừ 1 giờ lương.
+                        </p>
+                      </div>
+                    )}
+                </div>
+              </div>
+            )}
+
+            {/* Privacy Stats (Total Salary, Hours, Days) */}
+            <div id="home-privacy-stats">
+              <PrivacyStats
+                totalHours={stats?.totalHours || 0}
+                totalSalary={stats?.totalSalary || 0}
+                daysWorked={stats?.daysWorked || 0}
+                baseSalary={stats?.baseSalary}
+                totalAdjustments={stats?.totalAdjustments}
+                latePenaltyHours={stats?.latePenaltyHours}
+                latePenaltyAmount={stats?.latePenaltyAmount}
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-100" />
+              </div>
+            </div>
+
+            {/* Original Check-In Buttons Component */}
+            <div id="home-checkin-buttons">
+              <CheckInButtons
+                userId={user?.id}
+                todayCheckins={todayCheckins || []}
+                todayShift={todayShift}
+                onCheckinSuccess={handleCheckinSuccess}
+              />
+            </div>
+
+            {/* Internal Announcements List */}
+            <div id="home-announcements-list">
+              <HomeAnnouncements announcements={announcements || []} />
+            </div>
+
+            {/* Shift Duties Widget */}
+            <div id="home-shift-duties" className="pt-2">
+              <ShiftDutyHomeWidget
+                currentUserId={user?.id}
+                isAdmin={user?.role === "ADMIN"}
+                duties={todayDuties || []}
+                activeUsers={activeUsers || []}
+              />
+            </div>
+
+            {/* Capybara Mascot AI Assistant */}
+            <div id="home-sticky" className="pt-2">
+              <CapyAssistant currentUser={user} />
+            </div>
+
+            {/* Functional Menu Buttons */}
+            <div id="home-nav" className="space-y-3 pt-2">
+              <div className="flex gap-3">
+                <Link to="/history" className="flex-1">
+                  <Button variant="outline" className="w-full text-xs cursor-pointer">
+                    📜 Lịch sử
+                  </Button>
+                </Link>
+                <Link to="/payroll" className="flex-1">
+                  <Button
+                    variant="outline"
+                    className="w-full text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200 cursor-pointer"
+                  >
+                    💰 Chi tiết lương
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Link to="/schedule" className="block w-full">
+                  <Button variant="outline" className="w-full text-xs cursor-pointer">
+                    📅 Đăng ký Lịch
+                  </Button>
+                </Link>
+                <Link to="/requests" className="block w-full">
+                  <Button
+                    variant="ghost"
+                    className="w-full text-xs text-muted-foreground bg-gray-100/50 cursor-pointer"
+                  >
+                    📝 Xin giải trình
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <Link to="/tasks" className="block w-full">
+                  <Button
+                    variant="default"
+                    className="w-full text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-1 cursor-pointer"
+                  >
+                    💼 Job WFH
+                  </Button>
+                </Link>
+                <Link to="/packing" className="block w-full">
+                  <Button
+                    variant="default"
+                    className="w-full text-xs bg-purple-600 hover:bg-purple-700 text-white px-1 cursor-pointer"
+                  >
+                    📦 Đóng gói
+                  </Button>
+                </Link>
+                <Link to="/carrying" className="block w-full">
+                  <Button
+                    variant="default"
+                    className="w-full text-xs bg-amber-600 hover:bg-amber-700 text-white px-1 cursor-pointer"
+                  >
+                    🛗 Bưng lầu
+                  </Button>
+                </Link>
+              </div>
+
+              {(user?.staffTasksAllowed || user?.role === "ADMIN") && (
+                <div>
+                  <Link to="/tasks" className="block w-full">
+                    <Button
+                      variant="default"
+                      className="w-full h-11 text-sm font-bold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md transition-all hover:scale-[1.01] relative flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      🎯 Công việc và KPI
+                      {rejectedTasksCount > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-extrabold text-white animate-bounce shadow-sm border border-white">
+                          {rejectedTasksCount}
+                        </span>
+                      )}
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Gacha Game & Rewards Section */}
+            <div
+              id="home-gacha"
+              className="pt-4 space-y-3 border-t border-dashed mt-4"
+            >
+              <GachaButton
+                userId={user?.id}
+                hasCheckedIn={hasCheckedInToday}
+                isAdmin={user?.role === "ADMIN"}
+              />
+              <Link to="/rewards" className="block w-full">
+                <Button
+                  variant="outline"
+                  className="w-full h-11 text-sm font-bold border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 text-orange-700 hover:from-yellow-100 hover:to-orange-100 shadow-xs transition-all hover:scale-[1.01] cursor-pointer"
+                >
+                  🏆 Bảng Vàng & Khen Thưởng
+                </Button>
+              </Link>
+              {user?.role === "ADMIN" && (
+                <div className="pt-2 text-center">
+                  <a
+                    href="/admin"
+                    className="text-xs font-bold text-amber-900 hover:text-amber-950 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100/80 border border-amber-300 rounded-xl transition-all shadow-xs"
+                  >
+                    ⚙️ Vào Trang Quản Trị (Admin) →
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Brand */}
+        <div className="mt-4 text-[10px] text-center text-stone-400 font-mono">
+          LimArt Staff App • Chấm Công Thông Minh
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default HomeCheckinView;

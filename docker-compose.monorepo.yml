@@ -1,0 +1,135 @@
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Checkin API Service (Bun / Node.js Hono API)
+  # ----------------------------------------------------------------------------
+  checkin-api:
+    image: ghcr.io/khanhduong22/checkin-app/checkin-api:latest
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: checkin-api
+    init: true
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL:-postgresql://kido:KidoVPS2026!@checkin-db:5432/checkin_db?sslmode=disable}
+      - REDIS_URL=${REDIS_URL:-redis://checkin-valkey:6379}
+      - MEILISEARCH_HOST=${MEILISEARCH_HOST:-http://meilisearch:7700}
+      - MEILISEARCH_KEY=${MEILISEARCH_KEY:-kt_meilisearch_master_key_2026_safe}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-checkin-app-jwt-secret-monorepo-safe-2026}
+    env_file:
+      - .env
+    depends_on:
+      - checkin-db
+      - checkin-valkey
+    networks:
+      - ops_bridge
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:4000/health | grep -q '\"status\":\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # 2. Checkin Admin SPA (Vite React + Nginx Alpine static server)
+  # ----------------------------------------------------------------------------
+  checkin-admin:
+    image: ghcr.io/khanhduong22/checkin-app/checkin-admin:latest
+    build:
+      context: .
+      dockerfile: apps/admin-spa/Dockerfile
+    container_name: checkin-admin
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    networks:
+      - ops_bridge
+    mem_limit: 64m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/ || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # 3. Checkin Staff PWA (Vite React PWA + Nginx Alpine static server)
+  # ----------------------------------------------------------------------------
+  checkin-staff:
+    image: ghcr.io/khanhduong22/checkin-app/checkin-staff:latest
+    build:
+      context: .
+      dockerfile: apps/staff-pwa/Dockerfile
+    container_name: checkin-staff
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    networks:
+      - ops_bridge
+    mem_limit: 64m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3002/ || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # 4. Valkey Cache (High performance Redis-compatible cache)
+  # ----------------------------------------------------------------------------
+  checkin-valkey:
+    image: valkey/valkey:8-alpine
+    container_name: checkin-valkey
+    restart: unless-stopped
+    command: valkey-server --maxmemory 64mb --maxmemory-policy allkeys-lru --save ""
+    ports:
+      - "6389:6379"
+    mem_limit: 64m
+    networks:
+      - ops_bridge
+
+  # ----------------------------------------------------------------------------
+  # 5. PostgreSQL 17 Database with pgvector
+  # ----------------------------------------------------------------------------
+  checkin-db:
+    image: pgvector/pgvector:pg17
+    container_name: checkin-db
+    restart: unless-stopped
+    shm_size: 256mb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: checkin_db
+      POSTGRES_USER: kido
+      POSTGRES_PASSWORD: KidoVPS2026!
+    volumes:
+      - checkin_pgdata:/var/lib/postgresql/data
+    networks:
+      - ops_bridge
+
+networks:
+  ops_bridge:
+    external: true
+
+volumes:
+  checkin_pgdata:

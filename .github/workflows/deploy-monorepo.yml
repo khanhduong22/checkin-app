@@ -1,0 +1,194 @@
+name: Deploy Monorepo to VPS
+
+on:
+  push:
+    branches:
+      - main
+      - feat/monorepo-migration
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'infra/**'
+      - 'docker-compose.monorepo.yml'
+      - 'scripts/deploy-monorepo.sh'
+      - '.github/workflows/deploy-monorepo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test-and-build-images:
+    name: Test & Build Monorepo Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js & Corepack (pnpm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.32.1 --activate
+
+      - name: Install Monorepo Dependencies
+        run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+
+      - name: Generate Prisma Client & Build Shared
+        run: |
+          pnpm --filter @checkin/db generate
+          pnpm --filter @checkin/shared build
+          pnpm --filter @checkin/db build
+
+      - name: Run Monorepo Unit Tests
+        run: |
+          pnpm --filter @checkin/shared test
+          pnpm --filter @checkin/api test
+          pnpm --filter @checkin/staff-pwa test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ------------------------------------------------------------------------
+      # 1. Build & Push checkin-api
+      # ------------------------------------------------------------------------
+      - name: Build & Push checkin-api Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/checkin-api:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/checkin-api:staging
+            ghcr.io/${{ github.repository }}/checkin-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ------------------------------------------------------------------------
+      # 2. Build & Push checkin-admin
+      # ------------------------------------------------------------------------
+      - name: Build & Push checkin-admin Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/admin-spa/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/checkin-admin:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/checkin-admin:staging
+            ghcr.io/${{ github.repository }}/checkin-admin:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ------------------------------------------------------------------------
+      # 3. Build & Push checkin-staff
+      # ------------------------------------------------------------------------
+      - name: Build & Push checkin-staff Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/staff-pwa/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/checkin-staff:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/checkin-staff:staging
+            ghcr.io/${{ github.repository }}/checkin-staff:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: VPS Deployment (Staging or Production)
+    needs: test-and-build-images
+    runs-on: ubuntu-latest
+    steps:
+      # ------------------------------------------------------------------------
+      # Staging Deployment for limart2.khanhdp.com (feat/monorepo-migration)
+      # ------------------------------------------------------------------------
+      - name: Deploy Staging Stack (limart2.khanhdp.com)
+        if: github.ref == 'refs/heads/feat/monorepo-migration'
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GITHUB_TOKEN,GITHUB_ACTOR
+          script: |
+            set -e
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+            curl -sSL -H "Authorization: token $GITHUB_TOKEN" "https://raw.githubusercontent.com/khanhduong22/checkin-app/feat/monorepo-migration/scripts/deploy-staging.sh" | GITHUB_TOKEN="$GITHUB_TOKEN" GITHUB_ACTOR="$GITHUB_ACTOR" bash
+
+      # ------------------------------------------------------------------------
+      # Production Dual-Run Cutover for limart.khanhdp.com (main branch)
+      # ------------------------------------------------------------------------
+      - name: Deploy Production Stack (limart.khanhdp.com)
+        if: github.ref == 'refs/heads/main'
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: DATABASE_URL,NEXTAUTH_URL,NEXTAUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GEMINI_API_KEY,GOOGLE_GENERATIVE_AI_API_KEY,RESEND_API_KEY,EMAIL_FROM,CRON_SECRET,GITHUB_TOKEN,GITHUB_ACTOR
+          script: |
+            cd /opt/checkin-app
+            git stash
+            git fetch origin
+            git checkout main
+            git pull
+            
+            cat << EOF > .env
+            DATABASE_URL="$DATABASE_URL"
+            NEXTAUTH_URL="$NEXTAUTH_URL"
+            NEXTAUTH_SECRET="$NEXTAUTH_SECRET"
+            GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
+            GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET"
+            NODE_ENV="production"
+            GEMINI_API_KEY="$GEMINI_API_KEY"
+            GOOGLE_GENERATIVE_AI_API_KEY="$GOOGLE_GENERATIVE_AI_API_KEY"
+            RESEND_API_KEY="$RESEND_API_KEY"
+            EMAIL_FROM="$EMAIL_FROM"
+            CRON_SECRET="$CRON_SECRET"
+            REDIS_URL="redis://checkin-valkey:6379"
+            MEILISEARCH_HOST="http://meilisearch:7700"
+            MEILISEARCH_KEY="kt_meilisearch_master_key_2026_safe"
+            PORT=4000
+            EOF
+            
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+            docker compose -f docker-compose.monorepo.yml pull checkin-api checkin-admin checkin-staff
+            
+            chmod +x scripts/deploy-monorepo.sh
+            ./scripts/deploy-monorepo.sh deploy
+            
+            echo "Production monorepo deployment successful!"

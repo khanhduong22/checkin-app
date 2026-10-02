@@ -1,0 +1,107 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
+import path from "path";
+
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      injectRegister: "auto",
+      includeAssets: [
+        "favicon.ico",
+        "logo.png",
+        "icon-192.png",
+        "icon-512.png",
+        "capybara_mascot.png",
+        "capybara_bg.png"
+      ],
+      manifest: {
+        name: "LimArt Chấm Công",
+        short_name: "LimArt",
+        description: "Ứng dụng chấm công nhân viên LimArt Mobile-First & Offline-First",
+        theme_color: "#faf6f0",
+        background_color: "#faf6f0",
+        display: "standalone",
+        orientation: "portrait",
+        start_url: "/",
+        scope: "/",
+        icons: [
+          {
+            src: "/icon-192.png",
+            sizes: "192x192",
+            type: "image/png"
+          },
+          {
+            src: "/icon-512.png",
+            sizes: "512x512",
+            type: "image/png"
+          },
+          {
+            src: "/icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable"
+          }
+        ]
+      },
+      workbox: {
+        navigateFallbackDenylist: [/^\/admin/, /^\/api/],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff,woff2}"],
+        runtimeCaching: [
+          {
+            // CacheFirst cho static assets (fonts, icons, images, css, js)
+            urlPattern: ({ request }) =>
+              request.destination === "style" ||
+              request.destination === "script" ||
+              request.destination === "image" ||
+              request.destination === "font",
+            handler: "CacheFirst",
+            options: {
+              cacheName: "limart-v2-static-assets",
+              expiration: {
+                maxEntries: 120,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            // NetworkFirst cho API endpoints với timeout fallback (chỉ staff endpoints, không cache /api/admin/*)
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith("/api/staff/") ||
+              url.pathname === "/api/checkins/today" ||
+              url.pathname === "/api/ip-status",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "limart-v2-api-cache",
+              networkTimeoutSeconds: 3,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 // 1 day
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      },
+      devOptions: {
+        enabled: true
+      }
+    })
+  ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src")
+    }
+  },
+  server: {
+    port: 5173,
+    host: true
+  }
+});
