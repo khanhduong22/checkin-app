@@ -81,6 +81,17 @@ erDiagram
 | `monthlySalary` | `Float` | For full-time calculation. |
 | `staffTasksAllowed` | `Boolean` | True if the employee is allowed to access and be assigned staff tasks & KPI tracking. |
 
+### WorkShift
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `userId` | `String` | Foreign key to the User scheduled for the shift. |
+| `start` | `DateTime` | Start time of the shift. |
+| `end` | `DateTime` | End time of the shift. |
+| `shiftType` | `String?` | Shift classification type (e.g. `FIXED`). |
+| `status` | `String` | Status of shift (`APPROVED`). |
+| `isOpenForSwap` | `Boolean` | True if this shift is listed on the shift swap marketplace. |
+| `isSenior` | `Boolean` | True if this shift has been designated by Admin as Senior (Trưởng ca), giving a +3,000đ/hour rate bonus. |
+
 ### TaskItem (Marketplace)
 | Field | Type | Description |
 | :--- | :--- | :--- |

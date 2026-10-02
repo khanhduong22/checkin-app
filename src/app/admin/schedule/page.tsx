@@ -64,6 +64,7 @@ export default async function AdminSchedulePage() {
             userId: s.userId,
             employmentType: s.user.employmentType,
             duties: shiftDuties,
+            isSenior: s.isSenior,
         };
     });
 

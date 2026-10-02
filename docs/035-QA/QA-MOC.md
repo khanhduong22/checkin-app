@@ -15,7 +15,7 @@ updated: 2026-08-08
 | File | Module | Coverage |
 |------|--------|----------|
 | [utils.test.ts](../../tests/unit/utils.test.ts) | `isLate`, `isEarlyLeave`, `checkTimeStatus` | 100% |
-| [stats.test.ts](../../tests/unit/stats.test.ts) | `calculateLatePenalty`, `getUserMonthlyStats` (Leaderboard Overtime) | 100% |
+| [stats.test.ts](../../tests/unit/stats.test.ts) | `calculateLatePenalty`, `getUserMonthlyStats` (Leaderboard Overtime, Senior +3k/h Bonus) | 100% |
 | [streak.test.ts](../../tests/unit/streak.test.ts) | `calculateStreak` | 100% |
 | [birthday-bonus.test.ts](../../tests/unit/birthday-bonus.test.ts) | `runBirthdayBonus` | 100% |
 | [carrying-bonus.test.ts](../../tests/unit/carrying-bonus.test.ts) | `runCarryingBonus` | 100% |

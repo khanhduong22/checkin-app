@@ -7,8 +7,9 @@ import { revalidatePath } from "next/cache";
 import { isShiftLocked, toVietnamTime } from "@/lib/schedule-lock";
 import { logShiftAction } from "@/lib/audit";
 import { applyLateSchedulePenalty } from "@/lib/schedule-penalty";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
-export async function registerShift(start: Date, end: Date, override: boolean = false, targetUserId?: string, skipPenalty: boolean = false) {
+export async function registerShift(start: Date, end: Date, override: boolean = false, targetUserId?: string, skipPenalty: boolean = false, isSenior: boolean = false) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) return { success: false, error: 'Unauthorized' };
 
@@ -55,12 +56,14 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
 
 
   try {
+    const canSetSenior = requester.role === 'ADMIN' && isSenior;
     const newShift = await prisma.workShift.create({
       data: {
         userId: targetUser.id,
         start: start,
         end: end,
-        status: 'APPROVED'
+        status: 'APPROVED',
+        isSenior: canSetSenior
       }
     });
     
@@ -73,8 +76,12 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
       newEnd: end
     });
 
+    await invalidateUserStatsCache(targetUser.id);
+
     revalidatePath('/schedule');
     revalidatePath('/admin/schedule');
+    revalidatePath('/payroll');
+    revalidatePath('/admin/payroll');
 
     const requesterName = requester.name || requester.email;
     const targetName = targetUser.name || targetUser.email;
@@ -117,7 +124,12 @@ export async function deleteShift(shiftId: number) {
       userId: user.role === 'ADMIN' ? undefined : user.id
     }
   });
+
+  await invalidateUserStatsCache(existing.userId);
   revalidatePath('/schedule');
+  revalidatePath('/admin/schedule');
+  revalidatePath('/payroll');
+  revalidatePath('/admin/payroll');
   return { success: true };
 }
 
@@ -160,9 +172,88 @@ export async function updateShift(shiftId: number, start: Date, end: Date) {
     data: { start, end }
   });
 
+  await invalidateUserStatsCache(existing.userId);
   revalidatePath('/schedule');
   revalidatePath('/admin/schedule');
+  revalidatePath('/payroll');
+  revalidatePath('/admin/payroll');
   return { success: true };
+}
+
+export async function toggleShiftSenior(shiftId: number, isSenior: boolean) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) return { success: false, error: 'Unauthorized' };
+
+  const email = session.user.email;
+  const user = await prisma.user.findUnique({ where: { email: email! } });
+  if (!user || user.role !== 'ADMIN') {
+    return { success: false, error: 'Chỉ Admin mới có quyền chọn Trưởng ca!' };
+  }
+
+  const shift = await prisma.workShift.findUnique({
+    where: { id: shiftId },
+    include: { user: true }
+  });
+  if (!shift) return { success: false, error: 'Ca làm không tồn tại' };
+
+  const unsetShiftIds: number[] = [];
+
+  if (isSenior) {
+    // Mỗi ca làm sẽ có 1 senior do admin chọn ra: gỡ senior khỏi các ca trùng giờ khác
+    const overlappingSeniors = await prisma.workShift.findMany({
+      where: {
+        id: { not: shiftId },
+        isSenior: true,
+        start: { lt: shift.end },
+        end: { gt: shift.start },
+      }
+    });
+
+    for (const os of overlappingSeniors) {
+      unsetShiftIds.push(os.id);
+      await prisma.workShift.update({
+        where: { id: os.id },
+        data: { isSenior: false }
+      });
+      await invalidateUserStatsCache(os.userId);
+      await logShiftAction({
+        shiftId: os.id,
+        userId: os.userId,
+        action: 'UPDATE',
+        changedById: user.id,
+        newStart: os.start,
+        newEnd: os.end
+      });
+    }
+  }
+
+  await prisma.workShift.update({
+    where: { id: shiftId },
+    data: { isSenior }
+  });
+
+  await logShiftAction({
+    shiftId: shift.id,
+    userId: shift.userId,
+    action: 'UPDATE',
+    changedById: user.id,
+    newStart: shift.start,
+    newEnd: shift.end
+  });
+
+  await invalidateUserStatsCache(shift.userId);
+
+  revalidatePath('/schedule');
+  revalidatePath('/admin/schedule');
+  revalidatePath('/payroll');
+  revalidatePath('/admin/payroll');
+
+  const shiftUserName = shift.user.name || shift.user.email;
+  const message = isSenior
+    ? `Đã gán ${shiftUserName} làm Trưởng ca (+3k/h)!`
+    : `Đã hủy vai trò Trưởng ca của ${shiftUserName}.`;
+
+  return { success: true, isSenior, message, unsetShiftIds };
 }
 
 export type ParsedShiftItem = {

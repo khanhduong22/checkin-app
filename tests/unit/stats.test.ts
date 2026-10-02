@@ -336,3 +336,130 @@ describe("getUserMonthlyStats() - Leaderboard Overtime Calculations", () => {
     expect(stats.dailySalary).toBeCloseTo(6000000 / 27, 2);
   });
 });
+
+describe("getUserMonthlyStats() - Senior Role (+3k/1h) Logic", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const mockPartTimeUser = {
+    id: "user-pt-1",
+    name: "Minh",
+    email: "minh@example.com",
+    role: "USER",
+    employmentType: "PART_TIME",
+    hourlyRate: 20000,
+    monthlySalary: 0,
+    adjustments: [],
+  };
+
+  const targetDate = new Date("2026-06-15T12:00:00+07:00");
+
+  it("adds +3,000đ/hour when a shift has isSenior = true", async () => {
+    mockUserFindUnique.mockResolvedValue(mockPartTimeUser);
+    mockHolidayFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+
+    // Shift: 12:00 to 17:00 (5 hours), marked as Senior
+    mockShiftFindMany.mockResolvedValue([
+      {
+        id: 101,
+        userId: mockPartTimeUser.id,
+        start: new Date("2026-06-13T05:00:00.000Z"), // 12:00 Local (VN UTC+7)
+        end: new Date("2026-06-13T10:00:00.000Z"),   // 17:00 Local
+        status: "APPROVED",
+        isSenior: true,
+      }
+    ]);
+
+    // Check-in: 12:00 to 17:00 (5 hours)
+    mockCheckInFindMany.mockResolvedValue([
+      { type: "checkin", timestamp: new Date("2026-06-13T05:00:00.000Z") },
+      { type: "checkout", timestamp: new Date("2026-06-13T10:00:00.000Z") }
+    ]);
+
+    const stats = await getUserMonthlyStats(mockPartTimeUser.id, targetDate);
+
+    expect(stats.totalHours).toBeCloseTo(5.0, 1);
+    expect(stats.dailyDetails.length).toBe(1);
+
+    const day = stats.dailyDetails[0];
+    expect(day.isSenior).toBe(true);
+    // Rate is 20,000 + 3,000 = 23,000đ/h. Salary for 5h = 115,000đ.
+    expect(day.salary).toBe(115000);
+    expect(day.seniorBonus).toBe(15000);
+    expect(day.anomalies).toContain("👑 Trưởng ca (+3k/h)");
+    expect(stats.baseSalary).toBe(115000);
+    expect(stats.totalSeniorBonus).toBe(15000);
+  });
+
+  it("calculates standard rate when isSenior is false or undefined", async () => {
+    mockUserFindUnique.mockResolvedValue(mockPartTimeUser);
+    mockHolidayFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+
+    mockShiftFindMany.mockResolvedValue([
+      {
+        id: 102,
+        userId: mockPartTimeUser.id,
+        start: new Date("2026-06-13T05:00:00.000Z"),
+        end: new Date("2026-06-13T10:00:00.000Z"),
+        status: "APPROVED",
+        isSenior: false,
+      }
+    ]);
+
+    mockCheckInFindMany.mockResolvedValue([
+      { type: "checkin", timestamp: new Date("2026-06-13T05:00:00.000Z") },
+      { type: "checkout", timestamp: new Date("2026-06-13T10:00:00.000Z") }
+    ]);
+
+    const stats = await getUserMonthlyStats(mockPartTimeUser.id, targetDate);
+
+    const day = stats.dailyDetails[0];
+    expect(day.isSenior).toBe(false);
+    // Standard rate: 20,000 * 5 = 100,000đ
+    expect(day.salary).toBe(100000);
+    expect(day.seniorBonus).toBe(0);
+    expect(day.anomalies).not.toContain("👑 Trưởng ca (+3k/h)");
+    expect(stats.totalSeniorBonus).toBe(0);
+  });
+
+  it("multiplies Senior bonus by holiday multiplier on holiday shifts", async () => {
+    mockUserFindUnique.mockResolvedValue(mockPartTimeUser);
+    mockHolidayFindMany.mockResolvedValue([
+      {
+        id: 1,
+        date: new Date("2026-06-13T00:00:00.000Z"),
+        multiplier: 2,
+        name: "Lễ test",
+      }
+    ]);
+    mockRequestFindMany.mockResolvedValue([]);
+
+    mockShiftFindMany.mockResolvedValue([
+      {
+        id: 103,
+        userId: mockPartTimeUser.id,
+        start: new Date("2026-06-13T05:00:00.000Z"),
+        end: new Date("2026-06-13T10:00:00.000Z"),
+        status: "APPROVED",
+        isSenior: true,
+      }
+    ]);
+
+    mockCheckInFindMany.mockResolvedValue([
+      { type: "checkin", timestamp: new Date("2026-06-13T05:00:00.000Z") },
+      { type: "checkout", timestamp: new Date("2026-06-13T10:00:00.000Z") }
+    ]);
+
+    const stats = await getUserMonthlyStats(mockPartTimeUser.id, targetDate);
+
+    const day = stats.dailyDetails[0];
+    expect(day.isSenior).toBe(true);
+    // (5h * (20,000 + 3,000)) * 2 = 230,000đ
+    expect(day.salary).toBe(230000);
+    expect(day.seniorBonus).toBe(30000);
+    expect(day.anomalies).toContain("👑 Trưởng ca (+3k/h)");
+  });
+});

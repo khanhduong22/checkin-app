@@ -8,7 +8,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from "sonner";
-import { registerShift, deleteShift, updateShift } from "@/app/actions/schedule"; 
+import { registerShift, deleteShift, updateShift, toggleShiftSenior } from "@/app/actions/schedule"; 
 import { toggleShiftSwap, takeShift } from "@/app/actions/shift";
 import { isShiftLocked } from "@/lib/schedule-lock";
 import { Switch } from "@/components/ui/switch"
@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, RefreshCw, Trash2, ListTodo } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, RefreshCw, Trash2, ListTodo, Crown } from 'lucide-react'
 import { getShiftDutiesForShift, createShiftDuty, deleteShiftDuty } from "@/actions/shift-duty-actions"
 import { cn } from "@/lib/utils"
 
@@ -50,6 +50,7 @@ interface CalendarEvent {
     employmentType?: string;
     duties?: any[];
     allDay?: boolean;
+    isSenior?: boolean;
 }
 
 export default function ScheduleCalendar({ initialEvents, userId, isAdmin = false, defaultDate, users = [] }: { initialEvents: any[], userId: string, isAdmin?: boolean, defaultDate?: Date, users?: any[] }) {
@@ -95,6 +96,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
             employmentType: e.employmentType || 'PART_TIME',
             duties: e.duties || [],
             allDay: false,
+            isSenior: Boolean(e.isSenior),
         };
     });
 
@@ -167,9 +169,11 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
     const [modalOpen, setModalOpen] = useState(false);
     const [pendingEvent, setPendingEvent] = useState<{start: Date, end: Date} | null>(null);
     const [targetUserId, setTargetUserId] = useState<string>(userId);
+    const [isSeniorRegister, setIsSeniorRegister] = useState(false);
 
     const [actionModalOpen, setActionModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+    const [togglingSenior, setTogglingSenior] = useState(false);
 
     // Shift Task Management for Admin
     const [shiftTasks, setShiftTasks] = useState<any[]>([]);
@@ -308,6 +312,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
             
             setPendingEvent({ start, end: finalEnd });
             setTargetUserId(userId); // Reset to current user (self)
+            setIsSeniorRegister(false);
             setModalOpen(true);
         },
         [userId, isAdmin]
@@ -317,6 +322,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         if (!pendingEvent) return;
 
         const { start, end } = pendingEvent;
+        const isSenior = isAdmin && isSeniorRegister;
         // Optimistic UI
         const tempId = Date.now();
         const optimisticEvent: CalendarEvent = {
@@ -325,7 +331,8 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
             start,
             end,
             isOwner: true,
-            employmentType: 'PART_TIME'
+            employmentType: 'PART_TIME',
+            isSenior,
         };
         setEvents(prev => [...prev, optimisticEvent]);
         setModalOpen(false); 
@@ -333,11 +340,17 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         // Call server action
         const callRegister = async (override: boolean = false) => {
              try {
-                 const result: any = await registerShift(start, end, override, targetUserId);
+                 const result: any = await registerShift(start, end, override, targetUserId, false, isSenior);
                  
                  if (result.success) {
                     toast.success("Đăng ký thành công!");
-                    setEvents(prev => prev.map(e => e.id === tempId ? { ...e, title: result.title || 'Đã đăng ký', id: result.id || tempId } : e));
+                    setEvents(prev => prev.map(e => e.id === tempId ? {
+                        ...e,
+                        title: result.title || 'Đã đăng ký',
+                        id: result.id || tempId,
+                        isSenior,
+                        resource: { ...e.resource, isSenior }
+                    } : e));
                  } else {
                     if (result.error === 'LIMIT_PART_TIME') {
                          if (isAdmin) {
@@ -448,11 +461,21 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         const duties = event.duties || event.resource?.duties || [];
         const count = duties.length;
         const completedCount = duties.filter((d: any) => d.isCompleted).length;
+        const isSenior = Boolean(event.isSenior || event.resource?.isSenior);
 
         return (
             <div className="flex flex-col h-full justify-between text-xs py-0.5 leading-tight overflow-hidden">
-                <div className="font-semibold truncate leading-snug">
-                    {event.title}
+                <div className="min-w-0">
+                    <div className="flex items-center gap-1 flex-wrap">
+                        <span className="font-bold truncate leading-snug">
+                            {event.title}
+                        </span>
+                        {isSenior && (
+                            <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9px] font-extrabold bg-amber-400 text-amber-950 border border-amber-300 shadow-xs shrink-0" title="Trưởng ca (+3k/h)">
+                                👑 Trưởng ca
+                            </span>
+                        )}
+                    </div>
                 </div>
                 {count > 0 && (
                     <div className="mt-auto pt-0.5 pointer-events-none">
@@ -560,6 +583,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
         setPendingEvent({ start, end });
         setTargetUserId(userId);
+        setIsSeniorRegister(false);
         setModalOpen(true);
     };
 
@@ -697,6 +721,11 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                                         </div>
                                         <div className="flex items-center gap-2 text-xs font-medium text-gray-600 flex-wrap">
                                             <span className="font-semibold text-gray-700">{event.title}</span>
+                                            {(event.isSenior || event.resource?.isSenior) && (
+                                                <span className="bg-amber-100 text-amber-950 border border-amber-300 font-extrabold px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1 shadow-2xs">
+                                                    👑 Trưởng ca (+3k/h)
+                                                </span>
+                                            )}
                                             {event.employmentType === 'FULL_TIME' && (
                                                 <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px]">Full-time</span>
                                             )}
@@ -885,20 +914,38 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                     </div>
                     
                     {isAdmin && users && users.length > 0 && (
-                        <div className="pb-2 space-y-1.5">
-                            <Label className="mb-2 block text-sm font-medium">Chọn nhân viên (Quyền Admin)</Label>
-                            <select 
-                                value={targetUserId} 
-                                onChange={(e) => setTargetUserId(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <option value="" disabled>Chọn nhân viên</option>
-                                {users.map((u: any) => (
-                                    <option key={u.id} value={u.id}>
-                                        {u.nickname || u.name || u.email}
-                                    </option>
-                                ))}
-                            </select>
+                        <div className="pb-2 space-y-3">
+                            <div className="space-y-1.5">
+                                <Label className="block text-sm font-medium">Chọn nhân viên (Quyền Admin)</Label>
+                                <select 
+                                    value={targetUserId} 
+                                    onChange={(e) => setTargetUserId(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="" disabled>Chọn nhân viên</option>
+                                    {users.map((u: any) => (
+                                        <option key={u.id} value={u.id}>
+                                            {u.nickname || u.name || u.email}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex items-center justify-between p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="register-senior-switch" className="text-xs font-bold text-amber-950 cursor-pointer flex items-center gap-1">
+                                        👑 Đặt làm Trưởng ca (+3k/h)
+                                    </Label>
+                                    <p className="text-[11px] text-amber-800/80">
+                                        Gán làm Trưởng ca hôm đó, lương được cộng thêm 3.000đ/giờ
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="register-senior-switch"
+                                    checked={isSeniorRegister}
+                                    onCheckedChange={setIsSeniorRegister}
+                                />
+                            </div>
                         </div>
                     )}
 
@@ -925,6 +972,13 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                                         {moment(selectedEvent.start).format('HH:mm')} - {moment(selectedEvent.end).format('HH:mm')}
                                     </span>
                                     Ngày: <span className="font-semibold text-slate-800">{moment(selectedEvent.start).format('DD/MM/YYYY')}</span>
+                                    {(selectedEvent.isSenior || selectedEvent.resource?.isSenior) && (
+                                        <div className="mt-2">
+                                            <span className="inline-flex items-center gap-1 bg-amber-400 text-amber-950 px-2.5 py-0.5 rounded-full text-xs font-bold border border-amber-300 shadow-2xs">
+                                                👑 Trưởng ca hôm nay (+3k/h)
+                                            </span>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </DialogDescription>
@@ -932,6 +986,78 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
                     {selectedEvent && selectedEvent.isOwner ? (
                         <div className="space-y-4 py-2">
+                            {/* Admin Shift Senior Role Toggle Section */}
+                            {isAdmin && (
+                                <div className="border rounded-xl p-3 bg-amber-50/70 border-amber-200/90 space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-bold text-xs text-amber-950 flex items-center gap-1.5 uppercase tracking-wide">
+                                            👑 Vai trò Trưởng ca (Senior)
+                                        </span>
+                                        {(selectedEvent.isSenior || selectedEvent.resource?.isSenior) ? (
+                                            <Badge className="bg-amber-400 text-amber-950 font-bold border-amber-300 shadow-2xs">
+                                                👑 Trưởng ca (+3k/h)
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="text-gray-500 bg-white">
+                                                Nhân viên ca thường
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-amber-900/80 leading-relaxed">
+                                        Mỗi ca làm sẽ có 1 Senior do Admin chọn làm trưởng ca. Người được giao làm Trưởng ca sẽ có huy hiệu 👑 trên lịch và được cộng thêm <strong>3.000đ / 1 giờ</strong> vào lương ca làm này.
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        disabled={togglingSenior}
+                                        onClick={async () => {
+                                            const currentIsSenior = Boolean(selectedEvent.isSenior || selectedEvent.resource?.isSenior);
+                                            const nextSenior = !currentIsSenior;
+                                            setTogglingSenior(true);
+                                            try {
+                                                const res = await toggleShiftSenior(Number(selectedEvent.id), nextSenior);
+                                                if (res.success) {
+                                                    toast.success(res.message);
+                                                    setEvents(prev => prev.map(ev => {
+                                                        if (ev.id === selectedEvent.id) {
+                                                            return { ...ev, isSenior: nextSenior, resource: { ...ev.resource, isSenior: nextSenior } };
+                                                        }
+                                                        if (nextSenior && res.unsetShiftIds?.includes(ev.id)) {
+                                                            return { ...ev, isSenior: false, resource: { ...ev.resource, isSenior: false } };
+                                                        }
+                                                        return ev;
+                                                    }));
+                                                    setSelectedEvent(prev => prev ? {
+                                                        ...prev,
+                                                        isSenior: nextSenior,
+                                                        resource: { ...prev.resource, isSenior: nextSenior }
+                                                    } : null);
+                                                } else {
+                                                    toast.error(res.error || "Lỗi khi cập nhật Trưởng ca");
+                                                }
+                                            } catch (err: any) {
+                                                console.error("Error toggling senior:", err);
+                                                toast.error("Lỗi mạng hoặc hệ thống khi cập nhật");
+                                            } finally {
+                                                setTogglingSenior(false);
+                                            }
+                                        }}
+                                        className={cn(
+                                            "w-full font-bold text-xs shadow-xs",
+                                            (selectedEvent.isSenior || selectedEvent.resource?.isSenior)
+                                                ? "bg-rose-600 hover:bg-rose-700 text-white"
+                                                : "bg-amber-500 hover:bg-amber-600 text-amber-950 border border-amber-400 font-extrabold"
+                                        )}
+                                    >
+                                        {togglingSenior ? "Đang xử lý..." : (
+                                            (selectedEvent.isSenior || selectedEvent.resource?.isSenior)
+                                                ? "🚫 Hủy làm Trưởng ca"
+                                                : "👑 Đặt làm Trưởng ca (+3k/1h)"
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
+
                             {/* Admin Shift Task Management Section */}
                             {isAdmin && (
                                 <div className="border rounded-xl p-3 bg-slate-50/60 border-slate-200/90 space-y-3">
@@ -1215,8 +1341,13 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                                                     >
                                                         <div className="flex items-start justify-between gap-2">
                                                             <div>
-                                                                <div className="font-bold text-gray-800 text-xs sm:text-sm flex items-center gap-1.5">
+                                                                <div className="font-bold text-gray-800 text-xs sm:text-sm flex items-center gap-1.5 flex-wrap">
                                                                     <span>{ev.title}</span>
+                                                                    {(ev.isSenior || ev.resource?.isSenior) && (
+                                                                        <span className="text-[9px] bg-amber-400 text-amber-950 font-bold px-1.5 py-0.5 rounded shadow-xs">
+                                                                            👑 Trưởng ca
+                                                                        </span>
+                                                                    )}
                                                                     {ev.employmentType === 'FULL_TIME' && (
                                                                         <span className="text-[9px] bg-gray-100 text-gray-600 px-1 py-0.2 rounded font-normal">Full-time</span>
                                                                     )}

@@ -91,6 +91,7 @@ model WorkShift {
   shiftType     String?
   status        String      @default("APPROVED")
   isOpenForSwap Boolean     @default(false)
+  isSenior      Boolean     @default(false)
   createdAt     DateTime    @default(now())
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   duties        ShiftDuty[]

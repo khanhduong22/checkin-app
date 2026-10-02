@@ -26,6 +26,8 @@ interface DailyDetail {
   auditedCheckIn?: Date | null;
   auditedCheckOut?: Date | null;
   anomalies?: string[];
+  isSenior?: boolean;
+  seniorBonus?: number;
 }
 
 export interface MonthlyStats {
@@ -52,6 +54,7 @@ export interface MonthlyStats {
   latePenaltyHours: number;
   latePenaltyAmount: number;
   totalDeficiencies?: number;
+  totalSeniorBonus?: number;
 }
 
 // --- Late Penalty Helper ---
@@ -327,7 +330,10 @@ async function computeUserMonthlyStats(
 
   const shiftsByDay: Record<string, WorkShift> = {};
   shifts.forEach(s => {
-    shiftsByDay[toVNDateKey(s.start)] = s;
+    const key = toVNDateKey(s.start);
+    if (!shiftsByDay[key] || s.isSenior) {
+      shiftsByDay[key] = s;
+    }
   });
 
   const checkinsByDay: Record<string, CheckIn[]> = {};
@@ -492,12 +498,23 @@ async function computeUserMonthlyStats(
       anomalies.push(`Ngày lễ (x${multiplier})`);
     }
 
+    // Senior Logic (+3k/1h for Senior shift)
+    const isSeniorShift = Boolean(shift?.isSenior);
+    const seniorRateBonus = isSeniorShift ? 3000 : 0;
+    const effectiveRate = dynamicHourlyRate + seniorRateBonus;
+
     // Daily Salary Calculation
     const effectiveHours = user.employmentType === 'FULL_TIME' ? Math.min(dayHours, 8) : dayHours;
-    const dailySalaryCalc = (effectiveHours * dynamicHourlyRate) * multiplier;
+    const dailySalaryCalc = (effectiveHours * effectiveRate) * multiplier;
 
     const rawEffectiveHours = user.employmentType === 'FULL_TIME' ? Math.min(tempRawHours, 8) : tempRawHours;
-    const rawSalaryCalc = (rawEffectiveHours * dynamicHourlyRate) * multiplier;
+    const rawSalaryCalc = (rawEffectiveHours * effectiveRate) * multiplier;
+
+    const seniorBonusCalc = (effectiveHours * seniorRateBonus) * multiplier;
+
+    if (isSeniorShift && dayHours > 0) {
+      anomalies.push("👑 Trưởng ca (+3k/h)");
+    }
 
     let auditedCheckInDate: Date | null = firstCheckIn;
     if (firstCheckIn && shift) {
@@ -560,6 +577,8 @@ async function computeUserMonthlyStats(
       auditedCheckIn: auditedCheckInDate,
       auditedCheckOut: auditedCheckOutDate,
       anomalies: anomalies,
+      isSenior: isSeniorShift,
+      seniorBonus: seniorBonusCalc,
     });
   });
 
@@ -568,6 +587,7 @@ async function computeUserMonthlyStats(
   // 5. Final Totals
   // Both FULL_TIME and PART_TIME sum daily salaries so holiday multipliers are included.
   let baseSalary = dailyDetails.reduce((sum, day) => sum + (day.salary || 0), 0);
+  const totalSeniorBonus = dailyDetails.reduce((sum, day) => sum + (day.seniorBonus || 0), 0);
 
   const totalAdjustments = (user.adjustments || []).reduce((sum, adj) => sum + adj.amount, 0);
 
@@ -580,7 +600,7 @@ async function computeUserMonthlyStats(
 
   let projectedSalary = baseSalary + totalAdjustments - latePenaltyAmount;
   if (user.employmentType === 'FULL_TIME') {
-    projectedSalary = (user.monthlySalary || 0) + totalAdjustments - latePenaltyAmount;
+    projectedSalary = (user.monthlySalary || 0) + totalSeniorBonus + totalAdjustments - latePenaltyAmount;
   }
 
   let statsResult = {
@@ -606,11 +626,12 @@ async function computeUserMonthlyStats(
     lateCount,
     latePenaltyHours,
     latePenaltyAmount,
-    totalDeficiencies: dailyDetails.filter(d => d.isChecklistIncomplete).length
+    totalDeficiencies: dailyDetails.filter(d => d.isChecklistIncomplete).length,
+    totalSeniorBonus
   };
 
   if (isThuKpiSalary) {
-    const finalBaseSalary = 3000000 + (completionRate * 3000000);
+    const finalBaseSalary = 3000000 + (completionRate * 3000000) + totalSeniorBonus;
     const finalDeduction = 3000000 - (completionRate * 3000000);
     const finalTotalSalary = finalBaseSalary + totalAdjustments;
 

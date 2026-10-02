@@ -62,6 +62,7 @@ export default async function SchedulePage() {
             isOpenForSwap: s.isOpenForSwap,
             employmentType: s.user.employmentType,
             duties: shiftDuties,
+            isSenior: s.isSenior,
         };
     });
 

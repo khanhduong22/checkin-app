@@ -243,6 +243,8 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                                                                             badgeStyle = "bg-indigo-50 text-indigo-700 border-indigo-100";
                                                                         } else if (ano.includes("Ngày lễ")) {
                                                                             badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-100 font-semibold";
+                                                                        } else if (ano.includes("Trưởng ca")) {
+                                                                            badgeStyle = "bg-amber-100 text-amber-950 border-amber-300 font-bold";
                                                                         }
                                                                         return (
                                                                             <Badge key={aIdx} variant="outline" className={`text-[9px] px-1.5 py-0.5 font-normal rounded-sm leading-none ${badgeStyle}`}>
