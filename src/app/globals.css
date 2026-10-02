@@ -87,3 +87,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* React Big Calendar Event Polish */
+.rbc-day-slot .rbc-event {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.rbc-day-slot .rbc-event:hover {
+  z-index: 50 !important;
+}
+

@@ -432,12 +432,10 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
             let border = event.isOwner ? '2px solid white' : '0px';
             let boxShadow = event.isOwner ? '0 0 0 2px #000' : (isSwap ? '0 0 0 2px #8b5cf6' : 'none');
-            let zIndex = event.isOwner ? 2 : 1;
 
             if (isSenior) {
                 border = '2px solid #fde047';
                 boxShadow = '0 0 0 2px #d97706, 0 2px 6px rgba(217, 119, 6, 0.35)';
-                zIndex = 10;
             }
 
             return {
@@ -450,7 +448,6 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                     zoom: 1, 
                     fontSize: '0.75rem', 
                     boxShadow,
-                    zIndex,
                 },
             }
         },
