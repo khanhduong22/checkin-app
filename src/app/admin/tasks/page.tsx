@@ -14,10 +14,12 @@ export default async function AdminTasksPage({ searchParams }: { searchParams: P
   const month = params.month ? parseInt(params.month) : 0;
   const year = params.year ? parseInt(params.year) : now.getFullYear();
 
-  const definitionsRes = await getTaskDefinitions();
-  const pendingTasksRes = await getPendingTasks();
-  const taskItemsRes = await getTaskItems();
-  const reviewedTasksRes = await getReviewedTasks(month || undefined, year);
+  const [definitionsRes, pendingTasksRes, taskItemsRes, reviewedTasksRes] = await Promise.all([
+    getTaskDefinitions(),
+    getPendingTasks(),
+    getTaskItems(),
+    getReviewedTasks(month || undefined, year)
+  ]);
 
   const definitions = definitionsRes.success ? definitionsRes.data || [] : [];
   const pendingTasks = pendingTasksRes.success ? pendingTasksRes.data || [] : [];

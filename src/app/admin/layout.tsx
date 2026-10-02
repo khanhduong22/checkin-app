@@ -5,8 +5,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import AdminTour from "@/components/admin/AdminTour";
 import TourHelpButton from "@/components/TourHelpButton";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getCachedSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
@@ -15,7 +14,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getCachedSession();
   
   // @ts-ignore
   if (!session || session.user?.role !== 'ADMIN') {

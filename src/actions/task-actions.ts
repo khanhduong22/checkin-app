@@ -2,8 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getCachedSession } from "@/lib/session";
 import { TaskStatus } from "@prisma/client";
 
 // --- Task Definitions (Admin) ---
@@ -28,7 +27,7 @@ export async function getTaskDefinitions() {
 
 export async function getTaskItems() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
     const items = await prisma.taskItem.findMany({
@@ -43,7 +42,7 @@ export async function getTaskItems() {
 
 export async function createTaskItem(data: { taskDefId: string; title: string; description?: string; deadline?: Date }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
     const item = await prisma.taskItem.create({
@@ -62,7 +61,7 @@ export async function createTaskItem(data: { taskDefId: string; title: string; d
 
 export async function closeTaskItem(id: string) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
     await prisma.taskItem.update({
@@ -79,7 +78,7 @@ export async function closeTaskItem(id: string) {
 
 export async function resetTaskItem(id: string) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
     await prisma.taskItem.update({
@@ -96,7 +95,7 @@ export async function resetTaskItem(id: string) {
 
 export async function deleteTaskItem(id: string) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
     await prisma.taskItem.delete({ where: { id } });
@@ -114,7 +113,7 @@ export async function createTaskDefinition(data: {
   unit: string;
 }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") {
       return { success: false, error: "Unauthorized" };
     }
@@ -146,7 +145,7 @@ export async function updateTaskDefinition(
   }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") {
       return { success: false, error: "Unauthorized" };
     }
@@ -167,7 +166,7 @@ export async function updateTaskDefinition(
 
 export async function deleteTaskDefinition(id: string) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") {
       return { success: false, error: "Unauthorized" };
     }
@@ -219,7 +218,7 @@ export async function getAvailableTaskItems() {
 
 export async function getUserTasks(userId?: string) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     const targetUserId = userId || session?.user?.id;
 
     if (!targetUserId) {
@@ -247,7 +246,7 @@ export async function getUserTasks(userId?: string) {
 
 export async function startTask(taskDefId: string, taskItemId?: string) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (!session?.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
@@ -328,7 +327,7 @@ export async function startTask(taskDefId: string, taskItemId?: string) {
 
 export async function submitTask(userTaskId: string, data: { quantity: number; evidenceLink: string; note?: string }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (!session?.user?.id) {
       return { success: false, error: "Unauthorized" };
     }
@@ -366,7 +365,7 @@ export async function submitTask(userTaskId: string, data: { quantity: number; e
 
 export async function getPendingTasks() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
     const tasks = await prisma.userTask.findMany({
@@ -383,7 +382,7 @@ export async function getPendingTasks() {
 
 export async function reviewTask(userTaskId: string, decision: "APPROVED" | "REJECTED", data?: { bonusPenalty?: number; adminNote?: string; finalAmount?: number }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
     const task = await prisma.userTask.findUnique({ 
@@ -464,7 +463,7 @@ export async function reviewTask(userTaskId: string, decision: "APPROVED" | "REJ
 
 export async function getReviewedTasks(month?: number, year?: number) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getCachedSession();
     if (session?.user?.role !== "ADMIN") return { success: false, error: "Unauthorized" };
 
     const whereClause: any = { 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'limart-attendance-v3';
+const CACHE_NAME = 'limart-attendance-v4';
 const ASSETS_TO_CACHE = [
   '/logo.png',
   '/icon-192.png',
@@ -63,6 +63,11 @@ self.addEventListener('fetch', (event) => {
     url.pathname.includes('/api/') ||
     url.pathname.includes('/_next/data/') ||
     url.pathname.includes('hot-update') ||
+    // Skip static JS chunks, CSS, and manifest to use native browser HTTP cache
+    url.pathname.includes('/_next/static/') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.includes('manifest.webmanifest') ||
     // Skip dynamic HTML pages
     url.pathname === '/' ||
     url.pathname === '/login' ||

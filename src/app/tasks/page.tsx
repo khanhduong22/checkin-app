@@ -9,9 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const dynamic = 'force-dynamic';
 
 export default async function TasksPage({ searchParams }: { searchParams?: Promise<{ tab?: string }> }) {
-  const availableTasksRes = await getAvailableTasks();
-  const availableItemsRes = await getAvailableTaskItems();
-  const userTasksRes = await getUserTasks();
+  const [availableTasksRes, availableItemsRes, userTasksRes] = await Promise.all([
+    getAvailableTasks(),
+    getAvailableTaskItems(),
+    getUserTasks()
+  ]);
 
   const availableTasks = availableTasksRes.success ? availableTasksRes.data || [] : [];
   const availableItems = availableItemsRes.success ? availableItemsRes.data || [] : [];
