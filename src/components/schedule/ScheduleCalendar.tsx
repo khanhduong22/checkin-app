@@ -432,10 +432,12 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
 
             let border = event.isOwner ? '2px solid white' : '0px';
             let boxShadow = event.isOwner ? '0 0 0 2px #000' : (isSwap ? '0 0 0 2px #8b5cf6' : 'none');
+            let zIndex = event.isOwner ? 2 : 1;
 
             if (isSenior) {
                 border = '2px solid #fde047';
                 boxShadow = '0 0 0 2px #d97706, 0 2px 6px rgba(217, 119, 6, 0.35)';
+                zIndex = 10;
             }
 
             return {
@@ -448,6 +450,7 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
                     zoom: 1, 
                     fontSize: '0.75rem', 
                     boxShadow,
+                    zIndex,
                 },
             }
         },
@@ -474,20 +477,20 @@ export default function ScheduleCalendar({ initialEvents, userId, isAdmin = fals
         const isSenior = Boolean(event.isSenior || event.resource?.isSenior);
 
         return (
-            <div className="flex flex-col h-full justify-between text-xs py-0.5 leading-tight overflow-hidden relative">
-                <div className="min-w-0 pr-6">
-                    <span className="font-bold truncate leading-snug block">
+            <div className="flex flex-col h-full justify-between text-xs py-0.5 leading-tight overflow-hidden">
+                <div className="min-w-0 flex items-center gap-1">
+                    {isSenior && (
+                        <span 
+                            className="text-base sm:text-lg select-none leading-none filter drop-shadow-xs shrink-0" 
+                            title="Trưởng ca"
+                        >
+                            👑
+                        </span>
+                    )}
+                    <span className="font-bold truncate leading-snug">
                         {event.title}
                     </span>
                 </div>
-                {isSenior && (
-                    <span 
-                        className="absolute -top-0.5 right-0 text-base sm:text-lg select-none leading-none filter drop-shadow-xs" 
-                        title="Trưởng ca"
-                    >
-                        👑
-                    </span>
-                )}
                 {count > 0 && (
                     <div className="mt-auto pt-0.5 pointer-events-none">
                         {!showDutyDetails ? (
