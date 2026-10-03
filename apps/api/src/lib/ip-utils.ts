@@ -3,13 +3,17 @@ import { prisma } from "@checkin/db";
 import { isIPMatch } from "@checkin/shared";
 
 export function getClientIP(c: Context): string {
-  const forwardedFor = c.req.header("x-forwarded-for");
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
+  const cfConnectingIp = c.req.header("cf-connecting-ip");
+  if (cfConnectingIp) {
+    return cfConnectingIp.trim();
   }
   const realIp = c.req.header("x-real-ip");
   if (realIp) {
     return realIp.trim();
+  }
+  const forwardedFor = c.req.header("x-forwarded-for");
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0].trim();
   }
   return "127.0.0.1";
 }
