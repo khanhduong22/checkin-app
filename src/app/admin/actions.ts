@@ -280,8 +280,10 @@ export async function adminManualCheckIn(userId: string, date: string, checkInTi
 
     if (checkOutTime) {
       const checklistVerify = await verifyChecklistComplete(userId, date);
+      let checkoutNote = note;
       if (!checklistVerify.success) {
-        return { success: false, message: checklistVerify.message };
+        console.warn(`[adminManualCheckIn] Checklist warning for user ${userId} on ${date}: ${checklistVerify.message}`);
+        checkoutNote = `${note} (Cảnh báo checklist: ${checklistVerify.message})`;
       }
 
       const targetISO = `${date}T${checkOutTime}:00+07:00`;
@@ -293,7 +295,7 @@ export async function adminManualCheckIn(userId: string, date: string, checkInTi
           type: 'checkout',
           timestamp: targetDate,
           ipAddress: 'Manual',
-          note
+          note: checkoutNote
         }
       });
     }

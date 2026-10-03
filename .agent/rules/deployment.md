@@ -12,7 +12,7 @@ description: Rule for managing VPS deployment, database migrations, and environm
 - **Production Host**: Contabo VPS (`144.91.88.242`)
 - **Domain**: `https://limart.khanhdp.com`
 - **Container Network**: Connected to the shared bridge network `ops_bridge`.
-- **Nginx Proxy**: Managed by Nginx Proxy Manager (container `nginx-proxy-manager`) routing `limart.khanhdp.com` -> `http://checkin-app:3000`.
+- **Reverse Proxy**: Managed by Caddy 2 (container `caddy`, `/opt/kido-infra/caddy/Caddyfile`) routing `limart.khanhdp.com` -> `http://checkin-app:3000` and `limart2.khanhdp.com` -> `checkin-api-v2` / `checkin-staff-v2`. Forwarding `CF-Connecting-IP` as `X-Forwarded-For` and `X-Real-IP`.
 - **Infrastructure Code**: Declared in `kido-infra` Terraform files.
 
 ## 2. Database Configuration

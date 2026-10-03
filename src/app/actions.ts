@@ -10,8 +10,10 @@ import { verifyWeeklyChecklistComplete } from "@/actions/manager-weekly-actions"
 
 export async function getIPStatus() {
   const headersList = await headers();
-  const forwardedFor = headersList.get("x-forwarded-for");
-  const realIp = forwardedFor ? forwardedFor.split(',')[0].trim() : "127.0.0.1";
+  const realIp = headersList.get("cf-connecting-ip")?.trim()
+    || headersList.get("x-real-ip")?.trim()
+    || (headersList.get("x-forwarded-for") ? headersList.get("x-forwarded-for")!.split(',')[0].trim() : null)
+    || "127.0.0.1";
 
   const allowedIps = await prisma.allowedIP.findMany();
   const prefixes = allowedIps.map((r: any) => r.prefix);
@@ -33,8 +35,10 @@ export async function getIPStatus() {
 export async function performCheckIn(userId: string, type: 'checkin' | 'checkout', note?: string) {
   const headersList = await headers();
   // Vercel / Next.js agnostic IP retrieval
-  const forwardedFor = headersList.get("x-forwarded-for");
-  const realIp = forwardedFor ? forwardedFor.split(',')[0].trim() : "127.0.0.1";
+  const realIp = headersList.get("cf-connecting-ip")?.trim()
+    || headersList.get("x-real-ip")?.trim()
+    || (headersList.get("x-forwarded-for") ? headersList.get("x-forwarded-for")!.split(',')[0].trim() : null)
+    || "127.0.0.1";
 
   // 1. Get Allowed IPs
   const allowedIps = await prisma.allowedIP.findMany();
