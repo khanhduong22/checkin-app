@@ -138,17 +138,21 @@ export default function ShiftDutyHomeWidget({
 
   const completedCount = myDuties.filter((d) => d.isCompleted).length;
   const totalMyDuties = myDuties.length;
+  const totalTeamDuties = colleagues.reduce((acc, c) => acc + (c.duties?.length || 0), 0);
+
+  const handleOpenModal = () => {
+    const shouldDefaultToTeammates = isAdmin || (myDuties.length === 0 && totalTeamDuties > 0);
+    setActiveTab(shouldDefaultToTeammates ? "TEAMMATES" : "MY_DUTIES");
+    setModalOpen(true);
+    fetchDuties();
+  };
 
   return (
     <>
       {/* Home Button Widget */}
       <button
         type="button"
-        onClick={() => {
-          setActiveTab("MY_DUTIES");
-          setModalOpen(true);
-          fetchDuties();
-        }}
+        onClick={handleOpenModal}
         className="w-full bg-gradient-to-r from-teal-500 via-emerald-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-xl p-3.5 shadow-md hover:shadow-lg transition-all text-left flex items-center justify-between group active:scale-[0.99]"
       >
         <div className="flex items-center gap-3">
@@ -158,15 +162,21 @@ export default function ShiftDutyHomeWidget({
           <div>
             <div className="text-sm font-bold flex items-center gap-2">
               Nhiệm vụ ca làm việc
-              {totalMyDuties > 0 && (
+              {totalMyDuties > 0 ? (
                 <span className="bg-white/25 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
                   {completedCount}/{totalMyDuties} xong
                 </span>
-              )}
+              ) : totalTeamDuties > 0 ? (
+                <span className="bg-white/25 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  {totalTeamDuties} việc trong ca
+                </span>
+              ) : null}
             </div>
             <div className="text-xs text-emerald-100 font-normal">
               {totalMyDuties > 0
                 ? `Bạn có ${totalMyDuties} nhiệm vụ hôm nay • Bấm để xem chi tiết`
+                : totalTeamDuties > 0
+                ? `Ca hôm nay có ${totalTeamDuties} nhiệm vụ của đồng nghiệp • Bấm để xem`
                 : "Xem nhiệm vụ của bạn & đồng nghiệp trong ca hôm nay"}
             </div>
           </div>
@@ -224,7 +234,7 @@ export default function ShiftDutyHomeWidget({
                     : "text-emerald-100 hover:text-white hover:bg-white/10"
                 )}
               >
-                <Users className="h-3.5 w-3.5" /> Cả ca làm ({colleagues.length + 1} người)
+                <Users className="h-3.5 w-3.5" /> Cả ca làm ({totalTeamDuties} việc • {colleagues.length + 1} người)
               </button>
             </div>
           </div>
@@ -321,14 +331,36 @@ export default function ShiftDutyHomeWidget({
             {activeTab === "MY_DUTIES" && (
               <div className="space-y-3">
                 {myDuties.length === 0 ? (
-                  <div className="text-center py-8 bg-white border border-dashed rounded-xl p-4 space-y-2">
-                    <span className="text-3xl block">✨</span>
-                    <h4 className="font-bold text-slate-800 text-sm">
-                      Bạn chưa có nhiệm vụ nào được giao hôm nay!
-                    </h4>
-                    <p className="text-xs text-slate-500">
-                      Chúc bạn một ca làm việc vui vẻ, tập trung và năng suất.
-                    </p>
+                  <div className="space-y-3">
+                    {totalTeamDuties > 0 && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between shadow-2xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xl">👥</span>
+                          <div>
+                            <div className="text-xs text-emerald-950 font-medium">
+                              Ca làm hôm nay đang có <span className="font-bold">{totalTeamDuties}</span> nhiệm vụ được giao cho đồng nghiệp.
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs font-bold border-emerald-300 text-emerald-800 bg-white hover:bg-emerald-100 shrink-0 shadow-2xs"
+                          onClick={() => setActiveTab("TEAMMATES")}
+                        >
+                          Xem việc cả ca làm
+                        </Button>
+                      </div>
+                    )}
+                    <div className="text-center py-8 bg-white border border-dashed rounded-xl p-4 space-y-2">
+                      <span className="text-3xl block">✨</span>
+                      <h4 className="font-bold text-slate-800 text-sm">
+                        Bạn chưa có nhiệm vụ nào được giao hôm nay!
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        Chúc bạn một ca làm việc vui vẻ, tập trung và năng suất.
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   myDuties.map((duty, idx) => (

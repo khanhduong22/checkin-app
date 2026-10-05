@@ -30,7 +30,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { calculateLatePenalty, getUserMonthlyStats } from "@/lib/stats";
+import { calculateLatePenalty, getUserMonthlyStats, findBestMatchingShift } from "@/lib/stats";
 import { prisma } from "@/lib/prisma";
 
 const mockUserFindUnique = prisma.user.findUnique as ReturnType<typeof vi.fn>;
@@ -461,5 +461,110 @@ describe("getUserMonthlyStats() - Senior Role (+3k/1h) Logic", () => {
     expect(day.salary).toBe(230000);
     expect(day.seniorBonus).toBe(30000);
     expect(day.anomalies).toContain("👑 Trưởng ca (+3k/h)");
+  });
+});
+
+describe("Split Shift Pairing Safety & Non-Clobbering", () => {
+  it("findBestMatchingShift correctly pairs check-in pair with corresponding shift", () => {
+    const shiftMorning = {
+      id: 1,
+      userId: "u-1",
+      start: new Date("2026-06-15T08:00:00+07:00"),
+      end: new Date("2026-06-15T12:00:00+07:00"),
+      shiftType: "MORNING",
+      status: "APPROVED",
+      isOpenForSwap: false,
+      isSenior: false,
+      createdAt: new Date(),
+    };
+
+    const shiftEvening = {
+      id: 2,
+      userId: "u-1",
+      start: new Date("2026-06-15T17:00:00+07:00"),
+      end: new Date("2026-06-15T21:00:00+07:00"),
+      shiftType: "EVENING",
+      status: "APPROVED",
+      isOpenForSwap: false,
+      isSenior: false,
+      createdAt: new Date(),
+    };
+
+    const shifts = [shiftMorning, shiftEvening];
+
+    // Morning checkin (07:55 - 12:05)
+    const match1 = findBestMatchingShift(
+      new Date("2026-06-15T07:55:00+07:00"),
+      new Date("2026-06-15T12:05:00+07:00"),
+      shifts
+    );
+    expect(match1?.id).toBe(1);
+
+    // Evening checkin (16:50 - 21:05)
+    const match2 = findBestMatchingShift(
+      new Date("2026-06-15T16:50:00+07:00"),
+      new Date("2026-06-15T21:05:00+07:00"),
+      shifts
+    );
+    expect(match2?.id).toBe(2);
+  });
+
+  it("calculates accurate total hours for split shifts on the same day without clobbering or computing 0 hours", async () => {
+    const mockUser = {
+      id: "split-user-1",
+      name: "Split Staff",
+      email: "split@example.com",
+      role: "USER",
+      employmentType: "PART_TIME",
+      hourlyRate: 25000,
+      monthlySalary: 0,
+      adjustments: [],
+    };
+
+    const targetDate = new Date("2026-06-15T12:00:00+07:00");
+
+    mockUserFindUnique.mockResolvedValue(mockUser);
+    mockHolidayFindMany.mockResolvedValue([]);
+    mockRequestFindMany.mockResolvedValue([]);
+
+    // Two shifts on June 15, 2026: Morning (08:00 - 12:00 = 4h) and Evening (17:00 - 21:00 = 4h)
+    mockShiftFindMany.mockResolvedValue([
+      {
+        id: 201,
+        userId: mockUser.id,
+        start: new Date("2026-06-15T01:00:00.000Z"), // 08:00 VN
+        end: new Date("2026-06-15T05:00:00.000Z"),   // 12:00 VN
+        status: "APPROVED",
+        isSenior: false,
+      },
+      {
+        id: 202,
+        userId: mockUser.id,
+        start: new Date("2026-06-15T10:00:00.000Z"), // 17:00 VN
+        end: new Date("2026-06-15T14:00:00.000Z"),   // 21:00 VN
+        status: "APPROVED",
+        isSenior: false,
+      },
+    ]);
+
+    // Checkins for both shifts
+    mockCheckInFindMany.mockResolvedValue([
+      // Morning shift: 08:00 - 12:00 VN
+      { type: "checkin", timestamp: new Date("2026-06-15T01:00:00.000Z") },
+      { type: "checkout", timestamp: new Date("2026-06-15T05:00:00.000Z") },
+      // Evening shift: 17:00 - 21:00 VN
+      { type: "checkin", timestamp: new Date("2026-06-15T10:00:00.000Z") },
+      { type: "checkout", timestamp: new Date("2026-06-15T14:00:00.000Z") },
+    ]);
+
+    const stats = await getUserMonthlyStats(mockUser.id, targetDate);
+
+    expect(stats.totalHours).toBe(8); // 4h + 4h = 8h, NOT 0 or 4h!
+    expect(stats.dailyDetails.length).toBe(1);
+    const day = stats.dailyDetails[0];
+    expect(day.hours).toBe(8);
+    expect(day.salary).toBe(8 * 25000);
+    expect(day.shift).toContain("08:00 - 12:00");
+    expect(day.shift).toContain("17:00 - 21:00");
   });
 });

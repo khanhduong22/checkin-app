@@ -134,6 +134,56 @@ function toVNDateKey(date: Date): string {
   return new Date(vnMs).toISOString().split('T')[0];
 }
 
+export function findBestMatchingShift(
+  cin: Date,
+  cout: Date,
+  shifts: WorkShift[]
+): WorkShift | undefined {
+  if (shifts.length === 0) return undefined;
+  if (shifts.length === 1) return shifts[0];
+
+  const cinMs = cin.getTime();
+  const coutMs = cout.getTime();
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+
+  // 1. First preference: Shift whose [start - 2h, end + 2h] window encompasses [cin, cout]
+  const encompassing = shifts.filter(
+    (s) =>
+      cinMs >= s.start.getTime() - TWO_HOURS_MS &&
+      coutMs <= s.end.getTime() + TWO_HOURS_MS
+  );
+
+  if (encompassing.length === 1) {
+    return encompassing[0];
+  }
+
+  // If multiple encompass or none encompass, pick the shift with maximum overlap with [cin, cout]
+  const candidates = encompassing.length > 0 ? encompassing : shifts;
+  let bestShift = candidates[0];
+  let maxOverlap = -1;
+  let minMidpointDist = Infinity;
+  const checkinMid = (cinMs + coutMs) / 2;
+
+  for (const s of candidates) {
+    const sStart = s.start.getTime();
+    const sEnd = s.end.getTime();
+    const overlap = Math.max(0, Math.min(coutMs, sEnd) - Math.max(cinMs, sStart));
+    const shiftMid = (sStart + sEnd) / 2;
+    const midpointDist = Math.abs(checkinMid - shiftMid);
+
+    if (overlap > maxOverlap) {
+      maxOverlap = overlap;
+      minMidpointDist = midpointDist;
+      bestShift = s;
+    } else if (overlap === maxOverlap && midpointDist < minMidpointDist) {
+      minMidpointDist = midpointDist;
+      bestShift = s;
+    }
+  }
+
+  return bestShift;
+}
+
 function calculateFullTimeMetrics(user: User, vnYear: number, vnMonth: number, leaveCount: number) {
   if (user.employmentType !== 'FULL_TIME') {
     return { standardDays: 0, dailySalary: 0, dynamicHourlyRate: user.hourlyRate, deduction: 0 };
@@ -334,12 +384,16 @@ async function computeUserMonthlyStats(
   const earlyLeaveApprovedMap = new Set(earlyLeaveApprovedRequests.map(r => toVNDateKey(r.date)));
   const earlyLeavePendingMap = new Set(earlyLeavePendingRequests.map(r => toVNDateKey(r.date)));
 
-  const shiftsByDay: Record<string, WorkShift> = {};
+  const shiftsByDay: Record<string, WorkShift[]> = {};
   shifts.forEach(s => {
     const key = toVNDateKey(s.start);
-    if (!shiftsByDay[key] || s.isSenior) {
-      shiftsByDay[key] = s;
+    if (!shiftsByDay[key]) {
+      shiftsByDay[key] = [];
     }
+    shiftsByDay[key].push(s);
+  });
+  Object.values(shiftsByDay).forEach(dayShifts => {
+    dayShifts.sort((a, b) => a.start.getTime() - b.start.getTime());
   });
 
   const checkinsByDay: Record<string, CheckIn[]> = {};
@@ -369,7 +423,7 @@ async function computeUserMonthlyStats(
 
   Array.from(allDates).forEach(date => {
     const dailyCheckins = checkinsByDay[date] || [];
-    const shift = shiftsByDay[date];
+    const dayShifts = shiftsByDay[date] || [];
     let dayHours = 0;
 
     // Check-in Processing
@@ -402,9 +456,11 @@ async function computeUserMonthlyStats(
 
           tempRawHours += (endCalc - startCalc) / (1000 * 60 * 60);
 
-          if (shift) {
-            const shiftStart = shift.start.getTime();
-            const shiftEnd = shift.end.getTime();
+          const matchedShift = findBestMatchingShift(lastCheckIn.timestamp, event.timestamp, dayShifts);
+
+          if (matchedShift) {
+            const shiftStart = matchedShift.start.getTime();
+            const shiftEnd = matchedShift.end.getTime();
 
             // Shift Logic
             if (startCalc < shiftStart) {
@@ -447,10 +503,13 @@ async function computeUserMonthlyStats(
     }
 
     let scheduledHours = user.employmentType === 'FULL_TIME' ? 8 : 0;
-    let canEarnOT = user.employmentType === 'FULL_TIME' || !!shift;
+    let canEarnOT = user.employmentType === 'FULL_TIME' || dayShifts.length > 0;
     
-    if (shift) {
-      scheduledHours = (shift.end.getTime() - shift.start.getTime()) / (1000 * 60 * 60);
+    if (dayShifts.length > 0) {
+      scheduledHours = dayShifts.reduce(
+        (acc, s) => acc + (s.end.getTime() - s.start.getTime()) / (1000 * 60 * 60),
+        0
+      );
     }
 
     if (dayHours > 0) {
@@ -493,8 +552,9 @@ async function computeUserMonthlyStats(
     }
 
     // Lateness Logic
-    if (shift && firstCheckIn) {
-      if (checkIsLate(firstCheckIn, shift.start)) {
+    if (dayShifts.length > 0 && firstCheckIn) {
+      const firstShift = findBestMatchingShift(firstCheckIn, lastCheckOut || firstCheckIn, dayShifts) || dayShifts[0];
+      if (checkIsLate(firstCheckIn, firstShift.start)) {
         isLate = true;
         anomalies.push("Đi muộn");
       }
@@ -505,7 +565,7 @@ async function computeUserMonthlyStats(
     }
 
     // Senior Logic (+3k/1h for Senior shift)
-    const isSeniorShift = Boolean(shift?.isSenior);
+    const isSeniorShift = dayShifts.some(s => s.isSenior);
     const seniorRateBonus = isSeniorShift ? 3000 : 0;
     const effectiveRate = dynamicHourlyRate + seniorRateBonus;
 
@@ -523,18 +583,20 @@ async function computeUserMonthlyStats(
     }
 
     let auditedCheckInDate: Date | null = firstCheckIn;
-    if (firstCheckIn && shift) {
-      if (firstCheckIn.getTime() < shift.start.getTime()) {
-        auditedCheckInDate = shift.start;
+    if (firstCheckIn && dayShifts.length > 0) {
+      const firstShift = findBestMatchingShift(firstCheckIn, lastCheckOut || firstCheckIn, dayShifts) || dayShifts[0];
+      if (firstCheckIn.getTime() < firstShift.start.getTime()) {
+        auditedCheckInDate = firstShift.start;
       }
     }
     
     let auditedCheckOutDate: Date | null = lastCheckOut;
-    if (lastCheckOut && shift) {
-      if (lastCheckOut.getTime() < shift.end.getTime()) {
+    if (lastCheckOut && dayShifts.length > 0) {
+      const lastShift = findBestMatchingShift(firstCheckIn || lastCheckOut, lastCheckOut, dayShifts) || dayShifts[dayShifts.length - 1];
+      if (lastCheckOut.getTime() < lastShift.end.getTime()) {
         const currentDateStr = toVNDateKey(lastCheckOut);
         if (earlyLeaveApprovedMap.has(currentDateStr)) {
-          auditedCheckOutDate = shift.end;
+          auditedCheckOutDate = lastShift.end;
         }
       }
     }
@@ -562,6 +624,10 @@ async function computeUserMonthlyStats(
       }
     }
 
+    const shiftDisplay = dayShifts.length > 0
+      ? dayShifts.map(s => `${formatTime(s.start)} - ${formatTime(s.end)}`).join(', ')
+      : 'Ngoài lịch';
+
     dailyDetails.push({
       date: date,
       checkIn: firstCheckIn,
@@ -571,7 +637,7 @@ async function computeUserMonthlyStats(
       isLate,
       multiplier,
       isValid: isValidDay && dayHours > 0,
-      shift: shift ? `${formatTime(shift.start)} - ${formatTime(shift.end)}` : 'Ngoài lịch',
+      shift: shiftDisplay,
       error: errorMsg || (dayHours === 0 ? 'Không tính công' : undefined),
       checkInNote: firstCheckInEvent?.note || null,
       checkOutNote: lastCheckOutEvent?.note || null,

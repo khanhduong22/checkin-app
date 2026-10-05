@@ -21,6 +21,7 @@ vi.mock("@/lib/payroll", () => ({
   invalidatePayrollCache: vi.fn().mockResolvedValue(undefined),
   getMonthlyPayroll: vi.fn().mockResolvedValue([]),
   calculatePayroll: vi.fn().mockResolvedValue([]),
+  assertPeriodOpen: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/schedule-lock", () => ({
@@ -168,12 +169,12 @@ describe("Cache Invalidation & Route Revalidation Audit", () => {
         date: new Date(),
       });
       (prisma.request.update as any).mockResolvedValue({
-        id: "req-1",
+        id: 1,
         userId: "staff-1",
         status: "APPROVED",
       });
 
-      const res = await approveRequest("req-1");
+      const res = await approveRequest(1);
       expect(res.success).toBe(true);
       expect(invalidatePayrollCache).toHaveBeenCalled();
       expect(invalidateUserStatsCache).toHaveBeenCalledWith("staff-1");
@@ -188,17 +189,17 @@ describe("Cache Invalidation & Route Revalidation Audit", () => {
         user: { email: "admin@example.com", role: "ADMIN" },
       });
       (prisma.request.findUnique as any).mockResolvedValue({
-        id: "req-2",
+        id: 2,
         userId: "staff-2",
         type: "WFH",
       });
       (prisma.request.update as any).mockResolvedValue({
-        id: "req-2",
+        id: 2,
         userId: "staff-2",
         status: "REJECTED",
       });
 
-      const res = await rejectRequest("req-2");
+      const res = await rejectRequest(2);
       expect(res.success).toBe(true);
       expect(invalidatePayrollCache).toHaveBeenCalled();
       expect(invalidateUserStatsCache).toHaveBeenCalledWith("staff-2");
@@ -275,14 +276,14 @@ describe("Cache Invalidation & Route Revalidation Audit", () => {
       (getServerSession as any).mockResolvedValue({
         user: { role: "ADMIN" },
       });
-      (prisma.payrollRecord.upsert as any).mockResolvedValue({
+      (prisma.payrollPeriod.upsert as any).mockResolvedValue({
         id: "pr-1",
         month: 10,
         year: 2026,
-        isClosed: true,
+        status: "CLOSED",
       });
 
-      const res = await closePayrollMonth(10, 2026);
+      const res = await closePayrollMonth(10, 2026, 0);
       expect(res.success).toBe(true);
       expect(invalidatePayrollCache).toHaveBeenCalledWith(10, 2026);
       expect(revalidatePath).toHaveBeenCalledWith("/admin/payroll");

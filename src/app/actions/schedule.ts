@@ -8,12 +8,20 @@ import { isShiftLocked, toVietnamTime } from "@/lib/schedule-lock";
 import { logShiftAction } from "@/lib/audit";
 import { applyLateSchedulePenalty } from "@/lib/schedule-penalty";
 import { invalidateUserStatsCache } from "@/lib/stats";
-import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidatePayrollCache, assertPeriodOpen } from "@/lib/payroll";
 import { invalidateShiftDutyCache } from "@/lib/cache";
 
 export async function registerShift(start: Date, end: Date, override: boolean = false, targetUserId?: string, skipPenalty: boolean = false, isSenior: boolean = false) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) return { success: false, error: 'Unauthorized' };
+
+  if (typeof assertPeriodOpen === "function") {
+    try {
+      await assertPeriodOpen(start);
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
 
   const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
   if (duration < 4) return { success: false, error: 'Thời gian làm việc tối thiểu 4 tiếng!' };
@@ -111,6 +119,14 @@ export async function deleteShift(shiftId: number) {
   const existing = await prisma.workShift.findUnique({ where: { id: shiftId } });
   if (!existing) return { success: false, error: 'Ca làm không tồn tại' };
 
+  if (typeof assertPeriodOpen === "function") {
+    try {
+      await assertPeriodOpen(existing.start);
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
+
   if (user.role !== 'ADMIN' && isShiftLocked(existing.start)) {
     return { success: false, error: 'Lịch làm việc của tuần này đã được chốt, không thể thay đổi!' };
   }
@@ -151,6 +167,15 @@ export async function updateShift(shiftId: number, start: Date, end: Date) {
   const existing = await prisma.workShift.findUnique({ where: { id: shiftId } });
 
   if (!existing) return { success: false, error: 'Not found' };
+
+  if (typeof assertPeriodOpen === "function") {
+    try {
+      await assertPeriodOpen(existing.start);
+      await assertPeriodOpen(start);
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
 
   if (user?.role !== 'ADMIN') {
     if (existing.userId !== user?.id) {
@@ -209,6 +234,14 @@ export async function toggleShiftSenior(shiftId: number, isSenior: boolean) {
     include: { user: true }
   });
   if (!shift) return { success: false, error: 'Ca làm không tồn tại' };
+
+  if (typeof assertPeriodOpen === "function") {
+    try {
+      await assertPeriodOpen(shift.start);
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
 
   const unsetShiftIds: number[] = [];
 
@@ -294,6 +327,13 @@ export async function importWeeklySchedule(shiftsParam: ParsedShiftItem[], overr
   }
 
   try {
+      // Validate that all shift dates belong to open payroll periods
+      if (typeof assertPeriodOpen === "function") {
+        for (const s of shiftsParam) {
+          await assertPeriodOpen(new Date(s.dateIso));
+        }
+      }
+
       // 1. Fetch all users to map names
       const allUsers = await prisma.user.findMany({ select: { id: true, name: true, email: true } });
       const createdShifts = [];

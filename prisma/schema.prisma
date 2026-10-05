@@ -98,6 +98,7 @@ model WorkShift {
 
   @@index([userId, start])
   @@index([start])
+  @@index([start, end])
 }
 
 model ShiftAuditLog {
@@ -132,6 +133,8 @@ model Request {
 
   @@index([userId, date])
   @@index([date])
+  @@index([userId, status])
+  @@index([createdAt])
 }
 
 model Announcement {
@@ -415,6 +418,8 @@ model StaffTask {
   @@index([assigneeId, startDate])
   @@index([assigneeId, createdAt])
   @@index([createdById])
+  @@index([assigneeId, status])
+  @@index([status])
 }
 
 model ManagerChecklistTask {
@@ -430,6 +435,9 @@ model ManagerChecklistTask {
 
   assignee    User                         @relation("ManagerChecklistAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
   completions ManagerChecklistCompletion[]
+
+  @@index([assigneeId, active])
+  @@index([targetDate])
 }
 
 model ManagerChecklistCompletion {
@@ -443,6 +451,7 @@ model ManagerChecklistCompletion {
   task ManagerChecklistTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, date])
+  @@index([date, completed])
 }
 
 model ManagerWeeklyTask {

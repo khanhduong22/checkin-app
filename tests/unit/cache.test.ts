@@ -69,9 +69,24 @@ describe("Cache Module (Valkey / Redis)", () => {
     expect(result).toEqual({ id: 3, name: "Fallback Shift" });
   });
 
-  it("gracefully invalidates cache keys and patterns without crashing", async () => {
+  it("gracefully invalidates cache keys and patterns using scanStream and pipeline without crashing", async () => {
     const delMock = vi.fn().mockResolvedValue(1);
-    const keysMock = vi.fn().mockResolvedValue(["key:1", "key:2"]);
+    const pipelineExecMock = vi.fn().mockResolvedValue([]);
+    const pipelineDelMock = vi.fn();
+    const pipelineMock = vi.fn().mockReturnValue({
+      del: pipelineDelMock,
+      exec: pipelineExecMock,
+    });
+
+    const scanStreamMock = vi.fn().mockImplementation(() => {
+      const { EventEmitter } = require("events");
+      const emitter = new EventEmitter();
+      setTimeout(() => {
+        emitter.emit("data", ["key:1", "key:2"]);
+        emitter.emit("end");
+      }, 10);
+      return emitter;
+    });
 
     vi.doMock("ioredis", () => {
       return {
@@ -79,7 +94,8 @@ describe("Cache Module (Valkey / Redis)", () => {
           get = vi.fn();
           setex = vi.fn();
           del = delMock;
-          keys = keysMock;
+          scanStream = scanStreamMock;
+          pipeline = pipelineMock;
           on = vi.fn();
         },
       };
@@ -91,8 +107,10 @@ describe("Cache Module (Valkey / Redis)", () => {
     expect(delMock).toHaveBeenCalledWith("key:1");
 
     await expect(invalidateCachePattern("key:*")).resolves.not.toThrow();
-    expect(keysMock).toHaveBeenCalledWith("key:*");
-    expect(delMock).toHaveBeenCalledWith("key:1", "key:2");
+    expect(scanStreamMock).toHaveBeenCalledWith({ match: "key:*", count: 100 });
+    expect(pipelineMock).toHaveBeenCalled();
+    expect(pipelineDelMock).toHaveBeenCalledWith("key:1", "key:2");
+    expect(pipelineExecMock).toHaveBeenCalled();
   });
 
   it("recreates Redis client if existing client status is 'end'", async () => {

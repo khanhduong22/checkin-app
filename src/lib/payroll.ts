@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getUserMonthlyStats } from "@/lib/stats";
 import { getOrSetCache, invalidateCache, invalidateCachePattern } from "@/lib/cache";
+export { assertPeriodOpen } from "@/lib/payroll-period";
 
 export async function invalidatePayrollCache(month?: number, year?: number): Promise<void> {
   try {

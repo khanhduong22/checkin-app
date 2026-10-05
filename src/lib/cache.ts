@@ -101,17 +101,51 @@ export async function invalidateCache(key: string): Promise<void> {
 }
 
 /**
- * Invalidate cache keys matching a pattern (e.g. "shift-duties:*")
+ * Invalidate cache keys matching a pattern (e.g. "shift-duties:*") using non-blocking scanStream
  */
 export async function invalidateCachePattern(pattern: string): Promise<void> {
   try {
     const client = getRedisClient();
-    if (client) {
-      const keys = await client.keys(pattern);
-      if (keys && keys.length > 0) {
-        await client.del(...keys);
-      }
+    if (!client) {
+      return;
     }
+
+    if (typeof client.scanStream !== "function") {
+      // Fallback if scanStream is not available
+      if (typeof client.keys === "function") {
+        const keys = await client.keys(pattern);
+        if (keys && keys.length > 0) {
+          await client.del(...keys);
+        }
+      }
+      return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const stream = client.scanStream({ match: pattern, count: 100 });
+      const pipelinePromises: Promise<unknown>[] = [];
+
+      stream.on("data", (keys: string[]) => {
+        if (keys && keys.length > 0) {
+          const pipeline = client.pipeline();
+          pipeline.del(...keys);
+          pipelinePromises.push(pipeline.exec());
+        }
+      });
+
+      stream.on("end", async () => {
+        try {
+          await Promise.all(pipelinePromises);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      stream.on("error", (err) => {
+        reject(err);
+      });
+    });
   } catch (err) {
     console.warn(`[Cache Warning] Failed to delete cache pattern ${pattern}:`, err);
   }

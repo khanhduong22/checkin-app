@@ -1,13 +1,17 @@
 'use server';
 
 import { prisma } from "@/lib/prisma";
-import { calculatePayroll, invalidatePayrollCache } from "@/lib/payroll";
+import { calculatePayroll, invalidatePayrollCache, assertPeriodOpen } from "@/lib/payroll";
 import { invalidateUserStatsCache } from "@/lib/stats";
 import { revalidatePath } from "next/cache";
 import { EmploymentType } from "@prisma/client";
 
 export async function addAdjustment(userId: string, amount: number, reason: string) {
   try {
+    if (typeof assertPeriodOpen === "function") {
+      await assertPeriodOpen(new Date());
+    }
+
     const result = await prisma.payrollAdjustment.create({
       data: {
         userId,
@@ -28,7 +32,7 @@ export async function addAdjustment(userId: string, amount: number, reason: stri
     return { success: true };
   } catch (error: any) {
     console.error(`[addAdjustment] Server Action Error: `, error);
-    return { success: false, error: "Lỗi hệ thống: " + (error?.message || "Không thể thực hiện lưu.") };
+    return { success: false, error: error?.message || "Lỗi hệ thống: Không thể thực hiện lưu." };
   }
 }
 
