@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCachedSession } from "@/lib/session";
 import { TaskStatus } from "@prisma/client";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 // --- Task Definitions (Admin) ---
 
@@ -449,10 +451,17 @@ export async function reviewTask(userTaskId: string, decision: "APPROVED" | "REJ
             date: task.submittedAt || task.createdAt || new Date(),
           }
         });
+        await invalidatePayrollCache();
+        await invalidateUserStatsCache(task.userId);
       }
     }
 
     revalidatePath("/admin/tasks");
+    revalidatePath("/tasks");
+    revalidatePath("/payroll");
+    revalidatePath("/admin/payroll");
+    revalidatePath(`/admin/employees/${task.userId}`);
+    revalidatePath("/");
     return { success: true, data: updated };
 
   } catch (error) {

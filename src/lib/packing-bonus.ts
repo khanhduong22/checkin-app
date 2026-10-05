@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 /**
  * Runs packing bonus logic: gives +100,000 VND to the Top 1 employee in packing points.
@@ -84,6 +86,8 @@ export async function runPackingBonus(): Promise<void> {
                     date: now
                 }
             });
+            await invalidatePayrollCache();
+            await invalidateUserStatsCache(uid);
             console.log(`[Packing Bonus] +${splitAmount.toLocaleString()} VND granted to user ${uid} (Split top 1) - ${reasonKey}`);
         }
     } catch (err) {

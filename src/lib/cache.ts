@@ -116,3 +116,15 @@ export async function invalidateCachePattern(pattern: string): Promise<void> {
     console.warn(`[Cache Warning] Failed to delete cache pattern ${pattern}:`, err);
   }
 }
+
+/**
+ * Invalidate shift duties and upcoming shifts cache
+ */
+export async function invalidateShiftDutyCache(userId?: string, shiftId?: number): Promise<void> {
+  try {
+    await invalidateCachePattern("shift-duties:*");
+    await invalidateCachePattern("shifts:*");
+  } catch (e) {
+    console.warn("[Cache Warning] Failed to invalidate shift duty cache:", e);
+  }
+}

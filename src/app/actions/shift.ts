@@ -7,6 +7,9 @@ import { revalidatePath } from "next/cache";
 import { isShiftLocked } from "@/lib/schedule-lock";
 import { logShiftAction } from "@/lib/audit";
 import { applyLateSchedulePenalty } from "@/lib/schedule-penalty";
+import { invalidateUserStatsCache } from "@/lib/stats";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateShiftDutyCache } from "@/lib/cache";
 
 export async function registerShift(dateStr: string, shift: string) {
   const session = await getServerSession(authOptions);
@@ -61,7 +64,16 @@ export async function registerShift(dateStr: string, shift: string) {
       newEnd: end
     });
 
+    await invalidateUserStatsCache(user.id);
+    await invalidatePayrollCache();
+    await invalidateShiftDutyCache(user.id);
+
     revalidatePath('/schedule');
+    revalidatePath('/admin/schedule');
+    revalidatePath('/payroll');
+    revalidatePath('/admin/payroll');
+    revalidatePath(`/admin/employees/${user.id}`);
+    revalidatePath('/');
     return { success: true, message: "Đăng ký thành công!" };
   } catch (e) {
     return { success: false, message: "Lỗi hoặc đã đăng ký ca này rồi." };
@@ -92,7 +104,17 @@ export async function cancelShift(shiftId: number) {
   });
 
   await prisma.workShift.delete({ where: { id: shiftId } });
+
+  await invalidateUserStatsCache(existing.userId);
+  await invalidatePayrollCache();
+  await invalidateShiftDutyCache(existing.userId);
+
   revalidatePath('/schedule');
+  revalidatePath('/admin/schedule');
+  revalidatePath('/payroll');
+  revalidatePath('/admin/payroll');
+  revalidatePath(`/admin/employees/${existing.userId}`);
+  revalidatePath('/');
   return { success: true, message: "Đã hủy ca." };
 }
 
@@ -140,7 +162,16 @@ export async function assignCustomShift(userId: string, dateStr: string, startTi
       newEnd: end
     });
 
+    await invalidateUserStatsCache(userId);
+    await invalidatePayrollCache();
+    await invalidateShiftDutyCache(userId);
+
     revalidatePath('/admin/schedule');
+    revalidatePath('/schedule');
+    revalidatePath('/payroll');
+    revalidatePath('/admin/payroll');
+    revalidatePath(`/admin/employees/${userId}`);
+    revalidatePath('/');
     return { success: true, message: "Đã gán ca thành công!" };
   } catch (e) {
     return { success: false, message: "Lỗi: Có thể nhân viên đã có ca trùng giờ." };
@@ -222,7 +253,19 @@ export async function takeShift(shiftId: number) {
       newEnd: existing.end
     });
 
+    await invalidateUserStatsCache(user.id);
+    await invalidateUserStatsCache(existing.userId);
+    await invalidatePayrollCache();
+    await invalidateShiftDutyCache(user.id);
+    await invalidateShiftDutyCache(existing.userId);
+
     revalidatePath('/schedule');
+    revalidatePath('/admin/schedule');
+    revalidatePath('/payroll');
+    revalidatePath('/admin/payroll');
+    revalidatePath(`/admin/employees/${user.id}`);
+    revalidatePath(`/admin/employees/${existing.userId}`);
+    revalidatePath('/');
     return { success: true, message: "Đã nhận ca thành công! Đừng quên đi làm nhé." };
   } catch (e) {
     return { success: false, message: "Lỗi: Ca này có thể đã được người khác nhận." };

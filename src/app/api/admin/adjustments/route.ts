@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { invalidatePayrollCache } from '@/lib/payroll';
+import { invalidateUserStatsCache } from '@/lib/stats';
 
 export async function POST(req: Request) {
     try {
@@ -26,7 +28,13 @@ export async function POST(req: Request) {
             }
         });
 
+        await invalidatePayrollCache();
+        await invalidateUserStatsCache(userId);
+
         revalidatePath('/admin/payroll');
+        revalidatePath(`/admin/payroll/${userId}`);
+        revalidatePath('/payroll');
+        revalidatePath(`/admin/employees/${userId}`);
         revalidatePath('/'); // Update user homepage
 
         return NextResponse.json({ success: true, id: result.id });

@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 /**
  * Runs carrying bonus logic: gives +200,000 VND to the Top 1 employee in carrying points.
@@ -85,6 +87,8 @@ export async function runCarryingBonus(): Promise<void> {
                     date: now
                 }
             });
+            await invalidatePayrollCache();
+            await invalidateUserStatsCache(uid);
             console.log(`[Carrying Bonus] +${splitAmount.toLocaleString()} VND granted to user ${uid} (Split top 1) - ${reasonKey}`);
         }
     } catch (err) {

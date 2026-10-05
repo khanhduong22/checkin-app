@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 /**
  * Runs birthday bonus logic: gives +100,000 VND to all users whose birthday is today.
@@ -56,6 +58,9 @@ export async function runBirthdayBonus(): Promise<void> {
                     date: now,
                 },
             });
+
+            await invalidatePayrollCache();
+            await invalidateUserStatsCache(user.id);
 
             console.log(`[Birthday Bonus] +100k granted to ${user.name} (${user.email})`);
         }

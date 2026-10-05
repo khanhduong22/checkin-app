@@ -160,6 +160,8 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
             }
           });
           extraMessage = " (Đã tạo yêu cầu về sớm, chờ duyệt)";
+          revalidatePath('/requests');
+          revalidatePath('/admin/requests');
         } else {
           // Warn user? Or just let them proceed?
           // Current flow allows proceeding, but stats will count it as not fully paid (if we implement stats change).
@@ -180,12 +182,18 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
       }
     });
 
-    await invalidatePayrollCache();
-    await invalidateUserStatsCache(userId);
+    try {
+      await invalidatePayrollCache();
+      await invalidateUserStatsCache(userId);
+    } catch (cacheErr) {
+      console.error("Failed to invalidate cache after checkin:", cacheErr);
+    }
 
     revalidatePath('/'); // Refresh UI
     revalidatePath('/payroll');
     revalidatePath('/admin');
+    revalidatePath('/admin/payroll');
+    revalidatePath(`/admin/employees/${userId}`);
 
     // Query today's assigned shift duties if checkin
     let todayDuties: any[] = [];

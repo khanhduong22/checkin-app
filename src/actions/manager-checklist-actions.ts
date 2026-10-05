@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getUserMonthlyStats } from "@/lib/stats";
+import { getUserMonthlyStats, invalidateUserStatsCache } from "@/lib/stats";
+import { invalidatePayrollCache } from "@/lib/payroll";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -169,11 +170,15 @@ export async function toggleManagerChecklistItem(taskId: string, dateStr: string
       }
     });
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(task.assigneeId);
+
     revalidatePath("/admin/manager-tasks");
-    // Also revalidate payroll to ensure the deficiency status is updated immediately
     revalidatePath("/admin/payroll");
     revalidatePath(`/admin/payroll/${task.assigneeId}`);
+    revalidatePath(`/admin/employees/${task.assigneeId}`);
     revalidatePath("/payroll");
+    revalidatePath("/");
 
     return { success: true, data: completion };
   } catch (e: any) {
@@ -195,7 +200,15 @@ export async function createManagerChecklistTask(title: string, description: str
       }
     });
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(assigneeId);
+
     revalidatePath("/admin/manager-tasks");
+    revalidatePath("/admin/payroll");
+    revalidatePath(`/admin/payroll/${assigneeId}`);
+    revalidatePath(`/admin/employees/${assigneeId}`);
+    revalidatePath("/payroll");
+    revalidatePath("/");
     return { success: true, data: task };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -216,7 +229,15 @@ export async function updateManagerChecklistTask(id: string, title: string, desc
       }
     });
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(task.assigneeId);
+
     revalidatePath("/admin/manager-tasks");
+    revalidatePath("/admin/payroll");
+    revalidatePath(`/admin/payroll/${task.assigneeId}`);
+    revalidatePath(`/admin/employees/${task.assigneeId}`);
+    revalidatePath("/payroll");
+    revalidatePath("/");
     return { success: true, data: task };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -227,11 +248,22 @@ export async function deleteManagerChecklistTask(id: string) {
   try {
     await requireAdmin();
 
+    const task = await prisma.managerChecklistTask.findUnique({ where: { id } });
     await prisma.managerChecklistTask.delete({
       where: { id }
     });
 
+    if (task) {
+      await invalidatePayrollCache();
+      await invalidateUserStatsCache(task.assigneeId);
+      revalidatePath(`/admin/payroll/${task.assigneeId}`);
+      revalidatePath(`/admin/employees/${task.assigneeId}`);
+    }
+
     revalidatePath("/admin/manager-tasks");
+    revalidatePath("/admin/payroll");
+    revalidatePath("/payroll");
+    revalidatePath("/");
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message };

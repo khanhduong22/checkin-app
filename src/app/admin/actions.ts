@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { verifyChecklistComplete } from "@/actions/manager-checklist-actions";
 import { invalidatePayrollCache } from "@/lib/payroll";
 import { invalidateUserStatsCache } from "@/lib/stats";
+import { invalidateShiftDutyCache } from "@/lib/cache";
 
 // --- User Management Actions ---
 
@@ -32,7 +33,10 @@ export async function createUser(data: {
         role: 'USER',
       }
     });
+    await invalidatePayrollCache();
+    revalidatePath('/admin');
     revalidatePath('/admin/employees');
+    revalidatePath('/admin/payroll');
     return { success: true, message: 'Đã thêm nhân viên mới' };
   } catch (e) {
     console.error(e);
@@ -43,7 +47,14 @@ export async function createUser(data: {
 export async function deleteUser(userId: string) {
   try {
     await prisma.user.delete({ where: { id: userId } });
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
+    await invalidateShiftDutyCache(userId);
     revalidatePath('/admin');
+    revalidatePath('/admin/employees');
+    revalidatePath(`/admin/employees/${userId}`);
+    revalidatePath('/admin/payroll');
+    revalidatePath('/payroll');
     return { success: true, message: 'Đã xóa nhân viên' };
   } catch (e) {
     return { success: false, message: 'Lỗi khi xóa nhân viên' };
@@ -82,7 +93,12 @@ export async function updateUserRole(userId: string, role: 'USER' | 'ADMIN') {
       where: { id: userId },
       data: { role }
     });
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
     revalidatePath('/admin');
+    revalidatePath('/admin/employees');
+    revalidatePath(`/admin/employees/${userId}`);
+    revalidatePath('/admin/payroll');
     return { success: true, message: 'Đã cập nhật quyền hạn' };
   } catch (e) {
     return { success: false, message: 'Lỗi cập nhật' };
@@ -95,7 +111,14 @@ export async function updateUserRate(userId: string, hourlyRate: number) {
       where: { id: userId },
       data: { hourlyRate }
     });
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
     revalidatePath('/admin');
+    revalidatePath('/admin/employees');
+    revalidatePath(`/admin/employees/${userId}`);
+    revalidatePath('/admin/payroll');
+    revalidatePath(`/admin/payroll/${userId}`);
+    revalidatePath('/payroll');
     return { success: true, message: 'Đã cập nhật lương' };
   } catch (e) {
     return { success: false, message: 'Lỗi cập nhật' };
@@ -108,7 +131,14 @@ export async function updateUserMonthlySalary(userId: string, monthlySalary: num
       where: { id: userId },
       data: { monthlySalary }
     });
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
     revalidatePath('/admin');
+    revalidatePath('/admin/employees');
+    revalidatePath(`/admin/employees/${userId}`);
+    revalidatePath('/admin/payroll');
+    revalidatePath(`/admin/payroll/${userId}`);
+    revalidatePath('/payroll');
     return { success: true, message: 'Đã cập nhật lương cứng' };
   } catch (e) {
     return { success: false, message: 'Lỗi cập nhật' };
@@ -121,7 +151,12 @@ export async function updateUserName(userId: string, name: string) {
       where: { id: userId },
       data: { name }
     });
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
     revalidatePath('/admin');
+    revalidatePath('/admin/employees');
+    revalidatePath(`/admin/employees/${userId}`);
+    revalidatePath('/admin/payroll');
     return { success: true, message: 'Đã cập nhật tên' };
   } catch (e) {
     return { success: false, message: 'Lỗi cập nhật tên' };
@@ -220,12 +255,19 @@ export async function updateUserEmploymentType(userId: string, type: 'FULL_TIME'
           data: shiftsToCreate
         });
       }
-      revalidatePath('/admin');
-      revalidatePath('/schedule');
-      revalidatePath('/admin/schedule');
     }
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
+    await invalidateShiftDutyCache(userId);
+
     revalidatePath('/admin');
+    revalidatePath('/admin/employees');
+    revalidatePath(`/admin/employees/${userId}`);
+    revalidatePath('/admin/payroll');
+    revalidatePath('/payroll');
+    revalidatePath('/schedule');
+    revalidatePath('/admin/schedule');
     return { success: true, message: 'Đã cập nhật loại nhân viên & lịch làm' };
   } catch (e) {
     console.error(e);
@@ -327,7 +369,10 @@ export async function updateUserDates(userId: string, birthday: Date | null, sta
         startDate
       }
     });
+    await invalidateUserStatsCache(userId);
     revalidatePath('/admin');
+    revalidatePath('/admin/employees');
+    revalidatePath(`/admin/employees/${userId}`);
     revalidatePath('/');
     return { success: true, message: 'Đã cập nhật ngày đặc biệt' };
   } catch (e) {
@@ -348,8 +393,13 @@ export async function updateUserActiveStatus(userId: string, isActive: boolean) 
         })
       ])
     ]);
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
     revalidatePath('/admin');
     revalidatePath('/admin/employees');
+    revalidatePath(`/admin/employees/${userId}`);
+    revalidatePath('/admin/payroll');
+    revalidatePath('/payroll');
     return { success: true, message: isActive ? 'Đã kích hoạt tài khoản' : 'Đã khoá tài khoản (nghỉ việc)' };
   } catch (e) {
     console.error("Error updating user active status:", e);

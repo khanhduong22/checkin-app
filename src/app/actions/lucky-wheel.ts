@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 export async function spinWheel() {
   const session = await getServerSession(authOptions);
@@ -163,11 +165,16 @@ export async function spinWheel() {
           date: new Date()
         }
       });
+      await invalidatePayrollCache();
+      await invalidateUserStatsCache(user.id);
     }
 
     revalidatePath('/lucky-wheel');
     revalidatePath('/admin/lucky-wheel');
+    revalidatePath('/payroll');
     revalidatePath('/admin/payroll');
+    revalidatePath(`/admin/employees/${user.id}`);
+    revalidatePath('/');
 
     return {
       success: true,

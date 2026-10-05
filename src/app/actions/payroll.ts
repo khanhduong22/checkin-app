@@ -1,8 +1,11 @@
 'use server';
 
 import { prisma } from "@/lib/prisma";
-import { calculatePayroll } from "@/lib/payroll";
+import { calculatePayroll, invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 import { revalidatePath } from "next/cache";
+import { EmploymentType } from "@prisma/client";
+
 export async function addAdjustment(userId: string, amount: number, reason: string) {
   try {
     const result = await prisma.payrollAdjustment.create({
@@ -13,19 +16,21 @@ export async function addAdjustment(userId: string, amount: number, reason: stri
       }
     });
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
+
     revalidatePath('/admin/payroll');
+    revalidatePath(`/admin/payroll/${userId}`);
+    revalidatePath('/payroll');
+    revalidatePath(`/admin/employees/${userId}`);
     revalidatePath('/'); // Update user homepage
     
     return { success: true };
   } catch (error: any) {
     console.error(`[addAdjustment] Server Action Error: `, error);
-    // Instead of throwing an error that Next.js might fail to serialize or catch correctly,
-    // we return a standard object that the client can parse.
     return { success: false, error: "Lỗi hệ thống: " + (error?.message || "Không thể thực hiện lưu.") };
   }
 }
-
-import { EmploymentType } from "@prisma/client";
 
 export async function closePayrollMonth(month: number, year: number, bonusPercent: number, targets: EmploymentType[] = ['PART_TIME'], excludedBonusUsers: string[] = []) {
   // 1. Calculate stats using optimized batch calculatePayroll
@@ -85,7 +90,11 @@ export async function closePayrollMonth(month: number, year: number, bonusPercen
     }
   });
 
+  await invalidatePayrollCache(month, year);
+
   revalidatePath('/admin/payroll');
+  revalidatePath('/payroll');
+  revalidatePath('/');
   return { success: true };
 }
 
@@ -95,7 +104,9 @@ export async function updatePayrollBonus(month: number, year: number, bonusPerce
     create: { month, year, bonusPercent, bonusTargets: targets, excludedBonusUsers },
     update: { bonusPercent, bonusTargets: targets, excludedBonusUsers }
   });
+  await invalidatePayrollCache(month, year);
   revalidatePath('/admin/payroll');
+  revalidatePath('/payroll');
   return { success: true };
 }
 
@@ -106,6 +117,9 @@ export async function reopenPayrollMonth(month: number, year: number) {
   });
   // We do NOT delete payslips, we just mark period as OPEN. 
   // UI will switch to "Live Calculation" mode.
+  await invalidatePayrollCache(month, year);
   revalidatePath('/admin/payroll');
+  revalidatePath('/payroll');
   return { success: true };
 }
+

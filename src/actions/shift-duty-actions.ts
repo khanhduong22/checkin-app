@@ -4,18 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { getOrSetCache, invalidateCachePattern } from "@/lib/cache";
+import { getOrSetCache, invalidateCachePattern, invalidateShiftDutyCache } from "@/lib/cache";
+
+export { invalidateShiftDutyCache };
 
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
-
-export async function invalidateShiftDutyCache(userId?: string, shiftId?: number): Promise<void> {
-  try {
-    await invalidateCachePattern("shift-duties:*");
-    await invalidateCachePattern("shifts:*");
-  } catch (e) {
-    console.warn("[Cache Warning] Failed to invalidate shift duty cache:", e);
-  }
-}
 
 function getTodayVnBoundaries(baseDate: Date = new Date()) {
   const vnNow = new Date(baseDate.getTime() + VN_OFFSET_MS);
@@ -158,6 +151,8 @@ export async function toggleCompleteShiftDuty(id: string) {
 
     await invalidateShiftDutyCache(duty.userId);
     revalidatePath("/");
+    revalidatePath("/schedule");
+    revalidatePath("/admin/schedule");
     return { success: true, data: updated };
   } catch (e: any) {
     return { success: false, error: e.message };

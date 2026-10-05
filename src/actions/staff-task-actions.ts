@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 type StaffTaskInput = {
   title: string;
@@ -100,8 +102,15 @@ export async function createStaffTask(data: StaffTaskInput) {
         createdBy: { select: { id: true, name: true } },
       },
     });
+
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(data.assigneeId);
+
     revalidatePath("/staff-tasks");
     revalidatePath("/admin/staff-tasks");
+    revalidatePath("/payroll");
+    revalidatePath("/admin/payroll");
+    revalidatePath(`/admin/employees/${data.assigneeId}`);
     return { success: true, data: task };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -156,7 +165,15 @@ export async function updateStaffTask(id: string, data: Partial<StaffTaskInput>)
           createdBy: { select: { id: true, name: true } },
         }
       });
+
+      await invalidatePayrollCache();
+      await invalidateUserStatsCache(task.assigneeId);
+
       revalidatePath("/staff-tasks");
+      revalidatePath("/admin/staff-tasks");
+      revalidatePath(`/admin/employees/${task.assigneeId}`);
+      revalidatePath("/payroll");
+      revalidatePath("/admin/payroll");
       return { success: true, data: updated };
     }
 
@@ -194,9 +211,14 @@ export async function updateStaffTask(id: string, data: Partial<StaffTaskInput>)
       }
     }
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(task.assigneeId);
+
     revalidatePath("/staff-tasks");
     revalidatePath("/admin/staff-tasks");
     revalidatePath(`/admin/employees/${task.assigneeId}`);
+    revalidatePath("/payroll");
+    revalidatePath("/admin/payroll");
     return { success: true, data: updated };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -207,9 +229,15 @@ export async function deleteStaffTask(id: string) {
   try {
     await requireAdmin();
     const task = await prisma.staffTask.delete({ where: { id } });
+
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(task.assigneeId);
+
     revalidatePath("/staff-tasks");
     revalidatePath("/admin/staff-tasks");
     revalidatePath(`/admin/employees/${task.assigneeId}`);
+    revalidatePath("/payroll");
+    revalidatePath("/admin/payroll");
     revalidatePath("/schedule");
     revalidatePath("/admin/schedule");
     revalidatePath("/");

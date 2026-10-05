@@ -8,6 +8,8 @@ import { isShiftLocked, toVietnamTime } from "@/lib/schedule-lock";
 import { logShiftAction } from "@/lib/audit";
 import { applyLateSchedulePenalty } from "@/lib/schedule-penalty";
 import { invalidateUserStatsCache } from "@/lib/stats";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateShiftDutyCache } from "@/lib/cache";
 
 export async function registerShift(start: Date, end: Date, override: boolean = false, targetUserId?: string, skipPenalty: boolean = false, isSenior: boolean = false) {
   const session = await getServerSession(authOptions);
@@ -77,11 +79,15 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
     });
 
     await invalidateUserStatsCache(targetUser.id);
+    await invalidatePayrollCache();
+    await invalidateShiftDutyCache(targetUser.id);
 
     revalidatePath('/schedule');
     revalidatePath('/admin/schedule');
     revalidatePath('/payroll');
     revalidatePath('/admin/payroll');
+    revalidatePath(`/admin/employees/${targetUser.id}`);
+    revalidatePath('/');
 
     const requesterName = requester.name || requester.email;
     const targetName = targetUser.name || targetUser.email;
@@ -126,10 +132,14 @@ export async function deleteShift(shiftId: number) {
   });
 
   await invalidateUserStatsCache(existing.userId);
+  await invalidatePayrollCache();
+  await invalidateShiftDutyCache(existing.userId);
   revalidatePath('/schedule');
   revalidatePath('/admin/schedule');
   revalidatePath('/payroll');
   revalidatePath('/admin/payroll');
+  revalidatePath(`/admin/employees/${existing.userId}`);
+  revalidatePath('/');
   return { success: true };
 }
 
@@ -173,10 +183,14 @@ export async function updateShift(shiftId: number, start: Date, end: Date) {
   });
 
   await invalidateUserStatsCache(existing.userId);
+  await invalidatePayrollCache();
+  await invalidateShiftDutyCache(existing.userId);
   revalidatePath('/schedule');
   revalidatePath('/admin/schedule');
   revalidatePath('/payroll');
   revalidatePath('/admin/payroll');
+  revalidatePath(`/admin/employees/${existing.userId}`);
+  revalidatePath('/');
   return { success: true };
 }
 
@@ -242,11 +256,15 @@ export async function toggleShiftSenior(shiftId: number, isSenior: boolean) {
   });
 
   await invalidateUserStatsCache(shift.userId);
+  await invalidatePayrollCache();
+  await invalidateShiftDutyCache(shift.userId);
 
   revalidatePath('/schedule');
   revalidatePath('/admin/schedule');
   revalidatePath('/payroll');
   revalidatePath('/admin/payroll');
+  revalidatePath(`/admin/employees/${shift.userId}`);
+  revalidatePath('/');
 
   const shiftUserName = shift.user.name || shift.user.email;
   const message = isSenior
@@ -363,8 +381,15 @@ export async function importWeeklySchedule(shiftsParam: ParsedShiftItem[], overr
           }
       }
 
+      await invalidateUserStatsCache();
+      await invalidatePayrollCache();
+      await invalidateShiftDutyCache();
+
       revalidatePath('/schedule');
       revalidatePath('/admin/schedule');
+      revalidatePath('/payroll');
+      revalidatePath('/admin/payroll');
+      revalidatePath('/');
 
       if (unrecognizedNames.size > 0) {
           return { 

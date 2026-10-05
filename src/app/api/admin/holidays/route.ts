@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -42,6 +45,14 @@ export async function POST(req: Request) {
       }
     });
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache();
+
+    revalidatePath('/admin/settings');
+    revalidatePath('/payroll');
+    revalidatePath('/admin/payroll');
+    revalidatePath('/');
+
     return NextResponse.json(holiday);
   } catch (error) {
     console.error("Create Holiday Error:", error);
@@ -67,6 +78,14 @@ export async function DELETE(req: Request) {
     await prisma.holiday.delete({
       where: { id }
     });
+
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache();
+
+    revalidatePath('/admin/settings');
+    revalidatePath('/payroll');
+    revalidatePath('/admin/payroll');
+    revalidatePath('/');
 
     return NextResponse.json({ success: true });
   } catch (error) {

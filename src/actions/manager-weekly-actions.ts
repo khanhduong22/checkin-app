@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
 
@@ -132,10 +134,15 @@ export async function toggleManagerWeeklyTask(id: string, completed: boolean) {
       },
     });
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(task.assigneeId);
+
     revalidatePath("/admin/manager-tasks");
     revalidatePath("/admin/payroll");
     revalidatePath(`/admin/payroll/${task.assigneeId}`);
+    revalidatePath(`/admin/employees/${task.assigneeId}`);
     revalidatePath("/payroll");
+    revalidatePath("/");
 
     return { success: true, data: task };
   } catch (e: any) {
@@ -190,6 +197,8 @@ export async function reportAndCarryOverWeeklyTask(taskId: string, explanation: 
 
     revalidatePath("/admin/manager-tasks");
     revalidatePath("/requests");
+    revalidatePath("/admin/requests");
+    revalidatePath("/admin");
 
     return { success: true, data: { updatedTask, carriedOverTask } };
   } catch (e: any) {

@@ -14,6 +14,7 @@ export async function createAnnouncement(title: string, content: string, type: s
     data: { title, content, type, active: true }
   });
   revalidatePath('/');
+  revalidatePath('/admin/announcements');
   return { success: true, message: "Đã đăng thông báo!" };
 }
 
@@ -27,6 +28,7 @@ export async function toggleAnnouncement(id: string, active: boolean) {
     data: { active }
   });
   revalidatePath('/');
+  revalidatePath('/admin/announcements');
   return { success: true, message: "Đã cập nhật!" };
 }
 
@@ -39,5 +41,6 @@ export async function deleteAnnouncement(id: string) {
     where: { id }
   });
   revalidatePath('/');
+  revalidatePath('/admin/announcements');
   return { success: true, message: "Đã xóa thông báo!" };
 }

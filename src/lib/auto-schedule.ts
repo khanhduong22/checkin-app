@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { invalidateUserStatsCache } from "@/lib/stats";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateShiftDutyCache } from "@/lib/cache";
 
 export interface AutoScheduleResult {
   success: boolean;
@@ -114,6 +117,13 @@ export async function autoScheduleAdminNa(weeksAhead: number = 12): Promise<Auto
     await prisma.workShift.createMany({
       data: shiftsToCreate
     });
+    try {
+      await invalidateUserStatsCache(na.id);
+      await invalidatePayrollCache();
+      await invalidateShiftDutyCache(na.id);
+    } catch (e) {
+      console.error("Failed to invalidate cache after auto schedule:", e);
+    }
   }
 
   return {

@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 
 
@@ -126,8 +128,14 @@ export async function rollGacha(userId: string) {
       }
     });
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
+
     revalidatePath('/');
     revalidatePath('/lucky-wheel');
+    revalidatePath('/payroll');
+    revalidatePath('/admin/payroll');
+    revalidatePath(`/admin/employees/${userId}`);
 
     return {
       success: true,

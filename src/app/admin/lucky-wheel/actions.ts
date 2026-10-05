@@ -17,6 +17,7 @@ export async function createPrize(data: any) {
       }
     });
     revalidatePath('/admin/lucky-wheel');
+    revalidatePath('/lucky-wheel');
     return { success: true, message: 'Đã thêm giải thưởng' };
   } catch (e) {
     console.error(e);
@@ -39,6 +40,7 @@ export async function updatePrize(id: string, data: any) {
       }
     });
     revalidatePath('/admin/lucky-wheel');
+    revalidatePath('/lucky-wheel');
     return { success: true, message: 'Đã cập nhật' };
   } catch (e) {
     console.error(e);
@@ -50,6 +52,7 @@ export async function deletePrize(id: string) {
   try {
     await prisma.luckyWheelPrize.delete({ where: { id } });
     revalidatePath('/admin/lucky-wheel');
+    revalidatePath('/lucky-wheel');
     return { success: true, message: 'Deleted' };
   } catch (e) {
     return { success: false, message: 'Delete fail' };
@@ -63,6 +66,7 @@ export async function toggleUserLuckyWheel(userId: string, allowed: boolean) {
       data: { luckyWheelAllowed: allowed }
     });
     revalidatePath('/admin/lucky-wheel');
+    revalidatePath('/lucky-wheel');
     return { success: true };
   } catch (e) {
     console.error(e);
@@ -76,6 +80,7 @@ export async function toggleAllUsersLuckyWheel(allowed: boolean) {
       data: { luckyWheelAllowed: allowed }
     });
     revalidatePath('/admin/lucky-wheel');
+    revalidatePath('/lucky-wheel');
     return { success: true };
   } catch (e) {
     console.error(e);
