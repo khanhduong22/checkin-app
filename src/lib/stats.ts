@@ -55,6 +55,12 @@ export interface MonthlyStats {
   latePenaltyAmount: number;
   totalDeficiencies?: number;
   totalSeniorBonus?: number;
+  isThuKpiSalary?: boolean;
+  kpiCompletionRate?: number;
+  kpiTasksTotal?: number;
+  kpiTasksApproved?: number;
+  fixedBaseSalary?: number;
+  kpiSalary?: number;
 }
 
 // --- Late Penalty Helper ---

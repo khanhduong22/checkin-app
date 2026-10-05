@@ -17,10 +17,9 @@ function createRedisClient(): Redis | null {
       maxRetriesPerRequest: 1,
       connectTimeout: 2000,
       commandTimeout: 2000,
-      enableOfflineQueue: false,
+      enableOfflineQueue: true,
       retryStrategy(times) {
-        if (times > 3) return null;
-        return Math.min(times * 200, 1000);
+        return Math.min(times * 200, 2000);
       },
     });
 
@@ -37,13 +36,8 @@ function createRedisClient(): Redis | null {
 }
 
 export function getRedisClient(): Redis | null {
-  if (process.env.NODE_ENV === "test") {
-    if (!globalForRedis.redisClient) {
-      globalForRedis.redisClient = createRedisClient();
-    }
-    return globalForRedis.redisClient;
-  }
-  if (!globalForRedis.redisClient) {
+  const client = globalForRedis.redisClient;
+  if (!client || client.status === "end") {
     globalForRedis.redisClient = createRedisClient();
   }
   return globalForRedis.redisClient;
@@ -65,9 +59,9 @@ export async function getOrSetCache<T>(
     return await fetcher();
   }
 
-  const client = getRedisClient();
-
+  let client: Redis | null = null;
   try {
+    client = getRedisClient();
     if (client) {
       const cached = await client.get(key);
       if (cached) {
@@ -96,8 +90,8 @@ export async function getOrSetCache<T>(
  * Invalidate a single cache key
  */
 export async function invalidateCache(key: string): Promise<void> {
-  const client = getRedisClient();
   try {
+    const client = getRedisClient();
     if (client) {
       await client.del(key);
     }
@@ -110,11 +104,11 @@ export async function invalidateCache(key: string): Promise<void> {
  * Invalidate cache keys matching a pattern (e.g. "shift-duties:*")
  */
 export async function invalidateCachePattern(pattern: string): Promise<void> {
-  const client = getRedisClient();
   try {
+    const client = getRedisClient();
     if (client) {
       const keys = await client.keys(pattern);
-      if (keys.length > 0) {
+      if (keys && keys.length > 0) {
         await client.del(...keys);
       }
     }

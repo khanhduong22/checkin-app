@@ -6,6 +6,8 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { verifyChecklistComplete } from "@/actions/manager-checklist-actions";
 import { verifyWeeklyChecklistComplete } from "@/actions/manager-weekly-actions";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 
 export async function getIPStatus() {
@@ -178,7 +180,12 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
       }
     });
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
+
     revalidatePath('/'); // Refresh UI
+    revalidatePath('/payroll');
+    revalidatePath('/admin');
 
     // Query today's assigned shift duties if checkin
     let todayDuties: any[] = [];

@@ -5,8 +5,12 @@ import { Input } from "@/components/ui/input";
 import { adminManualCheckIn } from "@/app/admin/actions";
 import { toast } from "sonner";
 
+const getInitialVietnamDate = () => {
+    return new Date(Date.now() + 7 * 3600 * 1000).toISOString().split('T')[0];
+};
+
 export default function ManualCheckInForm({ userId }: { userId: string }) {
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(getInitialVietnamDate);
     const [checkIn, setCheckIn] = useState('');
     const [checkOut, setCheckOut] = useState('');
     const [loading, setLoading] = useState(false);

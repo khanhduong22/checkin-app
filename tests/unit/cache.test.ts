@@ -94,4 +94,66 @@ describe("Cache Module (Valkey / Redis)", () => {
     expect(keysMock).toHaveBeenCalledWith("key:*");
     expect(delMock).toHaveBeenCalledWith("key:1", "key:2");
   });
+
+  it("recreates Redis client if existing client status is 'end'", async () => {
+    let instanceCount = 0;
+    vi.doMock("ioredis", () => {
+      return {
+        default: class MockRedis {
+          status = "ready";
+          constructor() {
+            instanceCount++;
+          }
+          on = vi.fn();
+        },
+      };
+    });
+
+    const { getRedisClient } = await import("@/lib/cache");
+    const client1 = getRedisClient();
+    expect(instanceCount).toBe(1);
+
+    // Same client reused while alive
+    const client2 = getRedisClient();
+    expect(client2).toBe(client1);
+    expect(instanceCount).toBe(1);
+
+    // Simulate connection ended/killed
+    if (client1) {
+      (client1 as any).status = "end";
+    }
+
+    // Must recreate client
+    const client3 = getRedisClient();
+    expect(client3).not.toBe(client1);
+    expect(instanceCount).toBe(2);
+  });
+
+  it("initializes Redis with enableOfflineQueue: true and resilient retryStrategy", async () => {
+    let capturedOptions: any = null;
+    vi.doMock("ioredis", () => {
+      return {
+        default: class MockRedis {
+          status = "ready";
+          constructor(_url: string, options: any) {
+            capturedOptions = options;
+          }
+          on = vi.fn();
+        },
+      };
+    });
+
+    const { getRedisClient } = await import("@/lib/cache");
+    getRedisClient();
+
+    expect(capturedOptions).toBeDefined();
+    expect(capturedOptions.enableOfflineQueue).toBe(true);
+    expect(typeof capturedOptions.retryStrategy).toBe("function");
+
+    // Test retryStrategy never returns null (even past 3 tries)
+    expect(capturedOptions.retryStrategy(1)).toBe(200);
+    expect(capturedOptions.retryStrategy(3)).toBe(600);
+    expect(capturedOptions.retryStrategy(5)).toBe(1000);
+    expect(capturedOptions.retryStrategy(20)).toBe(2000); // capped at 2000ms
+  });
 });

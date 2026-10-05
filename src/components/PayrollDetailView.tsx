@@ -67,15 +67,18 @@ export default function PayrollDetailView({ stats, userName, monthStr, isClosed 
                     </div>
                 </Card>
 
-                {/* Show Thưởng tháng card when month is closed and bonusAmount > 0 */}
+                {/* Show Thưởng doanh thu card when month is closed and bonusAmount > 0 */}
                 {isClosed && bonusAmount > 0 ? (
                     <Card className="p-4 bg-blue-50 border-blue-200">
                         <div className="flex items-center gap-2 text-blue-700 mb-2">
                             <Gift className="h-4 w-4" />
-                            <span className="text-xs font-semibold uppercase">Thưởng tháng ({stats.bonusPercent}%)</span>
+                            <span className="text-xs font-semibold uppercase">Thưởng doanh thu ({stats.bonusPercent}%)</span>
                         </div>
                         <div className="text-2xl font-bold text-blue-700">
                             +{formatVND(bonusAmount)}
+                        </div>
+                        <div className="text-xs text-blue-600/80 mt-1">
+                            (Đã cộng vào Thực lãnh)
                         </div>
                     </Card>
                 ) : (

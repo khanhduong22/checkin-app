@@ -239,6 +239,7 @@ describe("Shift Duty Actions", () => {
       const res = await getTodayUserShiftDuties("user-1");
 
       expect(res.success).toBe(true);
+      if (!res.success) return;
       expect(res.data).toHaveLength(2);
     });
   });
@@ -276,6 +277,7 @@ describe("Shift Duty Actions", () => {
       const res = await getTodayShiftDutiesWithTeammates("user-1");
 
       expect(res.success).toBe(true);
+      if (!res.success) return;
       expect(res.data?.myDuties).toHaveLength(1);
       expect(res.data?.myDuties[0].title).toBe("Việc của tôi");
       expect(res.data?.colleagues).toHaveLength(1);
@@ -299,6 +301,7 @@ describe("Shift Duty Actions", () => {
       const res = await getShiftDutiesForShift(10);
 
       expect(res.success).toBe(true);
+      if (!res.success) return;
       expect(res.data).toHaveLength(1);
       expect(res.data?.[0].title).toBe("Việc ca 10");
     });

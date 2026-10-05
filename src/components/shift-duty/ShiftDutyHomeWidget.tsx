@@ -48,7 +48,7 @@ export default function ShiftDutyHomeWidget({
   activeUsers = [],
 }: ShiftDutyHomeWidgetProps) {
   const [modalOpen, setModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"MY_DUTIES" | "TEAMMATES">("TEAMMATES");
+  const [activeTab, setActiveTab] = useState<"MY_DUTIES" | "TEAMMATES">("MY_DUTIES");
   const [loading, setLoading] = useState(false);
   const [myDuties, setMyDuties] = useState<any[]>([]);
   const [colleagues, setColleagues] = useState<any[]>([]);
@@ -145,7 +145,7 @@ export default function ShiftDutyHomeWidget({
       <button
         type="button"
         onClick={() => {
-          setActiveTab("TEAMMATES");
+          setActiveTab("MY_DUTIES");
           setModalOpen(true);
           fetchDuties();
         }}
@@ -166,7 +166,7 @@ export default function ShiftDutyHomeWidget({
             </div>
             <div className="text-xs text-emerald-100 font-normal">
               {totalMyDuties > 0
-                ? `Bạn có ${totalMyDuties} nhiệm vụ hôm nay • Bấm để xem cả ca`
+                ? `Bạn có ${totalMyDuties} nhiệm vụ hôm nay • Bấm để xem chi tiết`
                 : "Xem nhiệm vụ của bạn & đồng nghiệp trong ca hôm nay"}
             </div>
           </div>
@@ -204,18 +204,6 @@ export default function ShiftDutyHomeWidget({
             <div className="flex gap-2 mt-4 bg-emerald-950/25 p-1 rounded-xl">
               <button
                 type="button"
-                onClick={() => setActiveTab("TEAMMATES")}
-                className={cn(
-                  "flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5",
-                  activeTab === "TEAMMATES"
-                    ? "bg-white text-emerald-900 shadow-sm"
-                    : "text-emerald-100 hover:text-white hover:bg-white/10"
-                )}
-              >
-                <Users className="h-3.5 w-3.5" /> Cả ca làm ({colleagues.length + 1} người)
-              </button>
-              <button
-                type="button"
                 onClick={() => setActiveTab("MY_DUTIES")}
                 className={cn(
                   "flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5",
@@ -225,6 +213,18 @@ export default function ShiftDutyHomeWidget({
                 )}
               >
                 <UserIcon className="h-3.5 w-3.5" /> Việc của tôi ({totalMyDuties})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("TEAMMATES")}
+                className={cn(
+                  "flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5",
+                  activeTab === "TEAMMATES"
+                    ? "bg-white text-emerald-900 shadow-sm"
+                    : "text-emerald-100 hover:text-white hover:bg-white/10"
+                )}
+              >
+                <Users className="h-3.5 w-3.5" /> Cả ca làm ({colleagues.length + 1} người)
               </button>
             </div>
           </div>

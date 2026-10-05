@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { verifyChecklistComplete } from "@/actions/manager-checklist-actions";
+import { invalidatePayrollCache } from "@/lib/payroll";
+import { invalidateUserStatsCache } from "@/lib/stats";
 
 // --- User Management Actions ---
 
@@ -300,6 +302,14 @@ export async function adminManualCheckIn(userId: string, date: string, checkInTi
       });
     }
 
+    await invalidatePayrollCache();
+    await invalidateUserStatsCache(userId);
+    await invalidateUserStatsCache();
+
+    revalidatePath('/');
+    revalidatePath('/payroll');
+    revalidatePath('/admin');
+    revalidatePath('/admin/payroll');
     revalidatePath(`/admin/employees/${userId}`);
     return { success: true, message: "Đã chấm công hộ thành công!" };
   } catch (e) {
