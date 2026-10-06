@@ -9,6 +9,22 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'header',
+            key: 'host',
+            value: '(.*\\.vercel\\.app)',
+          },
+        ],
+        destination: 'https://limart.khanhdp.com/:path*',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
