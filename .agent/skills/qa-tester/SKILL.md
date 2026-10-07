@@ -11,33 +11,27 @@ This skill provides expert QA standards and workflows for ensuring high-quality 
 
 ## CRITICAL: Source of Truth
 
-1.  **Docs First**: You **MUST** strictly base all your testing work (plans, cases, bug reports) on the documentation found in the `docs/` folder of the current project.
-2.  **Verify**: Read all files in `docs/` before proposing any test strategy.
-3.  **Missing/Conflict**: If the `docs/` folder is missing, empty, or contradicts the code significantly, you **MUST STOP and CONFIRM** with the user immediately using `notify_user`. Do not assume requirements.
+1.  **Code & Specs First**: Base testing on specifications in **`AGENTS.md`**, TypeScript contracts, DTO schemas, and existing tests in `tests/` and monorepo packages.
+2.  **Executable Tests Over Paper Docs**: Tests must be written as runnable Vitest (`tests/unit/`, package tests) and Playwright E2E suites (`tests/e2e/`), not speculative markdown test cases.
 
 ## Core Capabilities
 
 You are capable of defining and guiding the implementation of:
 
-1.  **Test Execution**: Reading existing test cases (`docs/035-QA/Test-Cases/`) and executing them via `browser_subagent` or automation.
-2.  **Detailed Test Cases**: Creating step-by-step, reproducible test scripts.
-3.  **Unit Tests**: Logic verification (e.g., specific functions, utils).
-4.  **E2E Tests**: User flow verification (e.g., checkout, login).
-5.  **Security Tests**: Vulnerability assessments (OWASP, Auth flaws).
-6.  **Performance Tests**: Load and responsiveness checks.
-7.  **Full-Stack Automation**: Writing production-ready test code (Playwright, Jest, etc.).
-8.  **Human Simulation**: Using the `browser_subagent` for exploratory testing and visual verification.
-9.  **Autonomous Loop**: Self-correcting test execution and reporting.
+1.  **Unit Tests**: Logic verification (e.g., specific functions, utils, calculations).
+2.  **E2E Tests**: User flow verification via Playwright (e.g., checkin, login, swap shifts).
+3.  **Security Tests**: Vulnerability assessments (OWASP, Auth flaws, RBAC).
+4.  **Performance Tests**: Load and responsiveness checks.
+5.  **Full-Stack Automation**: Writing production-ready test code (Vitest, Playwright).
 
 ## Workflow
 
 ### 1. Test Discovery & Planning
 
-Before writing new tests, **CHECK** if they already exist.
-
-1.  **Search**: Look in `docs/035-QA/Test-Cases/` (or similar standard paths).
-2.  **Found?**: If test case files exist (e.g., `TC-Login-001.md`), read them. Your goal is to **Execute** these steps.
-3.  **Not Found?**: Analyze `docs/` requirements and **Generate** new test cases using `references/test_case_standards.md`.
+Before writing new tests, **CHECK** if tests already exist:
+1.  **Search**: Look in `tests/unit/`, `tests/e2e/`, or package test folders (`packages/*/test`, `apps/*/tests`).
+2.  **Found?**: Extend existing test suites.
+3.  **Not Found?**: Write new executable tests with 100% branch coverage on core logic.
 
 ### 2. Execution Strategy (The How-To)
 
@@ -90,7 +84,7 @@ You MUST use the **Standard Test Case Format** defined in `references/test_case_
 3.  **Analyze Failure**:
     - If `browser_subagent` fails: Report the visual/interactive issue.
     - If code fails: Fix the script or report the bug.
-4.  **Report**: Log results in `docs/035-QA/Reports/` using `test_report_template.md`.
+4.  **Report**: Log results directly in the task execution summary and walkthrough.
 
 ### 4. Advanced & Niche Testing
 

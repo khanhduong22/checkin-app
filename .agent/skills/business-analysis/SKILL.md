@@ -10,7 +10,7 @@ This skill defines the standards for bridging the gap between abstract business 
 ## 🧠 Core Mindset & Philosophy
 
 > [!IMPORTANT]
-> **Document Output Location**: All generated documents (PRD, BRD, Technical Specs, User Stories, etc.) **MUST** be saved to the `docs/` folder in the project root. Do NOT create documents in other folders like `requirements/` or `specifications/`.
+> **Lean Documentation Standard**: Architecture, specifications, and system topology must be consolidated directly in **`AGENTS.md`** and **`README.md`**. Do NOT create ceremonial multi-file documentation trees or Dewey decimal folders.
 
 1.  **Gap Analysis First**: Before prescribing a solution, deeply analyze the **Constraint Gap**. Ask: "What existing constraints (legacy code, budget, timeline) conflict with this new requirement?"
 2.  **Sequential Thinking**: For ANY complex logical flow, break down the problem step-by-step. Do not guess; derive.
@@ -46,8 +46,7 @@ When a user asks for a new feature or system:
     - **Generate**: Create Mermaid diagrams to visualize the flow.
     - **Verify**: Run `scripts/verify_mermaid.py` (if available) or review syntax carefully.
 5.  **Phase 5: Documentation**
-    - Generate the appropriate artifacts (PRD, Technical Spec, User Stories) using `references/templates/`.
-    - **Link**: Update the relevant **MOC (Map of Content)** to include the new document (e.g., `docs/030-Specs/Specs-MOC.md`).
+    - Consolidate decisions and architectural additions directly into **`AGENTS.md`** and **`README.md`**.
 
 ### 2. Cross-Skill Collaboration
 

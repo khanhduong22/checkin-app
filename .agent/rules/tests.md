@@ -3,100 +3,104 @@ trigger: model_decision
 description: Always run tests to ensure no regressions when implementing new features or fixing bugs
 ---
 
-# Testing and Regression Rule
+# Testing and Regression Standards
 
 > [!IMPORTANT]
-> This rule is **MANDATORY** when implementing new features, fixing bugs, or performing major refactors. Ensuring system stability is a top priority.
+> This rule is **MANDATORY** when implementing new features, fixing bugs, or performing major refactors.
+> Ensuring system stability and regression prevention is a non-negotiable priority.
 
-## Critical Rules (MUST Follow)
+---
+
+## 1. Critical Rules (MUST Follow)
 
 1. **MUST** run existing tests before starting any work to establish a baseline.
 2. **MUST** run tests after completing changes to ensure no regressions were introduced.
-3. **MUST** write Unit Tests for **EVERY** function/utility added or modified. **Target: 100% coverage** on `src/lib/` and any exported helper functions.
-4. **MUST** add reproduction tests for any bug fixes to ensure the bug does not return.
-5. **MUST** report test results (pass/fail) in the task summary and walkthrough.
-6. **MUST NOT** proceed to finalize a task if tests are failing, unless explicitly instructed by the user after explaining the failure and its impact.
-7. **MUST** write E2E tests and get user confirmation **before** deploying to production (see Pre-Deploy Gate below).
+3. **MUST** write Unit Tests for **EVERY** function, route handler, or utility added or modified. **Target: 100% coverage** on business logic and exported helpers.
+4. **MUST** add reproduction tests for any bug fixes to ensure the bug cannot regress.
+5. **MUST** report test results (pass/fail) with exact command output in task summaries.
+6. **MUST NOT** finalize a task or declare victory if any test is failing.
+7. **MUST NOT** push code to remote repositories without passing the Pre-Deploy Gate below.
 
-## Unit Test Coverage Policy
+---
 
-- **Coverage target: 100%** for all functions in `src/lib/` and exported helpers.
-- Every function MUST have tests covering:
-  - ✅ Happy path (normal input)
-  - ❌ Negative path (invalid/edge input)
-  - 🔲 Boundary conditions (min/max values, empty arrays, null)
-- Use **Vitest** (`vi.mock()`) to mock Prisma, NextAuth, and Next.js headers — never hit the real DB in unit tests.
-- Run coverage report: `npm run test:coverage` and ensure no uncovered branches.
+## 2. Test Execution Commands
 
-## Pre-Deploy Gate (MANDATORY)
+### Monorepo v2 Test Suites (Fastest & Standard)
+```bash
+# Run all tests across the monorepo via Turbo cache
+pnpm test
 
-Before deploying to production, ALL of the following steps must be completed **in order**:
+# Run tests for specific packages or apps
+pnpm --filter @checkin/shared test
+pnpm --filter @checkin/audit-trail test
+pnpm --filter @checkin/api test
+pnpm --filter @checkin/staff-pwa test
+pnpm --filter @checkin/zero-downtime-deploy test
+```
+
+### Next.js Monolith v1 Test Suites
+```bash
+# Unit tests
+npm run test
+
+# Unit tests with coverage
+npm run test:coverage
+
+# Run specific test file
+npm run test -- tests/unit/stats.test.ts
+```
+
+### End-to-End (E2E) Browser Tests (Playwright)
+```bash
+# Headless E2E tests
+npm run test:e2e
+
+# Interactive UI E2E runner
+npm run test:e2e:ui
+```
+
+---
+
+## 3. Pre-Deploy Gate (MANDATORY)
+
+Before committing and pushing code to trigger deployment, ALL of the following steps must be completed **in exact order**:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ PRE-DEPLOY CHECKLIST (MUST complete in order):               │
 ├──────────────────────────────────────────────────────────────┤
-│ 1. All Unit Tests passing ✅                                  │
-│    → npm run test                                            │
+│ 1. All Unit Tests passing 100% ✅                             │
+│    → pnpm test (or npm run test)                             │
 ├──────────────────────────────────────────────────────────────┤
-│ 2. Build succeeds ✅                                         │
-│    → npm run build                                           │
+│ 2. Typecheck & Build succeeds with 0 errors ✅                │
+│    → pnpm build (or npm run build)                           │
 ├──────────────────────────────────────────────────────────────┤
-│ 3. User reviews build output and explicitly says "deploy" ✅ │
-│    → STOP and use notify_user to request approval            │
+│ 3. User reviews build output and confirms deploy ✅           │
+│    → Stop and request confirmation                           │
 ├──────────────────────────────────────────────────────────────┤
-│ 4. Write / run E2E Tests against staging or local ✅         │
+│ 4. Playwright E2E Tests pass ✅                               │
 │    → npm run test:e2e                                        │
 ├──────────────────────────────────────────────────────────────┤
-│ 5. Present E2E results to user, ask for FINAL confirmation ✅│
-│    → STOP and use notify_user for final deploy approval      │
+│ 5. User gives final approval ✅                               │
+│    → Present test evidence to user                           │
 ├──────────────────────────────────────────────────────────────┤
-│ 6. Only THEN: deploy to production                           │
-│    → vercel deploy --prod (or equivalent)                    │
+│ 6. Git Push to trigger GitHub Actions VPS Deploy ✅           │
+│    → Staging:    git push origin feat/monorepo-migration     │
+│    → Production: git push origin main                        │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 > [!CAUTION]
-> **NEVER deploy without completing steps 3 and 5.** The user MUST confirm twice: once after build, once after E2E.
+> **NEVER deploy without passing steps 1 through 5.**
+> Never bypass GitHub Actions by attempting manual builds on the VPS.
 
-## Decision Flow (Feature/Bug Implementation)
+---
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ WHEN implementing a feature or fixing a bug:                │
-├─────────────────────────────────────────────────────────────┤
-│ 1. Run baseline tests.                                      │
-│    Are they passing?                                        │
-│    NO  → Notify user of existing failures before proceeding. │
-│    YES → Continue.                                          │
-├─────────────────────────────────────────────────────────────┤
-│ 2. Implement changes (Feature/Fix/Refactor).                │
-├─────────────────────────────────────────────────────────────┤
-│ 3. Write Unit Tests for ALL new/changed functions (100%).   │
-├─────────────────────────────────────────────────────────────┤
-│ 4. Run ALL tests + coverage report.                         │
-│    Are they passing at 100% coverage?                       │
-│    NO  → Analyze failures, fix code/tests, repeat step 4.   │
-│    YES → Continue.                                          │
-├─────────────────────────────────────────────────────────────┤
-│ 5. Document test results in Walkthrough/Task Summary.       │
-├─────────────────────────────────────────────────────────────┤
-│ 6. IF deploying → follow Pre-Deploy Gate above.             │
-└─────────────────────────────────────────────────────────────┘
-```
+## 4. Test Mocking & Data Safety Guidelines
 
-## Running Tests
-
-- **Unit tests**: `npm run test`
-- **Unit tests (watch)**: `npm run test:watch`
-- **Coverage report**: `npm run test:coverage`
-- **E2E tests**: `npm run test:e2e`
-- **E2E with UI**: `npm run test:e2e:ui`
-- For specific test file: `npm run test -- src/lib/utils.test.ts`
-
-## What to do on Failure
-
-1. **Analyze logs**: Look for the specific assertion failure or error message.
-2. **Determine Root Cause**: Is it a bug in the code, a bug in the test, or a change in requirements?
-3. **Fix and Re-run**: Apply the necessary fix and run the tests again.
-4. **Communicate**: If a failure is expected or cannot be fixed easily, notify the user with a detailed explanation.
+- **Mock External Boundaries**: Use Vitest mocks (`vi.mock()`) for database calls, Google OAuth, and external mail APIs. Never execute live mutations on the production database during unit test runs.
+- **Parametric Coverage**: Every new utility or route handler must cover:
+  - ✅ Happy path (valid inputs, expected outputs).
+  - ❌ Negative path (missing parameters, unauthorized access, expired sessions).
+  - 🔲 Boundary conditions (min/max limits, empty arrays, null/undefined inputs).
+- **Graceful Fallbacks**: Test that if Valkey or Meilisearch is unavailable, the system safely falls back to PostgreSQL without throwing unhandled exceptions.

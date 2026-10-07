@@ -1,73 +1,78 @@
 ---
 trigger: glob
-globs: **/*.{ts,tsx}
-description: Always apply when writing or reviewing database access code
+globs: **/*.{ts,tsx,prisma}
+description: Always apply when writing or reviewing database access code or schema definitions
 ---
 
-# Database Access Standards (Neon + Prisma)
+# Database Access Standards (PostgreSQL 17 + Prisma ORM)
 
-This project uses **Neon PostgreSQL** with **Prisma ORM**. All database access MUST follow these standards.
+This project uses **PostgreSQL 17** (hosted in dedicated container `checkin-db` on Contabo VPS with **pgBackRest** continuous WAL archiving) and **Prisma ORM**. All database access and schema modifications MUST adhere to these standards.
 
-## Rules
+---
 
-### 1. Prefer Prisma ORM Methods
-Always use generated Prisma Client methods (`findMany`, `create`, `update`, `delete`, etc.) over raw SQL.
+## 1. Single Shared Prisma Instance (Singleton Pattern)
 
+- **In Monorepo Packages / Apps (`apps/api`, `apps/admin-spa`)**:
+  Always import the shared Prisma client from `@checkin/db`:
+  ```ts
+  // ✅ REQUIRED
+  import { prisma } from "@checkin/db";
+  ```
+- **In Next.js Monolith v1 (`src/`)**:
+  Always import from `@/lib/prisma`:
+  ```ts
+  // ✅ REQUIRED
+  import { prisma } from "@/lib/prisma";
+  ```
+- ❌ **BANNED**: Never call `new PrismaClient()` inline in route files, Server Actions, or components. Inline instantiations cause connection pool exhaustion.
+
+---
+
+## 2. Query Safety & Injection Prevention
+
+### A. Prefer Type-Safe Prisma ORM Methods
+Always use standard Prisma methods (`findUnique`, `findMany`, `create`, `update`, `delete`, `upsert`):
 ```ts
 // ✅ GOOD
-const users = await prisma.user.findMany({ where: { active: true } });
-
-// ❌ BAD - avoid unless absolutely necessary
-const users = await prisma.$queryRaw`SELECT * FROM "User" WHERE active = true`;
+const shifts = await prisma.workShift.findMany({
+  where: { userId, start: { gte: startDate } },
+  include: { user: true },
+});
 ```
 
-### 2. Never Use `$queryRawUnsafe`
-`$queryRawUnsafe` accepts a plain string and is vulnerable to SQL injection. It is **banned**.
-
+### B. `$queryRawUnsafe` is STRICTLY BANNED
+`$queryRawUnsafe` accepts unescaped string concatenations and exposes the system to SQL injection vulnerabilities.
 ```ts
-// ❌ BANNED - SQL injection risk, hard to maintain
-await prisma.$queryRawUnsafe(`SELECT ... WHERE id = ${id}`);
+// ❌ STRICTLY BANNED - SQL injection vulnerability
+await prisma.$queryRawUnsafe(`SELECT * FROM "User" WHERE id = '${id}'`);
 
-// ✅ REQUIRED - use $queryRaw with tagged template (parameterized)
+// ✅ REQUIRED - Parameterized tagged template
 import { Prisma } from "@prisma/client";
-await prisma.$queryRaw`SELECT ... WHERE id = ${id}`;
-// or
-await prisma.$queryRaw(Prisma.sql`SELECT ... WHERE id = ${id}`);
+await prisma.$queryRaw`SELECT * FROM "User" WHERE id = ${id}`;
 ```
 
-### 3. Raw SQL is ONLY Acceptable for pgvector Operations
-The only valid use case for raw SQL is pgvector operators (`<=>`, `<->`, `<#>`) which Prisma's query builder does not support natively.
+### C. Raw SQL Restrictions
+Raw SQL is ONLY permissible for operations not supported natively by Prisma's query builder (e.g. pgvector cosine similarity `<=>` distance operators).
 
-```ts
-// ✅ Acceptable - pgvector cosine distance operator not available via ORM
-const results = await prisma.$queryRaw<Row[]>`
-  SELECT c.content, d.title, c.embedding <=> ${queryVector}::vector AS distance
-  FROM "DocumentChunk" c
-  JOIN "Document" d ON c."documentId" = d.id
-  ORDER BY distance ASC
-  LIMIT 10
-`;
-```
+---
 
-### 4. No Direct DB Connections
-Do not create direct `pg`, `postgres.js`, or `neon` HTTP client connections. Always go through the shared Prisma singleton at `src/lib/prisma.ts`.
+## 3. Query Concurrency & Indexing Standards
 
-```ts
-// ✅ GOOD
-import { prisma } from "@/lib/prisma";
+1. **Avoid Sequential Queries in Loops**:
+   - ❌ **BAD**: Calling `await prisma...` inside a `for` loop or `array.map(async ...)` sequentially.
+   - ✅ **GOOD**: Batch queries using `in` filters (e.g. `where: { id: { in: ids } }`) or execute concurrently with `Promise.all()`.
+2. **Mandatory Indexing**:
+   - Every foreign key relation (`userId`, `shiftId`, `taskId`) must have a corresponding `@@index` in `prisma/schema.prisma`.
+   - Every column used for frequent filtering or range queries (`createdAt`, `date`, `status`, `month`) must be indexed.
 
-// ❌ BAD
-import { neon } from "@neondatabase/serverless";
-const sql = neon(process.env.DATABASE_URL!);
-```
+---
 
-### 5. Use the Prisma Singleton
-Always import from `@/lib/prisma` — never instantiate `new PrismaClient()` inline in route files or components.
+## 4. Production Schema Migration & Database Protection
 
-```ts
-// ✅ GOOD
-import { prisma } from "@/lib/prisma";
-
-// ❌ BAD - creates connection pool leak
-const prisma = new PrismaClient();
-```
+> [!CAUTION]
+> **Zero Destructive Reset Policy**:
+> - 🚫 **CẤM** chạy `prisma migrate reset` trên bất kỳ môi trường nào kết nối tới database `checkin-db`.
+> - 🚫 **CẤM** chạy `prisma db push --force-reset`.
+> - 🚫 **CẤM** chạy lệnh xóa volume `checkin_pgdata`.
+> - Khi deploy Production, schema được cập nhật an toàn bằng `prisma db push --skip-generate`.
+> - Khi deploy Staging, **tuyệt đối không chạy auto-push** để tránh làm biến dạng schema Production.

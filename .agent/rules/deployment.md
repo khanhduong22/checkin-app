@@ -3,42 +3,88 @@ trigger: model_decision
 description: Rule for managing VPS deployment, database migrations, and environment configurations for checkin-app.
 ---
 
-# Production VPS Deployment and Database Rules
+# Production & Staging VPS Deployment Rules
 
 > [!IMPORTANT]
-> The checkin-app has been migrated from Vercel to self-hosting on a Contabo VPS. Follow these rules to maintain the infrastructure and prevent workflow disruption.
+> The checkin-app is hosted on **Contabo VPS** (`144.91.88.242`) with Docker and managed by Caddy 2 reverse proxy.
+> Always adhere to these rules to maintain infrastructure stability and prevent production downtime or data loss.
 
-## 1. Hosting Architecture
-- **Production Host**: Contabo VPS (`144.91.88.242`)
-- **Domain**: `https://limart.khanhdp.com`
-- **Container Network**: Connected to the shared bridge network `ops_bridge`.
-- **Reverse Proxy**: Managed by Caddy 2 (container `caddy`, `/opt/kido-infra/caddy/Caddyfile`) routing `limart.khanhdp.com` -> `http://checkin-app:3000` and `limart2.khanhdp.com` -> `checkin-api-v2` / `checkin-staff-v2`. Forwarding `CF-Connecting-IP` as `X-Forwarded-For` and `X-Real-IP`.
-- **Infrastructure Code**: Declared in `kido-infra` Terraform files.
+---
 
-## 2. Database Configuration
-- **Production Database**: Hosted inside its own dedicated `checkin-db` container (Database name: `checkin_db`, Port: `5432`).
-  - Connection string: `DATABASE_URL="postgresql://kido:KidoVPS2026!@checkin-db:5432/checkin_db?sslmode=disable"`
-  - It runs isolated from the shared database container to prevent resource sharing conflicts and allow independent database restores.
-- **Local Development Database**: Points to **Neon Postgres** cloud database:
-  - Connection string in local `.env` and `.env.local` remains Neon.
-  - This prevents local testing/vibe coding from altering production data.
+## 1. Hosting Architecture & Dual-Run Environments
 
-## 3. Database Schema Changes & Sync
-- **Schema Management via DB Push**: The project does not use Prisma migrations (there is no `prisma/migrations` folder). Instead, schema changes are synchronized directly using `prisma db push`.
-- **Workflow**:
-  1. The developer runs `npx prisma db push` locally against the Neon DB sandbox to apply local schema edits.
-  2. The developer commits and pushes the updated `prisma/schema.prisma` file to the `main` branch.
-  3. The GitHub Actions CI/CD pipeline automatically deploys the code and runs `npx prisma@5.9.1 db push --skip-generate` inside the running `checkin-app` container on the VPS to safely apply the schema changes to the production database.
+| Environment | Domain | Branch | Container(s) | Architecture |
+| :--- | :--- | :--- | :--- | :--- |
+| 🚀 **Production** | `https://limart.khanhdp.com` | `main` | `checkin-app` (Port 3000) | Next.js 16 Monolith Standalone |
+| 🧪 **Staging Canary** | `https://limart2.khanhdp.com` | `feat/monorepo-migration` | `checkin-api-v2` (:4000)<br>`checkin-admin-v2` (:3001)<br>`checkin-staff-v2` (:3002) | Monorepo 3-Tier (Hono API + Admin SPA + Staff PWA) |
 
-## 4. Environment Variables & Secret Management
-- **GitHub Secrets Managed**: Production environment variables are managed securely via **GitHub Actions Repository Secrets** (and NOT manually edited on the VPS).
-- **Automatic .env Generation**: The CI/CD pipeline automatically reads the secrets, generates the production `.env` file on the fly, and transfers it to the VPS during deployment.
-- **Adding New Variables**: If a new environment variable is introduced, the developer or AI agent can add it directly to GitHub Secrets using the `gh` CLI:
-  ```bash
-  gh secret set NEW_VAR_NAME --body "secret_value"
-  ```
-  And then add it to `.github/workflows/deploy.yml` in the `env` and `envs` list to ensure it is written to the VPS `.env` file.
+- **Network**: All containers run on the shared external Docker bridge network `ops_bridge`.
+- **Reverse Proxy**: Managed by Caddy 2 (`/opt/kido-infra/caddy/Caddyfile`), terminating Cloudflare Strict SSL and forwarding real client IP headers (`Cf-Connecting-Ip` mapped to `X-Forwarded-For` and `X-Real-IP`).
+- **Zero-Downtime Deployment**: Staging uses a blue-green atomic container swap (`scripts/deploy-staging.sh`). Production monorepo cutover uses `scripts/deploy-monorepo.sh`.
 
-## 5. CI/CD Deployment
-- Pushing to the `main` branch automatically triggers the GitHub Actions pipeline.
-- Do NOT run manual PM2 or Vercel CLI deploy commands. The workflow runs tests, builds the standalone app check, and SSH deploys via `appleboy/ssh-action`.
+---
+
+## 2. Database Safety & Dual-Run Rules (CRITICAL)
+
+- **Dedicated PostgreSQL 17**: Hosted inside container `checkin-db` on port 5432 (DB: `checkin_db`, User: `kido`).
+- **Continuous Backups**: pgBackRest streams WAL archives continuously into volume `checkin_pgbackrest_data`, enabling point-in-time recovery (PITR).
+- **Dual-Run DB Sharing Rules**:
+  - The Staging Canary stack connects directly to `checkin_db` in dual-run mode.
+  - ⚠️ **ZERO AUTO-PUSH ON STAGING**: Staging deployment scripts MUST NOT run `prisma db push` or schema alterations against the shared production database.
+- **Production Migrations**:
+  - Schema changes are synchronized during Production deployment via `prisma db push --skip-generate`.
+  - 🚫 **BANNED COMMANDS**:
+    - `prisma migrate reset` is STRICTLY BANNED.
+    - `prisma db push --force-reset` is STRICTLY BANNED.
+    - `docker volume rm checkin_pgdata` or `docker volume prune -a` on VPS is STRICTLY BANNED.
+
+---
+
+## 3. CI/CD Deployment Workflows (No Manual VPS Builds)
+
+> ⚠️ **DO NOT run manual `docker compose build` or PM2 commands directly on the VPS via SSH.** Manual builds consume excessive memory and bypass automated test gates.
+
+1. **Deploying to Staging (`limart2.khanhdp.com`)**:
+   - Push commit to `feat/monorepo-migration`.
+   - Triggers `.github/workflows/deploy-monorepo.yml`:
+     - Runs monorepo tests (`pnpm test`).
+     - Builds Docker images and pushes to GHCR.
+     - SSH invokes `scripts/deploy-staging.sh` with blue-green swap and /health verification.
+2. **Deploying to Production (`limart.khanhdp.com`)**:
+   - Merge approved PR into `main` and push.
+   - Triggers `.github/workflows/deploy.yml`:
+     - Runs unit tests and build check.
+     - Deploys pre-built GHCR image to `/opt/checkin-app`.
+     - Syncs schema safely.
+
+---
+
+## 4. Deployment Completion & Verification Rule (MANDATORY)
+
+> [!IMPORTANT]
+> **NEVER report a task or feature as complete while deployment is still pending or running.**
+> Reporting "Done" prematurely makes it hard for the user to verify because the changes are not yet live on the server!
+
+- **Deployment Watch Requirement**:
+  - After pushing to GitHub (`main` or `feat/monorepo-migration`), the agent **MUST** wait for the GitHub Actions deployment workflow to finish.
+  - Run `gh run watch <run-id>` or track `gh run view <run-id>` until the workflow status is `completed` with conclusion `success`.
+  - If the deployment fails (`failure`), analyze the logs (`gh run view --log-failed`), fix the issue, and re-deploy.
+- **Reporting Gate**:
+  - ONLY after the CI/CD pipeline has successfully completed and the changes are verifiably live on the server (`limart.khanhdp.com` or `limart2.khanhdp.com`), the agent can report to the user that deployment is complete and ready for testing.
+
+---
+
+## 5. Environment Variables & Secret Hygiene
+
+- **GitHub Secrets Managed**: Production environment secrets are stored in GitHub Repository Secrets. The CI/CD pipeline generates the VPS `.env` file dynamically during deployment.
+- **Adding Variables**: Use the GitHub CLI (`gh secret set <NAME> --body "<VAL>"`) and add the key to the `env` and `envs` array in the respective workflow YAML file.
+- **Never Commit Secrets**: Never hardcode API keys, database credentials, or secret tokens into git repositories.
+
+---
+
+## 6. Non-Dev Maintainer Support
+
+When assisting a non-dev maintainer:
+- Explain actions in clear, friendly Vietnamese.
+- Provide full context and risk level before suggesting any deployment or configuration change.
+- Refer to `AGENTS.md` and `DEPLOY.md` for standard operations.
