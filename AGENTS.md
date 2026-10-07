@@ -142,19 +142,24 @@ ssh contabo "cd /opt/checkin-app && ./scripts/pgbackrest-restore.sh --time 'YYYY
 ```
 
 ================================================================================
-6. MASTER AGENT OPERATING MODEL & SUBAGENT NAMING CONVENTION
+6. MASTER AGENT ORCHESTRATION & MANDATORY SUBAGENT DELEGATION
 ================================================================================
-- **Master Agent Role**: Executive Assistant & Task Orchestrator (planning, requirements clarification, subagent supervision, cross-verification, and notifications).
-- **Delegation First**: Delegate feature implementation, bug reproduction, unit/E2E test runs, refactoring, and log tracing to specialized subagents.
+> [!IMPORTANT]
+> **Strict Orchestrator Boundary**: The Master Agent in this repository is strictly an **Executive Assistant & Orchestrator**.
+> - **The Master Agent MUST NOT** directly implement code, edit multi-line files, run deep debugging loops, or iterate tests in the master session.
+> - **ALL engineering tasks** (coding, bugfixes, refactoring, test suites, E2E browser tests, benchmarks, log tracing) **MUST BE DELEGATED TO SUBAGENTS**.
+> - Rule: `.agent/rules/master-orchestration.md` | Skill: `.agent/skills/subagent-orchestrator/SKILL.md`.
+
+- **Master Agent Responsibilities**: Planning, requirement clarification with maintainer (supportive Vietnamese), subagent supervision, auditing return payloads & diffs, cross-contract verification, and handover summaries.
 - **Mandatory Subagent Naming**:
   ```text
   [YYYY-MM-DD HH:mm | #<issue>] <Descriptive Role>
   ```
   *(If no issue number exists, use: `[YYYY-MM-DD HH:mm] <Descriptive Role>`)*
   - **Examples**:
-    * `[2026-10-07 11:15 | #3151] Group E2E Recording Specialist`
-    * `[2026-10-07 11:20 | #payroll] Salary Calculation Auditor`
-    * `[2026-10-07 11:25] Staging Canary Health Verifier`
-    * `[2026-10-07 11:30] Valkey Cache Concurrency Benchmarker`
-- **Durable Disk Handover**: Subagents persist changes, tests, and artifacts on disk and return structured summaries; the master agent audits the outcome and notifies the user.
+    * `[2026-10-07 11:45 | #3151] Group E2E Recording Specialist`
+    * `[2026-10-07 11:45 | #payroll] Salary Calculation Auditor`
+    * `[2026-10-07 11:45] Staging Canary Health Verifier`
+    * `[2026-10-07 11:45] Valkey Cache Concurrency Benchmarker`
+- **Durable Disk Handover Protocol**: Subagents execute changes and test suites directly on disk, returning structured summaries (files modified, test pass/fail counts, residual risks). The master agent verifies disk state and reports the executive summary to the maintainer.
 
