@@ -1,8 +1,12 @@
 #!/bin/bash
 set -e
 
-# Neon DB Connection String
-NEON_DB_URL="postgresql://neondb_owner:npg_ALj4rNpvPCZ3@ep-orange-dust-a1m4z6so-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+# Neon DB Connection String (Deprecated - used during Phase 1 Cutover)
+NEON_DB_URL="${NEON_DATABASE_URL:-}"
+if [ -z "$NEON_DB_URL" ]; then
+  echo "Error: NEON_DATABASE_URL is not set. Database cutover to VPS is complete."
+  exit 1
+fi
 
 # Local DB Connection details
 LOCAL_DB_USER="kido"

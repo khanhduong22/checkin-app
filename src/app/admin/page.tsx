@@ -11,7 +11,6 @@ import { calculatePayroll } from "@/lib/payroll";
 import { GRACE_PERIOD_MINUTES } from "@/lib/utils";
 import SpecialDaysWidget from "@/components/home/SpecialDaysWidget";
 import { getSpecialDayUsers } from "@/lib/special-days";
-import { syncCheckInsFromNeon } from "@/lib/sync-neon";
 
 export const dynamic = 'force-dynamic';
 
@@ -35,9 +34,6 @@ export default async function AdminDashboard() {
     todayStart.setHours(0,0,0,0);
     const todayEnd = new Date();
     todayEnd.setHours(23,59,59,999);
-
-    // Auto-sync any check-ins recorded on Neon (e.g. from Vercel PWA) into VPS database
-    await syncCheckInsFromNeon().catch(err => console.error("Neon auto-sync failed:", err));
 
     const [userCount, ipCount, checkinsToday, todayShifts, payroll, pendingRequests, specialUsers] = await Promise.all([
         prisma.user.count(),
