@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Clock, Trash2, RefreshCw } from "lucide-react";
@@ -6,7 +6,25 @@ import { useRouter } from "@/lib/router";
 import { toast } from "sonner";
 import { getAuthToken } from "@/lib/api-client";
 
-const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+function getMonday(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+const DAY_NAMES = [
+  { short: "T2", full: "Thứ Hai" },
+  { short: "T3", full: "Thứ Ba" },
+  { short: "T4", full: "Thứ Tư" },
+  { short: "T5", full: "Thứ Năm" },
+  { short: "T6", full: "Thứ Sáu" },
+  { short: "T7", full: "Thứ Bảy" },
+  { short: "CN", full: "Chủ Nhật" },
+];
+
 const START_HOURS = Array.from({ length: 10 }, (_, i) => String(i + 8).padStart(2, "0")); // 08..17
 const END_HOURS = Array.from({ length: 11 }, (_, i) => String(i + 11).padStart(2, "0")); // 11..21
 const MINUTES = ["00", "15", "30", "45"];
@@ -88,17 +106,23 @@ export default function ScheduleClient({
     setActivePreset(preset);
   };
 
-  const year = viewDate.getFullYear();
-  const month = viewDate.getMonth();
+  const [weekStart, setWeekStart] = useState<Date>(() => getMonday(viewDate || new Date()));
 
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const daysInMonth = lastDay.getDate();
-  const startDayIndex = firstDay.getDay();
+  useEffect(() => {
+    if (viewDate) {
+      setWeekStart(getMonday(viewDate));
+    }
+  }, [viewDate]);
 
-  const calendarCells: (Date | null)[] = [];
-  for (let i = 0; i < startDayIndex; i++) calendarCells.push(null);
-  for (let i = 1; i <= daysInMonth; i++) calendarCells.push(new Date(year, month, i));
+  // 7 days of the week starting from Monday (T2) down to Sunday (CN)
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+
+  const weekEnd = weekDays[6];
+  const isCurrentWeek = getMonday(new Date()).toDateString() === weekStart.toDateString();
 
   const safeShifts = Array.isArray(shifts) ? shifts : [];
 
@@ -118,14 +142,30 @@ export default function ScheduleClient({
     });
   };
 
-  const handlePrevMonth = () => {
-    const prev = new Date(year, month - 1, 1);
-    if (onMonthChange) onMonthChange(prev);
+  const handlePrevWeek = () => {
+    const prev = new Date(weekStart);
+    prev.setDate(prev.getDate() - 7);
+    setWeekStart(prev);
+    if (onMonthChange && prev.getMonth() !== weekStart.getMonth()) {
+      onMonthChange(prev);
+    }
   };
 
-  const handleNextMonth = () => {
-    const next = new Date(year, month + 1, 1);
-    if (onMonthChange) onMonthChange(next);
+  const handleNextWeek = () => {
+    const next = new Date(weekStart);
+    next.setDate(next.getDate() + 7);
+    setWeekStart(next);
+    if (onMonthChange && next.getMonth() !== weekStart.getMonth()) {
+      onMonthChange(next);
+    }
+  };
+
+  const handleTodayWeek = () => {
+    const todayMonday = getMonday(new Date());
+    setWeekStart(todayMonday);
+    if (onMonthChange && todayMonday.getMonth() !== weekStart.getMonth()) {
+      onMonthChange(todayMonday);
+    }
   };
 
   const handleOpenDate = (date: Date) => {
@@ -242,87 +282,121 @@ export default function ScheduleClient({
         )}
       </div>
 
-      {/* Calendar Card */}
-      <Card className="rounded-2xl shadow-xs border border-orange-100/90 overflow-hidden bg-white/95">
-        <CardHeader className="flex flex-row items-center justify-between py-2.5 px-3 bg-orange-50/60 border-b border-orange-100/70">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handlePrevMonth}
-            className="h-7 w-7 p-0 rounded-lg hover:bg-orange-100 text-stone-700 cursor-pointer"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <CardTitle className="text-xs font-bold text-stone-900 tracking-tight">
-            Tháng {month + 1} / {year}
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleNextMonth}
-            className="h-7 w-7 p-0 rounded-lg hover:bg-orange-100 text-stone-700 cursor-pointer"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </CardHeader>
-
-        <CardContent className="p-2 sm:p-3">
-          {/* Days of week header */}
-          <div className="grid grid-cols-7 mb-1.5 text-center text-[10px] font-bold text-stone-400 uppercase tracking-wider">
-            {DAYS.map((d) => (
-              <div key={d}>{d}</div>
-            ))}
+      {/* Weekly Vertical Schedule Card */}
+      <Card className="rounded-3xl shadow-sm border border-orange-100/90 dark:border-stone-800 overflow-hidden bg-white/95 dark:bg-stone-900/90 backdrop-blur-md">
+        <CardHeader className="flex flex-row items-center justify-between py-3 px-3.5 bg-orange-50/70 dark:bg-stone-800/60 border-b border-orange-100/70 dark:border-stone-800">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handlePrevWeek}
+              className="h-8 w-8 p-0 rounded-xl hover:bg-orange-100 text-stone-700 dark:text-stone-300 cursor-pointer"
+              title="Tuần trước"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNextWeek}
+              className="h-8 w-8 p-0 rounded-xl hover:bg-orange-100 text-stone-700 dark:text-stone-300 cursor-pointer"
+              title="Tuần sau"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
 
-          {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarCells.map((date, idx) => {
-              if (!date)
-                return (
+          <div className="text-center">
+            <CardTitle className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100 tracking-tight">
+              {weekStart.getDate()}/{weekStart.getMonth() + 1} - {weekEnd.getDate()}/{weekEnd.getMonth() + 1}/{weekEnd.getFullYear()}
+            </CardTitle>
+            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold block">
+              Thứ 2 ➔ Chủ Nhật
+            </span>
+          </div>
+
+          {!isCurrentWeek ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTodayWeek}
+              className="h-7 text-[11px] px-2.5 rounded-xl border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 font-bold hover:bg-amber-100/50 cursor-pointer"
+            >
+              Tuần này
+            </Button>
+          ) : (
+            <div className="w-14 text-right">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                Hiện tại
+              </span>
+            </div>
+          )}
+        </CardHeader>
+
+        <CardContent className="p-2.5 sm:p-3 space-y-2">
+          {weekDays.map((d, idx) => {
+            const dayInfo = DAY_NAMES[idx];
+            const myShifts = getMyShiftsForDate(d);
+            const isToday = new Date().toDateString() === d.toDateString();
+            const hasShift = myShifts.length > 0;
+
+            return (
+              <div
+                key={d.toISOString()}
+                onClick={() => handleOpenDate(d)}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer select-none active:scale-[0.99] flex items-center justify-between gap-3 ${
+                  isToday
+                    ? "bg-amber-50/80 dark:bg-amber-950/30 border-amber-400/80 dark:border-amber-700/80 ring-1 ring-amber-400/40 shadow-xs"
+                    : hasShift
+                    ? "bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/90 dark:border-emerald-800/80 hover:border-emerald-300"
+                    : "bg-[#fdfbf9] dark:bg-stone-900/60 border-orange-50/90 dark:border-stone-800/80 hover:bg-orange-50/40 dark:hover:bg-stone-800/40"
+                }`}
+              >
+                {/* Left: Day info */}
+                <div className="flex items-center gap-3">
                   <div
-                    key={idx}
-                    className="min-h-14 bg-stone-50/40 rounded-xl border border-transparent"
-                  />
-                );
-
-              const myShifts = getMyShiftsForDate(date);
-              const isToday = new Date().toDateString() === date.toDateString();
-              const hasShift = myShifts.length > 0;
-
-              return (
-                <div
-                  key={idx}
-                  onClick={() => handleOpenDate(date)}
-                  className={`min-h-14 p-1 rounded-xl border flex flex-col justify-between transition-all cursor-pointer select-none active:scale-95 ${
-                    isToday
-                      ? "bg-amber-50/70 border-amber-300 ring-1 ring-amber-300/50"
-                      : hasShift
-                      ? "bg-emerald-50/70 border-emerald-200 hover:border-emerald-300"
-                      : "bg-[#fdfbf9] border-orange-50 hover:bg-orange-50/50 hover:border-orange-200"
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span
-                      className={`inline-flex items-center justify-center w-4.5 h-4.5 rounded-full text-[10px] ${
-                        isToday
-                          ? "bg-amber-500 text-white font-bold"
-                          : hasShift
-                          ? "text-emerald-900 font-bold"
-                          : "text-stone-700"
-                      }`}
-                    >
-                      {date.getDate()}
+                    className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center font-bold shrink-0 transition-transform ${
+                      isToday
+                        ? "bg-amber-500 text-white shadow-xs"
+                        : hasShift
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200/60 dark:border-stone-700"
+                    }`}
+                  >
+                    <span className="text-[11px] leading-tight uppercase font-extrabold tracking-tight">
+                      {dayInfo.short}
+                    </span>
+                    <span className="text-xs leading-none font-bold">
+                      {d.getDate()}
                     </span>
                   </div>
 
-                  {/* My Shift Tags - Strictly private, no colleague names */}
-                  <div className="space-y-0.5 mt-0.5 overflow-hidden">
-                    {myShifts.map((s, sIdx) => (
-                      <div
-                        key={s.id || sIdx}
-                        className="bg-emerald-600 text-white text-[8px] px-1 py-0.2 rounded font-semibold truncate text-center"
-                      >
-                        {s.start && s.end
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100">
+                        {dayInfo.full}
+                      </span>
+                      {isToday && (
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-amber-500 text-white leading-tight">
+                          Hôm nay
+                        </span>
+                      )}
+                    </div>
+
+                    {!hasShift && (
+                      <p className="text-[11px] text-stone-400 dark:text-stone-500 italic mt-0.5">
+                        Chưa đăng ký ca
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Shifts list or Register action */}
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  {hasShift ? (
+                    <div className="flex flex-col items-end gap-1">
+                      {myShifts.map((s, sIdx) => {
+                        const shiftText = s.start && s.end
                           ? `${new Date(s.start).toLocaleTimeString("vi-VN", {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -330,14 +404,32 @@ export default function ScheduleClient({
                               hour: "2-digit",
                               minute: "2-digit",
                             })}`
-                          : formatShiftLabel(s.shiftType || s.shift)}
-                      </div>
-                    ))}
-                  </div>
+                          : formatShiftLabel(s.shiftType || s.shift);
+                        return (
+                          <div
+                            key={s.id || sIdx}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-600 text-white shadow-2xs"
+                          >
+                            <Clock className="w-3 h-3 text-emerald-200" />
+                            <span>{shiftText}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs font-bold px-3 rounded-xl border-amber-300 dark:border-amber-700/80 text-amber-700 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/30 hover:bg-amber-100/60 cursor-pointer shadow-2xs"
+                    >
+                      + Đăng ký ca
+                    </Button>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 
