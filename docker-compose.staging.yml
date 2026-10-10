@@ -5,7 +5,7 @@ services:
   # 1. Limart API Service (Staging Canary on checkin_db)
   # ----------------------------------------------------------------------------
   limart-api:
-    image: ghcr.io/khanhduong22/checkin-app/checkin-api:staging
+    image: ghcr.io/khanhduong22/limart/checkin-api:staging
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -50,7 +50,7 @@ services:
   # 2. Limart Admin SPA (Vite React + Nginx Alpine static server)
   # ----------------------------------------------------------------------------
   limart-admin:
-    image: ghcr.io/khanhduong22/checkin-app/checkin-admin:staging
+    image: ghcr.io/khanhduong22/limart/checkin-admin:staging
     build:
       context: .
       dockerfile: apps/admin-spa/Dockerfile
@@ -79,7 +79,7 @@ services:
   # 3. Limart Staff PWA (Vite React PWA + Nginx Alpine static server)
   # ----------------------------------------------------------------------------
   limart-staff:
-    image: ghcr.io/khanhduong22/checkin-app/checkin-staff:staging
+    image: ghcr.io/khanhduong22/limart/checkin-staff:staging
     build:
       context: .
       dockerfile: apps/staff-pwa/Dockerfile

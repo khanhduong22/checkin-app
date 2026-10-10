@@ -65,14 +65,14 @@ export default function ManualCheckInForm({ userId: initialUserId, users = [], o
       </h4>
       <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 items-end">
         {!initialUserId && safeUsers.length > 0 && (
-          <div className="space-y-1 w-full sm:w-auto flex-1 min-w-[180px]">
+          <div className="space-y-1 w-full sm:w-auto sm:flex-1 min-w-0 sm:min-w-[180px]">
             <label className="text-xs font-medium text-muted-foreground">
               Nhân viên
             </label>
             <select
               value={selectedUserId}
               onChange={(e) => setSelectedUserId(e.target.value)}
-              className="h-10 sm:h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-base sm:text-sm shadow-sm"
+              className="h-10 sm:h-9 w-full max-w-full min-w-0 rounded-md border border-input bg-white px-3 py-1 text-base sm:text-sm shadow-sm"
               required
             >
               {safeUsers.map((u) => (
@@ -83,7 +83,7 @@ export default function ManualCheckInForm({ userId: initialUserId, users = [], o
             </select>
           </div>
         )}
-        <div className="space-y-1 w-full sm:w-auto flex-1 min-w-[140px]">
+        <div className="space-y-1 w-full sm:w-auto sm:flex-1 min-w-0 sm:min-w-[140px]">
           <label className="text-xs font-medium text-muted-foreground">
             Chọn ngày
           </label>
@@ -92,30 +92,32 @@ export default function ManualCheckInForm({ userId: initialUserId, users = [], o
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required
-            className="h-10 sm:h-9 w-full bg-white text-base sm:text-sm"
+            className="h-10 sm:h-9 w-full max-w-full min-w-0 bg-white text-base sm:text-sm"
           />
         </div>
-        <div className="space-y-1 w-[calc(50%-0.375rem)] sm:w-28">
-          <label className="text-xs font-medium text-muted-foreground">
-            Giờ Vào (In)
-          </label>
-          <Input
-            type="time"
-            value={checkIn}
-            onChange={(e) => setCheckIn(e.target.value)}
-            className="h-10 sm:h-9 w-full bg-white text-base sm:text-sm"
-          />
-        </div>
-        <div className="space-y-1 w-[calc(50%-0.375rem)] sm:w-28">
-          <label className="text-xs font-medium text-muted-foreground">
-            Giờ Ra (Out)
-          </label>
-          <Input
-            type="time"
-            value={checkOut}
-            onChange={(e) => setCheckOut(e.target.value)}
-            className="h-10 sm:h-9 w-full bg-white text-base sm:text-sm"
-          />
+        <div className="flex gap-3 w-full sm:w-auto min-w-0">
+          <div className="space-y-1 flex-1 sm:w-28 min-w-0">
+            <label className="text-xs font-medium text-muted-foreground">
+              Giờ Vào (In)
+            </label>
+            <Input
+              type="time"
+              value={checkIn}
+              onChange={(e) => setCheckIn(e.target.value)}
+              className="h-10 sm:h-9 w-full max-w-full min-w-0 bg-white text-base sm:text-sm"
+            />
+          </div>
+          <div className="space-y-1 flex-1 sm:w-28 min-w-0">
+            <label className="text-xs font-medium text-muted-foreground">
+              Giờ Ra (Out)
+            </label>
+            <Input
+              type="time"
+              value={checkOut}
+              onChange={(e) => setCheckOut(e.target.value)}
+              className="h-10 sm:h-9 w-full max-w-full min-w-0 bg-white text-base sm:text-sm"
+            />
+          </div>
         </div>
         <Button
           type="submit"

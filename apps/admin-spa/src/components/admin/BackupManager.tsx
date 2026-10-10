@@ -50,26 +50,26 @@ export default function BackupManager() {
           gian.
         </p>
       </div>
-      <div className="p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-end">
-          <div className="grid w-full max-w-sm items-center gap-1.5">
+      <div className="p-3.5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-end min-w-0">
+          <div className="grid w-full max-w-sm items-center gap-1.5 min-w-0">
             <Label htmlFor="from">Từ ngày</Label>
             <Input
               type="date"
               id="from"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="bg-white h-10 sm:h-9 min-h-[38px] text-base sm:text-sm"
+              className="bg-white h-10 sm:h-9 min-h-[38px] text-base sm:text-sm w-full max-w-full min-w-0"
             />
           </div>
-          <div className="grid w-full max-w-sm items-center gap-1.5">
+          <div className="grid w-full max-w-sm items-center gap-1.5 min-w-0">
             <Label htmlFor="to">Đến ngày</Label>
             <Input
               type="date"
               id="to"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="bg-white h-10 sm:h-9 min-h-[38px] text-base sm:text-sm"
+              className="bg-white h-10 sm:h-9 min-h-[38px] text-base sm:text-sm w-full max-w-full min-w-0"
             />
           </div>
         </div>

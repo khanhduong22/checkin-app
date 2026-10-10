@@ -92,47 +92,45 @@ export default function IPManager({
           </span>
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3.5 sm:p-6">
         <div className="flex flex-col sm:flex-row gap-2 mb-6">
           <input
             type="text"
             placeholder="IP Prefix hoặc CIDR (e.g. 192.168.1. hoặc 2001:ee0:4b74:34c0::/64)"
-            className="flex h-10 sm:h-9 min-h-[38px] w-full rounded-md border border-input bg-white px-3 py-2 text-base sm:text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 sm:h-9 min-h-[38px] w-full min-w-0 rounded-md border border-input bg-white px-3 py-2 text-base sm:text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
           />
           <input
             type="text"
             placeholder="Mô tả (e.g. Wi-Fi Văn Phòng)"
-            className="flex h-10 sm:h-9 min-h-[38px] w-full rounded-md border border-input bg-white px-3 py-2 text-base sm:text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 sm:h-9 min-h-[38px] w-full min-w-0 rounded-md border border-input bg-white px-3 py-2 text-base sm:text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
           />
-          <Button onClick={handleAdd} disabled={loading} className="shrink-0 bg-primary text-white min-h-[38px] h-10 sm:h-9">
+          <Button onClick={handleAdd} disabled={loading} className="w-full sm:w-auto shrink-0 bg-primary text-white min-h-[38px] h-10 sm:h-9">
             Thêm
           </Button>
         </div>
 
-        <div className="rounded-md border bg-white">
-          {ips.map((ip, i) => (
+        <div className="rounded-md border bg-white divide-y">
+          {ips.map((ip) => (
             <div
               key={ip.id}
-              className={`flex items-center justify-between p-4 ${
-                i !== ips.length - 1 ? "border-b" : ""
-              }`}
+              className="flex items-center justify-between gap-3 p-3 sm:p-4 min-w-0"
             >
-              <div>
-                <div className="font-mono font-medium text-sm text-slate-800">
+              <div className="min-w-0 flex-1">
+                <div className="font-mono font-medium text-xs sm:text-sm text-slate-800 break-all">
                   {ip.prefix}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground truncate">
                   {ip.label || "Không mô tả"}
                 </div>
               </div>
               <Button
                 variant="destructive"
                 size="sm"
-                className="min-h-[36px]"
+                className="min-h-[36px] px-3 shrink-0"
                 onClick={() => handleDelete(ip.id)}
               >
                 Xóa

@@ -124,7 +124,7 @@ deploy_dual_run() {
 
     if [ ${#FRONTEND_TARGETS[@]} -gt 0 ]; then
         log_info "Launching frontend Monorepo containers: ${FRONTEND_TARGETS[*]}..."
-        docker compose -f "${COMPOSE_FILE}" up -d --no-deps "${FRONTEND_TARGETS[@]}"
+        docker compose -f "${COMPOSE_FILE}" up -d --no-deps --force-recreate "${FRONTEND_TARGETS[@]}"
     else
         log_info "Skipping frontend container restart (neither admin nor staff modified)."
     fi

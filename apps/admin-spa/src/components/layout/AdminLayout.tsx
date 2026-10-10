@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
-import AdminTour from "@/components/admin/AdminTour";
-import TourHelpButton from "@/components/admin/TourHelpButton";
 import ChangelogPopup from "@/components/admin/ChangelogPopup";
 import { LATEST_VERSION, CHANGELOGS } from "@/lib/changelogs";
 import { Toaster } from "sonner";
@@ -115,10 +113,6 @@ export function AdminLayout() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-slate-800 font-sans overflow-x-hidden">
         {/* Toast Notification Provider */}
         <Toaster position="top-right" richColors closeButton />
-
-        {/* Guided Tour System */}
-        <AdminTour />
-        <TourHelpButton />
 
         {/* Desktop Fixed Sidebar */}
         <div
