@@ -12,10 +12,11 @@
 ### Active Environment & Domain Inventory
 | Environment | Domain / URL | Branch / Compose | Active Containers | Architecture |
 | :--- | :--- | :--- | :--- | :--- |
-| 🚀 **Production** | `https://limart.khanhdp.com` | `feat/monorepo-migration` (`/opt/limart`) | `limart-api` (:4000)<br>`limart-admin` (:3001)<br>`limart-staff` (:3002) | Monorepo 3-Tier (Hono RESTful API + Vite Admin SPA + Vite Staff PWA) |
-| 🧪 **Staging Canary** | `https://limart2.khanhdp.com` | `feat/monorepo-migration` (`/opt/limart`) | Routes to Monorepo 3-Tier stack via Caddy | Monorepo 3-Tier (Canary domain) |
+| 🚀 **Production** | `https://limart.khanhdp.com` | `main` (`/opt/limart`) | `limart-api` (:4000)<br>`limart-admin` (:3001)<br>`limart-staff` (:3002) | Monorepo 3-Tier (Hono RESTful API + Vite Admin SPA + Vite Staff PWA) |
+| 🧪 **Staging Canary** | `https://limart2.khanhdp.com` | `staging` (`/opt/limart`) | Routes to Monorepo 3-Tier stack via Caddy | Monorepo 3-Tier (Canary domain) |
 | 🔄 **Backup Domain** | `https://limart3.khanhdp.com` | Caddy Redirect | None | Permanent HTTP 301 redirect ➔ `https://limart.khanhdp.com/` |
-| 🛑 **Legacy Monolith** | N/A | `/opt/checkin-app` | `checkin-app` (:3000) | **Stopped & Decommissioned** (Next.js 16 Monolith, saves ~280 MiB RAM) |
+| 📦 **Legacy V1 Archive Branch** | N/A | `backup/legacy-v1-main` | None | Remote archive of original Next.js 16 monolith standalone |
+| 🛑 **Legacy Monolith Container** | N/A | `/opt/checkin-app` | `checkin-app` (:3000) | **Stopped & Decommissioned** (~280 MiB RAM saved) |
 
 ### Shared Backing Services
 - 🗄️ **PostgreSQL 17** (`limart-db` on port 5432): Database `checkin_db`. Backed by volume `checkin-app_checkin_pgdata`. Continuous WAL archiving via pgBackRest into volume `checkin_pgbackrest_data`.
@@ -75,12 +76,15 @@ checkin-app/
 4. CI/CD DEPLOYMENT WORKFLOWS
 ================================================================================
 - **Unified Monorepo Deployment (`deploy-monorepo.yml`)**:
-  - **Triggers**: Push commit to `main` or `feat/monorepo-migration` (filtered by active monorepo paths), or manual `workflow_dispatch`.
-  - **Target Domains**: Serves Production (`limart.khanhdp.com`) and Staging Canary (`limart2.khanhdp.com`).
-  - **Mechanism**: Builds GHCR multi-tier images (`api`, `admin`, `staff`) ➡️ SSH invokes deployment script (`scripts/deploy-staging.sh` / `scripts/deploy-monorepo.sh`) ➡️ Starts candidate container on port 4000 ➡️ Healthchecks `/health` (45s timeout) ➡️ Atomic container rename swap ➡️ Caddy zero-downtime reload.
-- **Legacy Monolith Pipeline (`deploy.yml`) - DEPRECATED**:
-  - Previously built and deployed the Next.js 16 standalone monolith (`checkin-app` on port 3000).
-  - Kept for historical reference only; inactive now that production runs on the Monorepo 3-Tier stack.
+  - **Production Deployment (`limart.khanhdp.com`)**:
+    - **Trigger**: Push commit or merge to `main`.
+    - **Workflow**: `.github/workflows/deploy-monorepo.yml`.
+  - **Staging Deployment (`limart2.khanhdp.com`)**:
+    - **Trigger**: Push commit to `staging`.
+    - **Workflow**: `.github/workflows/deploy-monorepo.yml`.
+  - **Mechanism**: Builds GHCR images ➡️ SSH invokes deployment script (`scripts/deploy-monorepo.sh` / `scripts/deploy-staging.sh`) ➡️ Blue-Green zero-downtime swap on port 4000 ➡️ Healthchecks `/health` ➡️ Caddy zero-downtime reload.
+- **Legacy Monolith Pipeline (`deploy.yml`) - DECOMMISSIONED**:
+  - `.github/workflows/deploy.yml` has been completely deleted and decommissioned.
 
 ================================================================================
 5. ESSENTIAL COMMANDS CHEATSHEET
