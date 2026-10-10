@@ -56,9 +56,9 @@ fi
 
 # 3. Download or sync staging compose file
 if [ -n "${GITHUB_TOKEN:-}" ]; then
-    curl -sSL -H "Authorization: token $GITHUB_TOKEN" "https://raw.githubusercontent.com/khanhduong22/checkin-app/feat/monorepo-migration/docker-compose.staging.yml" -o docker-compose.yml
+    curl -sSLf -H "Authorization: token $GITHUB_TOKEN" "https://raw.githubusercontent.com/khanhduong22/checkin-app/main/docker-compose.staging.yml" -o docker-compose.yml
 else
-    curl -sSL "https://raw.githubusercontent.com/khanhduong22/checkin-app/feat/monorepo-migration/docker-compose.staging.yml" -o docker-compose.yml
+    curl -sSLf "https://raw.githubusercontent.com/khanhduong22/checkin-app/main/docker-compose.staging.yml" -o docker-compose.yml
 fi
 
 # 4. Pull pre-built staging images from GHCR
