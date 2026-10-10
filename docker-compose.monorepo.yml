@@ -56,8 +56,8 @@ services:
       dockerfile: apps/admin-spa/Dockerfile
     container_name: limart-admin
     restart: unless-stopped
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
     networks:
       ops_bridge:
         aliases:
@@ -87,8 +87,8 @@ services:
       dockerfile: apps/staff-pwa/Dockerfile
     container_name: limart-staff
     restart: unless-stopped
-    ports:
-      - "3002:3002"
+    expose:
+      - "3002"
     networks:
       ops_bridge:
         aliases:
