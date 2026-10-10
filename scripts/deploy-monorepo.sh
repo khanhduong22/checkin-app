@@ -132,9 +132,9 @@ deploy_dual_run() {
     # Step 4: Blue-Green Candidate Container Launch for limart-api
     if has_service "api" || ! docker inspect "${ACTIVE_API_CONTAINER}" >/dev/null 2>&1; then
         log_info "Deploying limart-api Docker container with Blue-Green rollout..."
-        API_IMAGE=$(docker compose -f "${COMPOSE_FILE}" config --images 2>/dev/null | grep 'checkin-api' | head -n1 || echo "ghcr.io/khanhduong22/checkin-app/checkin-api:latest")
+        API_IMAGE=$(docker compose -f "${COMPOSE_FILE}" config --images 2>/dev/null | grep 'checkin-api' | head -n1 || echo "ghcr.io/khanhduong22/limart/checkin-api:latest")
         if [ -z "${API_IMAGE}" ]; then
-            API_IMAGE="ghcr.io/khanhduong22/checkin-app/checkin-api:latest"
+            API_IMAGE="ghcr.io/khanhduong22/limart/checkin-api:latest"
         fi
 
         log_info "Starting candidate container '${CANDIDATE_API_CONTAINER}' with image '${API_IMAGE}'..."

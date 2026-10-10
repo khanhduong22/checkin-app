@@ -331,7 +331,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: DATABASE_URL,NEXTAUTH_URL,NEXTAUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GEMINI_API_KEY,GOOGLE_GENERATIVE_AI_API_KEY,RESEND_API_KEY,EMAIL_FROM,CRON_SECRET,GITHUB_TOKEN,GITHUB_ACTOR,BUILT_SERVICES
           script: |
-            cd /opt/checkin-app
+            cd /opt/limart 2>/dev/null || cd /opt/checkin-app
             git fetch origin main
             git checkout -f main
             git reset --hard origin/main

@@ -41,7 +41,12 @@ mkdir -p "${STAGING_DIR}"
 cd "${STAGING_DIR}"
 
 # Auto-source production environment file if present on VPS (provides GOOGLE_CLIENT_ID/SECRET without repo secrets)
-if [ -f "/opt/checkin-app/.env" ]; then
+if [ -f "/opt/limart/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source /opt/limart/.env
+    set +a
+elif [ -f "/opt/checkin-app/.env" ]; then
     set -a
     # shellcheck disable=SC1091
     source /opt/checkin-app/.env
@@ -56,9 +61,9 @@ fi
 
 # 3. Download or sync staging compose file
 if [ -n "${GITHUB_TOKEN:-}" ]; then
-    curl -sSLf -H "Authorization: token $GITHUB_TOKEN" "https://raw.githubusercontent.com/khanhduong22/checkin-app/main/docker-compose.staging.yml" -o docker-compose.yml
+    curl -sSLf -H "Authorization: token $GITHUB_TOKEN" "https://raw.githubusercontent.com/khanhduong22/limart/main/docker-compose.staging.yml" -o docker-compose.yml
 else
-    curl -sSLf "https://raw.githubusercontent.com/khanhduong22/checkin-app/main/docker-compose.staging.yml" -o docker-compose.yml
+    curl -sSLf "https://raw.githubusercontent.com/khanhduong22/limart/main/docker-compose.staging.yml" -o docker-compose.yml
 fi
 
 # 4. Pull pre-built staging images from GHCR
@@ -98,9 +103,9 @@ fi
 # 6. Blue-Green Zero-Downtime Rollout for limart-api (Only if API changed or active container missing)
 if has_service "api" || ! docker inspect "${ACTIVE_CONTAINER}" >/dev/null 2>&1; then
     echo "[STAGING DEPLOY] Processing blue-green deployment for limart-api..."
-    API_IMAGE=$(docker compose config --images 2>/dev/null | grep 'checkin-api' | head -n1 || echo "ghcr.io/khanhduong22/checkin-app/checkin-api:staging")
+    API_IMAGE=$(docker compose config --images 2>/dev/null | grep 'checkin-api' | head -n1 || echo "ghcr.io/khanhduong22/limart/checkin-api:staging")
     if [ -z "${API_IMAGE}" ]; then
-        API_IMAGE="ghcr.io/khanhduong22/checkin-app/checkin-api:staging"
+        API_IMAGE="ghcr.io/khanhduong22/limart/checkin-api:staging"
     fi
 
     # 7. Blue-Green Candidate Container Launch for limart-api
