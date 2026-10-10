@@ -217,6 +217,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/checkin-api:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/checkin-api:staging
             ghcr.io/${{ github.repository }}/checkin-api:latest
           cache-from: type=gha,scope=checkin-api
           cache-to: type=gha,mode=max,scope=checkin-api
@@ -251,6 +252,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/checkin-admin:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/checkin-admin:staging
             ghcr.io/${{ github.repository }}/checkin-admin:latest
           cache-from: type=gha,scope=checkin-admin
           cache-to: type=gha,mode=max,scope=checkin-admin
@@ -285,6 +287,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/checkin-staff:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/checkin-staff:staging
             ghcr.io/${{ github.repository }}/checkin-staff:latest
           cache-from: type=gha,scope=checkin-staff
           cache-to: type=gha,mode=max,scope=checkin-staff
