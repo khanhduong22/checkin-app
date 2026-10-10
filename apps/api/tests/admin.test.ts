@@ -902,6 +902,32 @@ describe("Admin Routes", () => {
       expect(body.data).toHaveLength(1);
       expect(body.total).toBe(1);
     });
+
+    it("GET /api/admin/schedule/history filters by startDate and endDate", async () => {
+      mockShiftAuditLogFindMany.mockResolvedValue([]);
+      mockShiftAuditLogCount.mockResolvedValue(0);
+
+      const res = await app.request(
+        "/api/admin/schedule/history?startDate=2026-10-01&endDate=2026-10-07",
+        {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(mockShiftAuditLogFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: expect.objectContaining({
+              gte: expect.any(Date),
+              lte: expect.any(Date),
+            }),
+          }),
+        })
+      );
+    });
   });
 
   describe("Reports & Leaderboards", () => {

@@ -1797,9 +1797,25 @@ adminRoute.get("/schedule/history", async (c) => {
   try {
     const page = parseInt(c.req.query("page") || "1", 10);
     const pageSize = parseInt(c.req.query("pageSize") || "50", 10);
+    const startDate = c.req.query("startDate");
+    const endDate = c.req.query("endDate");
+
+    const where: any = {};
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        if (endDate.length <= 10) end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
 
     const [logs, total] = await Promise.all([
       prisma.shiftAuditLog.findMany({
+        where,
         orderBy: { createdAt: "desc" },
         take: pageSize,
         skip: (page - 1) * pageSize,
@@ -1808,7 +1824,7 @@ adminRoute.get("/schedule/history", async (c) => {
           changedBy: { select: { id: true, name: true, email: true } },
         },
       }),
-      prisma.shiftAuditLog.count(),
+      prisma.shiftAuditLog.count({ where }),
     ]);
 
     return c.json({ success: true, data: logs, logs, total });
