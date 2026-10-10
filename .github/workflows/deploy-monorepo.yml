@@ -329,10 +329,10 @@ jobs:
           envs: DATABASE_URL,NEXTAUTH_URL,NEXTAUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GEMINI_API_KEY,GOOGLE_GENERATIVE_AI_API_KEY,RESEND_API_KEY,EMAIL_FROM,CRON_SECRET,GITHUB_TOKEN,GITHUB_ACTOR,BUILT_SERVICES
           script: |
             cd /opt/checkin-app
-            git stash
-            git fetch origin
-            git checkout main
-            git pull
+            git fetch origin main
+            git checkout -f main
+            git reset --hard origin/main
+            git clean -fd
             
             cat << EOF > .env
             DATABASE_URL="$DATABASE_URL"
