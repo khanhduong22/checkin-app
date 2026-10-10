@@ -84,21 +84,52 @@ export async function loginWithEmail(
 }
 
 /**
+ * Resilient authenticated fetch with automatic stale token cleanup and cookie fallback.
+ * Sends Bearer token (if present and valid) along with credentials: "include".
+ * On HTTP 401, removes stale localStorage token and automatically retries with cookie credentials.
+ */
+export async function authFetch(url: string, init?: RequestInit): Promise<Response> {
+  const authHeaders = getAuthHeaders();
+  const hadAuthHeader = Boolean(authHeaders.Authorization);
+  const headers: Record<string, string> = {
+    ...authHeaders,
+    ...((init?.headers as Record<string, string>) || {}),
+  };
+
+  let res = await fetch(url, {
+    ...init,
+    headers,
+    credentials: init?.credentials || "include",
+  });
+
+  if (res.status === 401) {
+    removeAuthToken();
+    if (hadAuthHeader) {
+      const retryHeaders = { ...headers };
+      delete retryHeaders["Authorization"];
+      res = await fetch(url, {
+        ...init,
+        headers: retryHeaders,
+        credentials: init?.credentials || "include",
+      });
+      if (res.status === 401) {
+        removeAuthToken();
+      }
+    }
+  }
+
+  return res;
+}
+
+/**
  * Standard fetcher for SWR with Bearer Token and Offline Cache Fallback
  */
 export async function fetcher<T = any>(url: string): Promise<T> {
-  const token = getAuthToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token && token !== "cookie_session") {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
   try {
-    const res = await fetch(url, {
-      headers,
-      credentials: "include",
+    const res = await authFetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
 
     if (res.ok) {
@@ -258,7 +289,7 @@ export const DEFAULT_HOME_DATA: StaffHomeData = {
   activeUsers: [],
 };
 
-// Check-in API with Offline Queue Fallback
+// Check-in API with Offline Queue Fallback & Resilient Auth Retry
 export async function performCheckIn(
   userId: string,
   type: "checkin" | "checkout",
@@ -289,11 +320,14 @@ export async function performCheckIn(
   }
 
   try {
-    const res = await fetch("/api/checkins", {
+    const authHeaders = getAuthHeaders();
+    const hadAuthHeader = Boolean(authHeaders.Authorization);
+
+    let res = await fetch("/api/checkins", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...getAuthHeaders(),
+        ...authHeaders,
       },
       credentials: "include",
       body: JSON.stringify({
@@ -305,6 +339,27 @@ export async function performCheckIn(
       }),
     });
 
+    // If 401 Unauthorized: clean stale token and retry with cookie credentials
+    if (res.status === 401) {
+      removeAuthToken();
+      if (hadAuthHeader) {
+        res = await fetch("/api/checkins", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            type,
+            note: note?.trim() || undefined,
+            latitude: coords?.lat,
+            longitude: coords?.lng,
+            clientTimestamp: timestamp,
+          }),
+        });
+      }
+    }
+
     if (res.ok) {
       const data = await res.json();
       return {
@@ -313,6 +368,13 @@ export async function performCheckIn(
         data: data.data,
       };
     } else {
+      if (res.status === 401) {
+        removeAuthToken();
+        return {
+          success: false,
+          message: "Phiên đăng nhập đã hết hạn. Vui lòng tải lại trang hoặc đăng nhập lại.",
+        };
+      }
       const err = await res.json().catch(() => ({}));
       return {
         success: false,
@@ -337,10 +399,7 @@ export async function performCheckIn(
 
 export async function getIPStatus(): Promise<{ isAllowed: boolean; locationName: string; ip: string }> {
   try {
-    const res = await fetch("/api/staff/home-data", {
-      headers: getAuthHeaders(),
-      credentials: "include",
-    });
+    const res = await authFetch("/api/staff/home-data");
     if (res.ok) {
       const json = await res.json();
       if (json.data?.ipStatus) return json.data.ipStatus;
@@ -355,10 +414,7 @@ export async function getIPStatus(): Promise<{ isAllowed: boolean; locationName:
 
 export async function getTodayUserShiftDuties(userId: string): Promise<{ success: boolean; data: ShiftDutyItem[] }> {
   try {
-    const res = await fetch("/api/staff/home-data", {
-      headers: getAuthHeaders(),
-      credentials: "include",
-    });
+    const res = await authFetch("/api/staff/home-data");
     if (res.ok) {
       const json = await res.json();
       return { success: true, data: json.data?.todayDuties || [] };
@@ -369,13 +425,11 @@ export async function getTodayUserShiftDuties(userId: string): Promise<{ success
 
 export async function toggleCompleteShiftDuty(dutyId: string): Promise<{ success: boolean; data?: ShiftDutyItem; error?: string }> {
   try {
-    const res = await fetch(`/api/staff/duties/${dutyId}/toggle`, {
+    const res = await authFetch(`/api/staff/duties/${dutyId}/toggle`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...getAuthHeaders(),
       },
-      credentials: "include",
     });
     if (res.ok) {
       const json = await res.json();
@@ -390,11 +444,10 @@ export async function toggleCompleteShiftDuty(dutyId: string): Promise<{ success
 
 export async function rollGacha(userId: string): Promise<{ success: boolean; message?: string; reward?: any }> {
   try {
-    const res = await fetch("/api/staff/gacha", {
+    const res = await authFetch("/api/staff/gacha", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify({ userId }),
     });
@@ -413,11 +466,10 @@ export async function rollGacha(userId: string): Promise<{ success: boolean; mes
 
 export async function spinWheel(): Promise<{ success: boolean; message?: string; prize?: any }> {
   try {
-    const res = await fetch("/api/staff/gacha", {
+    const res = await authFetch("/api/staff/gacha", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getAuthToken()}`,
       },
     });
     if (res.ok) {
@@ -446,11 +498,10 @@ export async function spinWheel(): Promise<{ success: boolean; message?: string;
 
 export async function submitRequest(date: string, type: string, reason: string): Promise<{ success: boolean; message: string }> {
   try {
-    const res = await fetch("/api/staff/requests", {
+    const res = await authFetch("/api/staff/requests", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify({ date, type, reason }),
     });
@@ -467,11 +518,10 @@ export async function submitRequest(date: string, type: string, reason: string):
 
 export async function claimMarketTask(taskItemId: string): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    const res = await fetch("/api/staff/tasks/claim", {
+    const res = await authFetch("/api/staff/tasks/claim", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify({ taskItemId }),
     });
@@ -484,11 +534,10 @@ export async function claimMarketTask(taskItemId: string): Promise<{ success: bo
 
 export async function startWfhTask(taskDefId: string): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    const res = await fetch("/api/staff/tasks/start", {
+    const res = await authFetch("/api/staff/tasks/start", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify({ taskDefId }),
     });
@@ -507,11 +556,10 @@ export async function submitWfhTask(payload: {
   evidenceLink?: string;
 }): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    const res = await fetch("/api/staff/tasks/submit", {
+    const res = await authFetch("/api/staff/tasks/submit", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify(payload),
     });
@@ -529,11 +577,10 @@ export async function submitPackingTask(payload: {
   evidenceLink?: string;
 }): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    const res = await fetch("/api/staff/tasks/submit-packing", {
+    const res = await authFetch("/api/staff/tasks/submit-packing", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify(payload),
     });
@@ -551,11 +598,10 @@ export async function submitCarryingTask(payload: {
   evidenceLink?: string;
 }): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    const res = await fetch("/api/staff/tasks/submit-carrying", {
+    const res = await authFetch("/api/staff/tasks/submit-carrying", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify(payload),
     });
@@ -571,11 +617,10 @@ export async function toggleStaffTaskStatus(
   payload: { status: string; evidenceLink?: string; note?: string }
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    const res = await fetch(`/api/staff/staff-tasks/${taskId}/toggle`, {
+    const res = await authFetch(`/api/staff/staff-tasks/${taskId}/toggle`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify(payload),
     });
@@ -588,11 +633,8 @@ export async function toggleStaffTaskStatus(
 
 export async function toggleShiftSwap(shiftId: number): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    const res = await fetch(`/api/staff/schedule/${shiftId}/swap`, {
+    const res = await authFetch(`/api/staff/schedule/${shiftId}/swap`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${getAuthToken()}`,
-      },
     });
     const json = await res.json();
     return json;
@@ -603,11 +645,8 @@ export async function toggleShiftSwap(shiftId: number): Promise<{ success: boole
 
 export async function takeShiftColleague(shiftId: number): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    const res = await fetch(`/api/staff/schedule/${shiftId}/take`, {
+    const res = await authFetch(`/api/staff/schedule/${shiftId}/take`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${getAuthToken()}`,
-      },
     });
     const json = await res.json();
     return json;
@@ -714,15 +753,12 @@ export function recordLocalCheckin(record: CheckinRecord) {}
 export async function markAnnouncementsAsRead(announcementIds: string[]): Promise<boolean> {
   if (!announcementIds || announcementIds.length === 0) return true;
   try {
-    const token = getAuthToken();
-    const res = await fetch("/api/staff/announcements/read", {
+    const res = await authFetch("/api/staff/announcements/read", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ ids: announcementIds }),
-      credentials: "include",
     });
     return res.ok;
   } catch (err) {

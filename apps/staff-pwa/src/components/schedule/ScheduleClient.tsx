@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Clock, Trash2, RefreshCw } from "lucide-react";
 import { useRouter } from "@/lib/router";
 import { toast } from "sonner";
-import { getAuthToken } from "@/lib/api-client";
+import { authFetch, getAuthToken } from "@/lib/api-client";
 
 function getMonday(d: Date): Date {
   const date = new Date(d);
@@ -200,12 +200,10 @@ export default function ScheduleClient({
 
     setIsSubmitting(true);
     try {
-      const token = getAuthToken();
-      const res = await fetch("/api/staff/schedule/register", {
+      const res = await authFetch("/api/staff/schedule/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           dateStr: selectedDate.toISOString(),
@@ -234,12 +232,10 @@ export default function ScheduleClient({
     if (!confirm("Bạn có chắc chắn muốn hủy ca làm việc này?")) return;
     setIsSubmitting(true);
     try {
-      const token = getAuthToken();
-      const res = await fetch("/api/staff/schedule/cancel", {
+      const res = await authFetch("/api/staff/schedule/cancel", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ shiftId }),
       });

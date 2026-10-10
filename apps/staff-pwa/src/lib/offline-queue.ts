@@ -33,7 +33,11 @@ let isFlushing = false;
 
 function getStoredAuthToken(): string | null {
   try {
-    return localStorage.getItem("limart_staff_jwt_token") || null;
+    const token = localStorage.getItem("limart_staff_jwt_token") || null;
+    if (token && token !== "cookie_session") {
+      return token;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -257,6 +261,12 @@ export async function flushQueue(): Promise<{
       }),
     }).catch(() => null);
 
+    if (response && response.status === 401) {
+      try {
+        localStorage.removeItem("limart_staff_jwt_token");
+      } catch {}
+    }
+
     if (response && response.ok) {
       const resData = await response.json().catch(() => ({}));
       console.log("[OfflineQueue] Batch sync response:", resData);
@@ -308,6 +318,11 @@ export async function flushQueue(): Promise<{
             await removeItem(item.id);
             syncedCount++;
           } else {
+            if (res.status === 401) {
+              try {
+                localStorage.removeItem("limart_staff_jwt_token");
+              } catch {}
+            }
             const errJson = await res.json().catch(() => ({}));
             const errorMsg = errJson.error || errJson.message || `Lỗi máy chủ (${res.status})`;
             item.status = "failed";

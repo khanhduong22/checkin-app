@@ -23,6 +23,7 @@ vi.mock("@checkin/db", () => ({
 
 import { app } from "../src/app";
 import { signAccessToken } from "../src/lib/auth";
+import { sign } from "hono/jwt";
 import { _resetRateLimits } from "../src/middleware/rate-limiter";
 
 describe("Auth Routes", () => {
@@ -195,6 +196,80 @@ describe("Auth Routes", () => {
       const data = await res.json();
       expect(data.success).toBe(true);
       expect(data.user.name).toBe("Valid User");
+    });
+
+    it("returns 200 when token was signed with monorepo fallback secret", async () => {
+      const fallbackToken = await sign(
+        {
+          sub: "u-fallback-123",
+          email: "fallback@example.com",
+          role: "USER",
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        },
+        "checkin-app-jwt-secret-monorepo-safe-2026",
+        "HS256"
+      );
+
+      mockFindUnique.mockResolvedValue({
+        id: "u-fallback-123",
+        name: "Fallback Secret User",
+        email: "fallback@example.com",
+        role: "USER",
+        isActive: true,
+      });
+
+      const res = await app.request("/api/me", {
+        headers: {
+          Authorization: `Bearer ${fallbackToken}`,
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.user.name).toBe("Fallback Secret User");
+    });
+
+    it("returns 200 via cookie fallback when Authorization header has stale/invalid token", async () => {
+      const validCookieToken = await signAccessToken({
+        sub: "u-cookie-123",
+        email: "cookie@example.com",
+        role: "USER",
+      });
+
+      mockFindUnique.mockResolvedValue({
+        id: "u-cookie-123",
+        name: "Cookie Fallback User",
+        email: "cookie@example.com",
+        role: "USER",
+        isActive: true,
+      });
+
+      const res = await app.request("/api/me", {
+        headers: {
+          Authorization: "Bearer invalid_or_expired_bearer_token",
+          Cookie: `access_token=${validCookieToken}`,
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.user.name).toBe("Cookie Fallback User");
+    });
+
+    it("returns 401 when both Authorization header and cookie token are invalid", async () => {
+      const res = await app.request("/api/me", {
+        headers: {
+          Authorization: "Bearer invalid_bearer",
+          Cookie: "access_token=invalid_cookie",
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data.error).toBe("Unauthorized: Invalid or expired token");
     });
   });
 
