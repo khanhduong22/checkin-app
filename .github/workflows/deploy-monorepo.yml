@@ -72,6 +72,7 @@ jobs:
             admin:
               - 'apps/admin-spa/**'
               - 'packages/shared/**'
+              - 'packages/spa-version-guard/**'
               - 'docker-compose*.yml'
               - 'package.json'
               - 'pnpm-lock.yaml'
@@ -81,6 +82,7 @@ jobs:
             staff:
               - 'apps/staff-pwa/**'
               - 'packages/shared/**'
+              - 'packages/spa-version-guard/**'
               - 'docker-compose*.yml'
               - 'package.json'
               - 'pnpm-lock.yaml'
@@ -170,6 +172,7 @@ jobs:
           pnpm --filter @checkin/shared build
           pnpm --filter @checkin/audit-trail build
           pnpm --filter @checkin/zero-downtime-deploy build
+          pnpm --filter @checkin/spa-version-guard build
           pnpm --filter @checkin/db build
 
       - name: Run Monorepo Unit Tests
@@ -177,6 +180,7 @@ jobs:
           pnpm --filter @checkin/shared test
           pnpm --filter @checkin/audit-trail test
           pnpm --filter @checkin/zero-downtime-deploy test
+          pnpm --filter @checkin/spa-version-guard test
           pnpm --filter @checkin/api test
           pnpm --filter @checkin/staff-pwa test
 

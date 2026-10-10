@@ -11,6 +11,7 @@ RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 # Copy workspace configurations
 COPY package.json pnpm-workspace.yaml tsconfig.base.json turbo.json* ./
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/spa-version-guard/package.json ./packages/spa-version-guard/
 COPY apps/staff-pwa/package.json ./apps/staff-pwa/
 
 # Install dependencies
@@ -18,10 +19,12 @@ RUN pnpm install
 
 # Copy source code
 COPY packages/shared/ ./packages/shared/
+COPY packages/spa-version-guard/ ./packages/spa-version-guard/
 COPY apps/staff-pwa/ ./apps/staff-pwa/
 
 # Build shared library first, then build Vite PWA bundle
 RUN pnpm --filter @checkin/shared build
+RUN pnpm --filter @checkin/spa-version-guard build
 RUN pnpm --filter @checkin/staff-pwa build
 
 # Stage 2: Serve static files with Nginx Alpine (~15MB RAM footprint)

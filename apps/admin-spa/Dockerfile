@@ -10,15 +10,18 @@ RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
 # Copy workspace configurations
 COPY package.json pnpm-workspace.yaml tsconfig.base.json turbo.json* ./
+COPY packages/spa-version-guard/package.json ./packages/spa-version-guard/
 COPY apps/admin-spa/package.json ./apps/admin-spa/
 
 # Install dependencies
 RUN pnpm install
 
 # Copy source code
+COPY packages/spa-version-guard/ ./packages/spa-version-guard/
 COPY apps/admin-spa/ ./apps/admin-spa/
 
-# Build Vite SPA bundle
+# Build spa-version-guard first, then build Vite SPA bundle
+RUN pnpm --filter @checkin/spa-version-guard build
 RUN pnpm --filter @checkin/admin-spa build
 
 # Stage 2: Serve static files with Nginx Alpine (~15MB RAM footprint)
