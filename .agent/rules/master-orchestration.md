@@ -74,3 +74,14 @@ Every subagent must conclude by returning a structured summary:
 1. **Files Modified**: Exact paths of files created or edited.
 2. **Commands Executed & Verification**: Test command run, pass/fail counts, real terminal evidence.
 3. **Residual Risks / Notes**: Any follow-ups, DB considerations, or potential edge cases.
+
+---
+
+## 5. Mandatory Maintainer Telemetry & Feynman Domain Analogies
+
+Whenever reporting progress or handing over completed tasks to the non-developer maintainer, the Master Agent MUST format communications in clear, friendly Vietnamese with 4 mandatory components:
+1. **Đang làm gì**: Tóm tắt ngắn gọn hành động cụ thể đang diễn ra.
+2. **Sắp làm gì**: Bước tiếp theo chuẩn bị thực hiện ngay sau đó.
+3. **Mức độ rủi ro**: Đánh giá rõ ràng (`Thấp` / `Trung bình` / `Cao`).
+4. **Minh họa trực quan (Feynman & Domain Analogy - Gym / Hoạ cụ)**: Sử dụng ẩn dụ trực quan từ thế giới **Thể hình (Gym/Calisthenics)** hoặc **Kinh doanh hoạ cụ LimArt** để người không rành code cũng thấu hiểu bản chất kỹ thuật trong 30 giây.
+
