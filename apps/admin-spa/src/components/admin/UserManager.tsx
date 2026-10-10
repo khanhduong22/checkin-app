@@ -98,7 +98,7 @@ function AddEmployeeDialog({
             <Input
               id="emp-name"
               name="name"
-              className="sm:col-span-3"
+              className="sm:col-span-3 h-10 sm:h-9 min-h-[38px] text-base sm:text-sm"
               placeholder="Nguyễn Văn A"
               value={form.name}
               onChange={handleChange}
@@ -112,7 +112,7 @@ function AddEmployeeDialog({
               id="emp-email"
               name="email"
               type="email"
-              className="sm:col-span-3"
+              className="sm:col-span-3 h-10 sm:h-9 min-h-[38px] text-base sm:text-sm"
               placeholder="nhanvien@gmail.com"
               value={form.email}
               onChange={handleChange}
@@ -125,7 +125,7 @@ function AddEmployeeDialog({
             <select
               id="emp-type"
               name="employmentType"
-              className="sm:col-span-3 border rounded-md px-3 py-2 text-sm bg-white"
+              className="sm:col-span-3 border rounded-md px-3 py-2 text-base sm:text-sm h-10 sm:h-9 min-h-[38px] bg-white"
               value={form.employmentType}
               onChange={handleChange}
             >
@@ -142,7 +142,7 @@ function AddEmployeeDialog({
                 id="emp-rate"
                 name="hourlyRate"
                 type="number"
-                className="sm:col-span-3"
+                className="sm:col-span-3 h-10 sm:h-9 min-h-[38px] text-base sm:text-sm"
                 value={form.hourlyRate}
                 onChange={handleChange}
               />
@@ -156,7 +156,7 @@ function AddEmployeeDialog({
                 id="emp-salary"
                 name="monthlySalary"
                 type="number"
-                className="sm:col-span-3"
+                className="sm:col-span-3 h-10 sm:h-9 min-h-[38px] text-base sm:text-sm"
                 value={form.monthlySalary}
                 onChange={handleChange}
               />
@@ -417,7 +417,7 @@ function UserItem({
           <div className="min-w-0 flex-1">
             <div className="font-medium flex items-center gap-2 flex-wrap">
               <input
-                className={`bg-transparent border-b border-transparent hover:border-gray-300 focus:border-primary outline-none focus:ring-0 max-w-full sm:w-[200px] transition-colors ${
+                className={`bg-transparent border-b border-transparent hover:border-gray-300 focus:border-primary outline-none focus:ring-0 max-w-full sm:w-[200px] text-base sm:text-sm transition-colors ${
                   !isUserActive ? "text-gray-500 italic line-through" : ""
                 }`}
                 value={name}
@@ -440,7 +440,7 @@ function UserItem({
             <div className="text-xs sm:text-sm text-muted-foreground truncate">{user.email}</div>
             <div className="mt-1">
               <select
-                className="text-xs border rounded p-1 bg-white"
+                className="text-base sm:text-xs border rounded p-1 min-h-[32px] bg-white"
                 value={user.employmentType || "PART_TIME"}
                 onChange={handleEmploymentTypeChange}
                 disabled={!isUserActive || loading}
@@ -462,7 +462,7 @@ function UserItem({
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
-                    className="w-28 sm:w-28 h-8 rounded border px-2 text-xs sm:text-sm text-right bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
+                    className="w-28 sm:w-28 h-9 min-h-[36px] rounded border px-2 text-base sm:text-sm text-right bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
                     value={monthlySalary}
                     onChange={(e) => setMonthlySalary(e.target.value)}
                     onBlur={handleUpdateMonthlySalary}
@@ -479,7 +479,7 @@ function UserItem({
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
-                    className="w-24 sm:w-24 h-8 rounded border px-2 text-xs sm:text-sm text-right bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
+                    className="w-24 sm:w-24 h-9 min-h-[36px] rounded border px-2 text-base sm:text-sm text-right bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
                     value={rate}
                     onChange={(e) => setRate(e.target.value)}
                     onBlur={handleUpdateRate}
@@ -496,7 +496,7 @@ function UserItem({
               variant={user.staffTasksAllowed ? "default" : "outline"}
               size="sm"
               onClick={handleToggleStaffTasksAllowed}
-              className={`text-xs h-8 flex-1 sm:flex-none ${
+              className={`text-xs h-9 min-h-[36px] flex-1 sm:flex-none ${
                 user.staffTasksAllowed
                   ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                   : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
@@ -510,7 +510,7 @@ function UserItem({
               variant="outline"
               size="sm"
               onClick={toggleRole}
-              className="text-xs h-8 flex-1 sm:flex-none"
+              className="text-xs h-9 min-h-[36px] flex-1 sm:flex-none"
               disabled={!isUserActive || loading}
             >
               {user.role === "ADMIN" ? "Gỡ Admin" : "Cấp Admin"}
@@ -520,7 +520,7 @@ function UserItem({
               variant="outline"
               size="sm"
               onClick={handleToggleActiveStatus}
-              className={`text-xs h-8 flex-1 sm:flex-none ${
+              className={`text-xs h-9 min-h-[36px] flex-1 sm:flex-none ${
                 !isUserActive
                   ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                   : "border-amber-200 text-amber-700 hover:bg-amber-50"
@@ -534,7 +534,7 @@ function UserItem({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                className="h-9 w-9 min-h-[36px] min-w-[36px] text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 title="Chỉnh sửa ngày đặc biệt"
                 onClick={() => setShowEditDatesDialog(true)}
                 disabled={!isUserActive}
@@ -545,7 +545,7 @@ function UserItem({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                className="h-9 w-9 min-h-[36px] min-w-[36px] text-red-500 hover:text-red-700 hover:bg-red-50"
                 title="Xóa nhân viên"
                 onClick={() => setShowDeleteDialog(true)}
               >

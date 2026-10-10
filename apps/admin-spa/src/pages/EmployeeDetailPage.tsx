@@ -102,7 +102,7 @@ export function EmployeeDetailPage() {
                 setSearchParams({ month: m, year: y });
               }}
             >
-              <SelectTrigger className="border-0 focus:ring-0 font-medium text-xs h-9">
+              <SelectTrigger className="border-0 focus:ring-0 font-medium text-xs h-9 min-h-[38px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -115,12 +115,12 @@ export function EmployeeDetailPage() {
             </Select>
           </div>
           <Link to={`/payroll/${user.id}?month=${month}&year=${year}`} className="flex-1 sm:flex-initial">
-            <Button variant="outline" size="sm" className="w-full h-9 gap-1.5 border-emerald-300 text-emerald-800 hover:bg-emerald-50">
+            <Button variant="outline" size="sm" className="w-full h-9 min-h-[38px] gap-1.5 border-emerald-300 text-emerald-800 hover:bg-emerald-50">
               💰 Xem Lương
             </Button>
           </Link>
           <Link to="/schedule" className="flex-1 sm:flex-initial">
-            <Button variant="outline" size="sm" className="w-full h-9 gap-1.5 border-blue-300 text-blue-800 hover:bg-blue-50">
+            <Button variant="outline" size="sm" className="w-full h-9 min-h-[38px] gap-1.5 border-blue-300 text-blue-800 hover:bg-blue-50">
               📅 Xem Lịch
             </Button>
           </Link>
@@ -128,7 +128,7 @@ export function EmployeeDetailPage() {
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card className="bg-gradient-to-br from-blue-50/50 to-indigo-50/30 border-blue-100">
           <CardHeader className="pb-1">
             <CardTitle className="text-xs font-semibold text-blue-700 uppercase">Tổng Công</CardTitle>
@@ -209,7 +209,7 @@ export function EmployeeDetailPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
                 <table className="w-full text-xs min-w-[500px]">
                   <thead className="bg-slate-50 border-b text-muted-foreground uppercase text-[10px]">
                     <tr>

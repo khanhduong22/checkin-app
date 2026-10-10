@@ -28,9 +28,9 @@ export function SettingsPage() {
       <Tabs defaultValue="access" className="space-y-4">
         <div className="overflow-x-auto no-scrollbar -mx-1 px-1 sm:mx-0 sm:px-0">
           <TabsList className="bg-white border inline-flex w-auto min-w-full sm:w-auto h-auto p-1 gap-1">
-            <TabsTrigger value="access" className="text-xs sm:text-sm py-1.5 px-3">Truy cập & Bảo mật (IP)</TabsTrigger>
-            <TabsTrigger value="holidays" className="text-xs sm:text-sm py-1.5 px-3">Ngày Lễ & Lương</TabsTrigger>
-            <TabsTrigger value="backup" className="text-xs sm:text-sm py-1.5 px-3">Sao lưu & Dữ liệu</TabsTrigger>
+            <TabsTrigger value="access" className="text-xs sm:text-sm py-2 px-3 min-h-[38px]">Truy cập & Bảo mật (IP)</TabsTrigger>
+            <TabsTrigger value="holidays" className="text-xs sm:text-sm py-2 px-3 min-h-[38px]">Ngày Lễ & Lương</TabsTrigger>
+            <TabsTrigger value="backup" className="text-xs sm:text-sm py-2 px-3 min-h-[38px]">Sao lưu & Dữ liệu</TabsTrigger>
           </TabsList>
         </div>
 

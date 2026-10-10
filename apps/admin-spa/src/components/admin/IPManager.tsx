@@ -97,18 +97,18 @@ export default function IPManager({
           <input
             type="text"
             placeholder="IP Prefix hoặc CIDR (e.g. 192.168.1. hoặc 2001:ee0:4b74:34c0::/64)"
-            className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 sm:h-9 min-h-[38px] w-full rounded-md border border-input bg-white px-3 py-2 text-base sm:text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
           />
           <input
             type="text"
             placeholder="Mô tả (e.g. Wi-Fi Văn Phòng)"
-            className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 sm:h-9 min-h-[38px] w-full rounded-md border border-input bg-white px-3 py-2 text-base sm:text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
           />
-          <Button onClick={handleAdd} disabled={loading} className="shrink-0 bg-primary text-white">
+          <Button onClick={handleAdd} disabled={loading} className="shrink-0 bg-primary text-white min-h-[38px] h-10 sm:h-9">
             Thêm
           </Button>
         </div>
@@ -132,6 +132,7 @@ export default function IPManager({
               <Button
                 variant="destructive"
                 size="sm"
+                className="min-h-[36px]"
                 onClick={() => handleDelete(ip.id)}
               >
                 Xóa

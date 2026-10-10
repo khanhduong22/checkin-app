@@ -337,7 +337,7 @@ export function HelpPage() {
         {/* Upload Button Triggering Radix Dialog */}
         <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs sm:text-sm shadow-sm gap-2">
+            <Button className="bg-orange-600 hover:bg-orange-700 text-white font-semibold text-xs sm:text-sm shadow-sm gap-2 min-h-[38px] w-full sm:w-auto">
               <Upload className="w-4 h-4" />
               Tải tài liệu mới
             </Button>
@@ -363,7 +363,7 @@ export function HelpPage() {
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
                   required
-                  className="text-xs sm:text-sm"
+                  className="text-base sm:text-sm h-10 sm:h-9 min-h-[38px]"
                 />
               </div>
 
@@ -374,7 +374,7 @@ export function HelpPage() {
                 <select
                   value={uploadCategory}
                   onChange={(e) => setUploadCategory(e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs sm:text-sm shadow-xs focus:outline-hidden focus:ring-1 focus:ring-ring"
+                  className="w-full h-10 sm:h-9 min-h-[38px] rounded-md border border-input bg-transparent px-3 py-1 text-base sm:text-sm shadow-xs focus:outline-hidden focus:ring-1 focus:ring-ring"
                 >
                   <option value="quy-tac">Quy tắc & Kỷ luật</option>
                   <option value="luong">Chính sách Tiền lương</option>
@@ -394,15 +394,16 @@ export function HelpPage() {
                   accept=".docx,.txt,.md"
                   onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                   required
-                  className="text-xs file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer"
+                  className="text-xs file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer min-h-[38px]"
                 />
               </div>
 
-              <DialogFooter className="pt-2">
+              <DialogFooter className="pt-2 flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="min-h-[38px]"
                   onClick={() => setIsUploadOpen(false)}
                   disabled={isUploading}
                 >
@@ -411,7 +412,7 @@ export function HelpPage() {
                 <Button
                   type="submit"
                   size="sm"
-                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  className="bg-orange-600 hover:bg-orange-700 text-white min-h-[38px]"
                   disabled={isUploading}
                 >
                   {isUploading ? (
@@ -438,14 +439,14 @@ export function HelpPage() {
           <TabsList className="bg-white border p-1 rounded-xl inline-flex w-auto min-w-full sm:min-w-0">
             <TabsTrigger
               value="docs"
-              className="rounded-lg data-[state=active]:bg-orange-50 data-[state=active]:text-orange-900 font-semibold whitespace-nowrap text-xs sm:text-sm"
+              className="rounded-lg data-[state=active]:bg-orange-50 data-[state=active]:text-orange-900 font-semibold whitespace-nowrap text-xs sm:text-sm min-h-[38px] py-2"
             >
               <BookOpen className="w-4 h-4 mr-2 text-orange-600" />
               Kho tài liệu & Quy chế ({rawDocs.length})
             </TabsTrigger>
             <TabsTrigger
               value="chat"
-              className="rounded-lg data-[state=active]:bg-orange-50 data-[state=active]:text-orange-900 font-semibold whitespace-nowrap text-xs sm:text-sm"
+              className="rounded-lg data-[state=active]:bg-orange-50 data-[state=active]:text-orange-900 font-semibold whitespace-nowrap text-xs sm:text-sm min-h-[38px] py-2"
             >
               <Bot className="w-4 h-4 mr-2 text-orange-600" />
               Trò chuyện cùng Capy AI
@@ -467,7 +468,7 @@ export function HelpPage() {
                   placeholder="Tìm kiếm tài liệu, quy chế, thưởng..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-8 text-xs sm:text-sm bg-white"
+                  className="pl-9 pr-8 text-base sm:text-sm bg-white h-10 sm:h-9 min-h-[38px]"
                 />
                 {searchQuery && (
                   <button
@@ -676,13 +677,13 @@ export function HelpPage() {
                       placeholder="Hỏi Capy AI về quy chế, thưởng nóng, tính công, kỷ luật..."
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      className="bg-white text-sm"
+                      className="bg-white text-base sm:text-sm h-10 sm:h-9 min-h-[38px]"
                       disabled={isTyping}
                     />
                     <Button
                       type="submit"
                       disabled={!input.trim() || isTyping}
-                      className="bg-orange-600 hover:bg-orange-700 text-white shrink-0"
+                      className="bg-orange-600 hover:bg-orange-700 text-white shrink-0 min-h-[38px] h-10 sm:h-9 px-4"
                     >
                       {isTyping ? (
                         <Loader2 className="w-4 h-4 animate-spin" />

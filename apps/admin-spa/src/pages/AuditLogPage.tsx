@@ -256,7 +256,7 @@ export function AuditLogPage() {
           disabled={isValidating}
           variant="outline"
           size="sm"
-          className="w-full sm:w-auto bg-white border-gray-200 gap-2 text-xs"
+          className="w-full sm:w-auto bg-white border-gray-200 gap-2 text-xs min-h-[38px]"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? "animate-spin" : ""}`} />
           Làm mới
@@ -272,7 +272,7 @@ export function AuditLogPage() {
             placeholder="Tìm theo tên, email, IP..."
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-base sm:text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-primary min-h-[38px] h-10 sm:h-9"
           />
         </div>
 
@@ -281,7 +281,7 @@ export function AuditLogPage() {
           <select
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
-            className="w-full sm:w-auto bg-white border border-gray-200 rounded-lg text-xs text-slate-700 px-3 py-2 focus:outline-none focus:border-primary cursor-pointer"
+            className="w-full sm:w-auto bg-white border border-gray-200 rounded-lg text-base sm:text-xs text-slate-700 px-3 py-2 focus:outline-none focus:border-primary cursor-pointer min-h-[38px] h-10 sm:h-9"
           >
             <option value="ALL">Tất cả hành động</option>
             <option value="LOGIN">🔑 Đăng nhập</option>
@@ -295,7 +295,7 @@ export function AuditLogPage() {
 
       {/* TanStack Table */}
       <div className="overflow-hidden bg-white border border-gray-200 rounded-xl shadow-sm">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
           <table className="w-full text-left text-sm min-w-[720px]">
             <thead className="bg-gray-50/80 border-b border-gray-200 text-xs text-slate-600 font-semibold uppercase tracking-wider">
               {table.getHeaderGroups().map((headerGroup) => (
@@ -355,7 +355,7 @@ export function AuditLogPage() {
                 size="sm"
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
-                className="h-8 px-2 text-xs"
+                className="h-9 min-h-[36px] px-3 text-xs"
               >
                 Trước
               </Button>
@@ -364,7 +364,7 @@ export function AuditLogPage() {
                 size="sm"
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
-                className="h-8 px-2 text-xs"
+                className="h-9 min-h-[36px] px-3 text-xs"
               >
                 Tiếp theo
               </Button>

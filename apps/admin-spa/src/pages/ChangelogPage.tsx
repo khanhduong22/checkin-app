@@ -19,7 +19,7 @@ export function ChangelogPage() {
           </p>
         </div>
         <Link to="/" className="w-full sm:w-auto">
-          <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto text-xs sm:text-sm">
+          <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto text-xs sm:text-sm min-h-[38px]">
             <ArrowLeft className="h-4 w-4" /> Quay lại Dashboard
           </Button>
         </Link>

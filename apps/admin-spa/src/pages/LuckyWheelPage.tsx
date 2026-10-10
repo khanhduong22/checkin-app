@@ -140,7 +140,7 @@ export function LuckyWheelPage() {
           <CardTitle className="text-lg sm:text-xl font-bold">Danh sách giải thưởng</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
             <Table className="min-w-[680px]">
               <TableHeader>
                 <TableRow>

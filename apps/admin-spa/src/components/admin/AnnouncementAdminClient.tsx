@@ -135,7 +135,7 @@ export default function AnnouncementAdminClient({
       <Button
         id="announcement-new-btn"
         onClick={() => setIsOpen(true)}
-        className="bg-primary hover:bg-primary/90 text-white font-medium"
+        className="bg-primary hover:bg-primary/90 text-white font-medium min-h-[38px] w-full sm:w-auto"
       >
         📢 Đăng thông báo mới
       </Button>
@@ -164,7 +164,7 @@ export default function AnnouncementAdminClient({
                     : "--"}
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                 <span className="text-xs font-medium text-slate-500">
                   {a.active ? "Đang hiện" : "Đã ẩn"}
                 </span>
@@ -172,6 +172,7 @@ export default function AnnouncementAdminClient({
                   size="sm"
                   variant={a.active ? "default" : "secondary"}
                   onClick={() => handleToggle(a.id, a.active)}
+                  className="min-h-[36px] min-w-[50px]"
                 >
                   {a.active ? "Tắt" : "Bật"}
                 </Button>
@@ -179,6 +180,7 @@ export default function AnnouncementAdminClient({
                   size="sm"
                   variant="destructive"
                   onClick={() => handleDelete(a.id)}
+                  className="min-h-[36px]"
                 >
                   Xóa
                 </Button>
@@ -201,13 +203,13 @@ export default function AnnouncementAdminClient({
                   onChange={(e) => setTitle(e.target.value)}
                   required
                   placeholder="VD: Thông báo nghỉ lễ..."
-                  className="bg-white"
+                  className="bg-white h-10 sm:h-9 text-base sm:text-sm"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Loại tin</Label>
                 <select
-                  className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm"
+                  className="flex h-10 sm:h-9 w-full rounded-md border border-input bg-white px-3 py-2 text-base sm:text-sm shadow-sm"
                   value={type}
                   onChange={(e) => setType(e.target.value)}
                 >
@@ -225,7 +227,7 @@ export default function AnnouncementAdminClient({
                   onChange={(e) => setContent(e.target.value)}
                   required
                   placeholder="Nội dung chi tiết..."
-                  className="bg-white"
+                  className="bg-white h-10 sm:h-9 text-base sm:text-sm"
                 />
               </div>
               <div className="pt-4 flex justify-end gap-2">
@@ -233,10 +235,11 @@ export default function AnnouncementAdminClient({
                   type="button"
                   variant="ghost"
                   onClick={() => setIsOpen(false)}
+                  className="min-h-[38px]"
                 >
                   Hủy
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting} className="min-h-[38px]">
                   Đăng ngay
                 </Button>
               </div>

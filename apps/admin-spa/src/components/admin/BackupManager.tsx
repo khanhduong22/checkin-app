@@ -59,7 +59,7 @@ export default function BackupManager() {
               id="from"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="bg-white"
+              className="bg-white h-10 sm:h-9 min-h-[38px] text-base sm:text-sm"
             />
           </div>
           <div className="grid w-full max-w-sm items-center gap-1.5">
@@ -69,16 +69,16 @@ export default function BackupManager() {
               id="to"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="bg-white"
+              className="bg-white h-10 sm:h-9 min-h-[38px] text-base sm:text-sm"
             />
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button
             onClick={handleDownload}
             disabled={isLoading}
-            className="w-full sm:w-auto bg-primary text-white"
+            className="w-full sm:w-auto bg-primary text-white min-h-[38px] h-10 sm:h-9"
           >
             {isLoading ? "Đang xử lý..." : "📥 Tải về bản Backup (.xlsx)"}
           </Button>
@@ -91,6 +91,7 @@ export default function BackupManager() {
                 setEndDate("");
               }}
               title="Xóa bộ lọc ngày"
+              className="w-full sm:w-auto min-h-[38px] h-10 sm:h-9"
             >
               Xóa bộ lọc
             </Button>

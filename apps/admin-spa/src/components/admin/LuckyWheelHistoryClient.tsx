@@ -60,7 +60,7 @@ export default function LuckyWheelHistoryClient({
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Tìm theo tên/email..."
-                className="pl-8 bg-white w-full"
+                className="pl-8 bg-white w-full h-10 sm:h-9 min-h-[38px] text-base sm:text-sm"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -74,7 +74,7 @@ export default function LuckyWheelHistoryClient({
                 setPrizeFilter(e.target.value);
                 setPage(1);
               }}
-              className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm w-full sm:w-auto"
+              className="h-10 sm:h-9 min-h-[38px] rounded-md border border-input bg-white px-3 py-2 text-base sm:text-sm shadow-sm w-full sm:w-auto"
             >
               <option value="ALL">Tất cả giải</option>
               {prizeOptions.map((p: any) => (
@@ -87,7 +87,7 @@ export default function LuckyWheelHistoryClient({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border bg-white overflow-x-auto">
+        <div className="rounded-md border bg-white overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
           <Table className="min-w-[550px]">
             <TableHeader>
               <TableRow>
@@ -161,6 +161,7 @@ export default function LuckyWheelHistoryClient({
             <Button
               variant="outline"
               size="sm"
+              className="min-h-[36px] min-w-[36px]"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
             >
@@ -172,6 +173,7 @@ export default function LuckyWheelHistoryClient({
             <Button
               variant="outline"
               size="sm"
+              className="min-h-[36px] min-w-[36px]"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
             >
