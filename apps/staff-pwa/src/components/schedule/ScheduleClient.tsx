@@ -11,6 +11,21 @@ const START_HOURS = Array.from({ length: 10 }, (_, i) => String(i + 8).padStart(
 const END_HOURS = Array.from({ length: 11 }, (_, i) => String(i + 11).padStart(2, "0")); // 11..21
 const MINUTES = ["00", "15", "30", "45"];
 
+const MORNING_PRESETS = [
+  { label: "8h - 12h", sH: "08", sM: "00", eH: "12", eM: "00" },
+  { label: "8h - 14h", sH: "08", sM: "00", eH: "14", eM: "00" },
+  { label: "8h - 15h", sH: "08", sM: "00", eH: "15", eM: "00" },
+  { label: "9h - 14h", sH: "09", sM: "00", eH: "14", eM: "00" },
+  { label: "10h - 14h30", sH: "10", sM: "00", eH: "14", eM: "30" },
+];
+
+const AFTERNOON_PRESETS = [
+  { label: "12h - 16h30", sH: "12", sM: "00", eH: "16", eM: "30" },
+  { label: "12h - 17h", sH: "12", sM: "00", eH: "17", eM: "00" },
+  { label: "12h30 - 17h", sH: "12", sM: "30", eH: "17", eM: "00" },
+  { label: "13h - 17h", sH: "13", sM: "00", eH: "17", eM: "00" },
+];
+
 function formatShiftLabel(type?: string, start?: string, end?: string): string {
   if (type === "MORNING") return "Sáng (8:30 - 12:00)";
   if (type === "AFTERNOON") return "Chiều (13:30 - 17:30)";
@@ -55,10 +70,10 @@ export default function ScheduleClient({
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [startHour, setStartHour] = useState("08");
-  const [startMinute, setStartMinute] = useState("30");
+  const [startMinute, setStartMinute] = useState("00");
   const [endHour, setEndHour] = useState("12");
   const [endMinute, setEndMinute] = useState("00");
-  const [activePreset, setActivePreset] = useState<string | null>("MORNING");
+  const [activePreset, setActivePreset] = useState<string | null>("8h - 12h");
   const [showAddForm, setShowAddForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -115,7 +130,7 @@ export default function ScheduleClient({
 
   const handleOpenDate = (date: Date) => {
     setSelectedDate(date);
-    applyTimeRange("08", "30", "12", "00", "MORNING");
+    applyTimeRange("08", "00", "12", "00", "8h - 12h");
     setShowAddForm(false);
   };
 
@@ -447,48 +462,65 @@ export default function ScheduleClient({
                 </div>
 
                 {/* Quick Presets */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-stone-500">Gợi ý chọn nhanh:</span>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <Button
-                      type="button"
-                      variant={activePreset === "MORNING" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => applyTimeRange("08", "30", "12", "00", "MORNING")}
-                      className={`h-8 text-[11px] rounded-xl font-bold cursor-pointer ${
-                        activePreset === "MORNING"
-                          ? "bg-amber-600 hover:bg-amber-700 text-white"
-                          : "border-stone-200 text-stone-700 hover:bg-stone-50"
-                      }`}
-                    >
-                      Sáng 8:30-12h
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={activePreset === "AFTERNOON" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => applyTimeRange("13", "30", "17", "30", "AFTERNOON")}
-                      className={`h-8 text-[11px] rounded-xl font-bold cursor-pointer ${
-                        activePreset === "AFTERNOON"
-                          ? "bg-amber-600 hover:bg-amber-700 text-white"
-                          : "border-stone-200 text-stone-700 hover:bg-stone-50"
-                      }`}
-                    >
-                      Chiều 13:30-17:30
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={activePreset === "FULL" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => applyTimeRange("08", "30", "17", "30", "FULL")}
-                      className={`h-8 text-[11px] rounded-xl font-bold cursor-pointer ${
-                        activePreset === "FULL"
-                          ? "bg-amber-600 hover:bg-amber-700 text-white"
-                          : "border-stone-200 text-stone-700 hover:bg-stone-50"
-                      }`}
-                    >
-                      Cả ngày 8:30-17:30
-                    </Button>
+                <div className="space-y-2.5">
+                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                    Gợi ý ca làm nhanh:
+                  </span>
+
+                  {/* Ca sáng */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-amber-700 flex items-center gap-1">
+                      ☀️ Ca sáng:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {MORNING_PRESETS.map((p) => {
+                        const isSelected = activePreset === p.label;
+                        return (
+                          <Button
+                            key={p.label}
+                            type="button"
+                            variant={isSelected ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => applyTimeRange(p.sH, p.sM, p.eH, p.eM, p.label)}
+                            className={`h-8 px-2.5 text-[11px] rounded-xl cursor-pointer ${
+                              isSelected
+                                ? "bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                : "border-stone-200 text-stone-700 hover:bg-stone-50"
+                            }`}
+                          >
+                            {p.label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Ca chiều */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-bold text-amber-700 flex items-center gap-1">
+                      🌙 Ca chiều:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {AFTERNOON_PRESETS.map((p) => {
+                        const isSelected = activePreset === p.label;
+                        return (
+                          <Button
+                            key={p.label}
+                            type="button"
+                            variant={isSelected ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => applyTimeRange(p.sH, p.sM, p.eH, p.eM, p.label)}
+                            className={`h-8 px-2.5 text-[11px] rounded-xl cursor-pointer ${
+                              isSelected
+                                ? "bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                : "border-stone-200 text-stone-700 hover:bg-stone-50"
+                            }`}
+                          >
+                            {p.label}
+                          </Button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
