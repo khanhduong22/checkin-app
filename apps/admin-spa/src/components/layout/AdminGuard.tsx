@@ -1,24 +1,18 @@
-import React, { useState } from "react";
+import React from "react";
 import useSWR from "swr";
-import { swrFetcher, api, setToken } from "@/lib/api";
+import { swrFetcher } from "@/lib/api";
 import { AdminPageLoadingSkeleton } from "@/components/ui/AdminPageLoadingSkeleton";
-import { ShieldAlert, KeyRound, Loader2, ArrowLeft, ShieldCheck, Lock } from "lucide-react";
-import { toast } from "sonner";
+import { ShieldAlert, ArrowLeft } from "lucide-react";
 
 interface AdminGuardProps {
   children: React.ReactNode;
 }
 
 export function AdminGuard({ children }: AdminGuardProps) {
-  const { data, error, isLoading, mutate } = useSWR<any>("/api/me", swrFetcher, {
+  const { data, error, isLoading } = useSWR<any>("/api/me", swrFetcher, {
     revalidateOnFocus: true,
     shouldRetryOnError: false,
   });
-
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPin, setAdminPin] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // If currently loading profile for the first time
   if (isLoading && !data && !error) {
@@ -39,46 +33,8 @@ export function AdminGuard({ children }: AdminGuardProps) {
     return <>{children}</>;
   }
 
-  // Handle Admin PIN Unlock submission
-  const handlePinAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage(null);
-
-    const emailToUse = (adminEmail.trim() || currentUser?.email || "").trim();
-    const pinToUse = adminPin.trim();
-
-    if (!emailToUse) {
-      setErrorMessage("Vui lòng nhập địa chỉ email Quản trị viên");
-      return;
-    }
-    if (!pinToUse) {
-      setErrorMessage("Vui lòng nhập mã PIN bảo mật Admin");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const res: any = await api.post("/auth/login", {
-        email: emailToUse,
-        adminPin: pinToUse,
-      });
-
-      if (res && res.accessToken) {
-        setToken(res.accessToken);
-        toast.success(`Xác thực Quản trị viên thành công: ${res.user?.name || emailToUse} 🛡️`);
-        await mutate();
-      } else {
-        setErrorMessage(res?.error || "Mã PIN không hợp lệ hoặc tài khoản không có quyền Admin");
-      }
-    } catch (err: any) {
-      setErrorMessage(
-        err?.data?.error ||
-        err?.message ||
-        "Mã PIN bảo mật Admin không chính xác. Vui lòng thử lại."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleGoogleLogin = () => {
+    window.location.href = "/api/auth/google";
   };
 
   return (
@@ -90,7 +46,7 @@ export function AdminGuard({ children }: AdminGuardProps) {
         </div>
 
         <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900 mb-2">
-          Truy cập bị từ chối (403)
+          Yêu cầu quyền Quản trị viên
         </span>
 
         <h2 className="text-xl font-extrabold text-stone-900 dark:text-stone-100 tracking-tight">
@@ -98,7 +54,7 @@ export function AdminGuard({ children }: AdminGuardProps) {
         </h2>
 
         <p className="mt-2 text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-          Trang quản trị chỉ dành riêng cho <strong>Quản trị viên LimArt</strong>. Nhân viên vui lòng sử dụng ứng dụng chấm công dành cho nhân viên.
+          Trang quản trị chỉ dành riêng cho <strong>Quản trị viên LimArt</strong>. Vui lòng đăng nhập bằng tài khoản Google đã được cấp quyền Admin.
         </p>
 
         {currentUser && (
@@ -109,64 +65,33 @@ export function AdminGuard({ children }: AdminGuardProps) {
           </div>
         )}
 
-        {/* Admin PIN Unlock Form */}
-        <div className="mt-5 pt-4 border-t border-orange-100 dark:border-gray-800 text-left">
-          <div className="flex items-center gap-1.5 mb-2.5 text-xs font-bold text-stone-800 dark:text-stone-200">
-            <Lock className="w-3.5 h-3.5 text-amber-600" />
-            <span>Mở khóa bằng mã PIN Quản trị viên</span>
-          </div>
-
-          <form onSubmit={handlePinAuth} className="space-y-3">
-            <div>
-              <label className="block text-[11px] font-medium text-stone-600 dark:text-stone-400 mb-1">
-                Email Quản trị viên
-              </label>
-              <input
-                type="email"
-                required
-                placeholder={currentUser?.email || "admin@limart.vn"}
-                value={adminEmail || (currentUser?.email ? "" : adminEmail)}
-                onChange={(e) => setAdminEmail(e.target.value)}
-                defaultValue={currentUser?.email}
-                className="w-full px-3 py-2 text-xs bg-stone-50 dark:bg-gray-800 border border-stone-200 dark:border-gray-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-amber-500 text-stone-900 dark:text-stone-100"
+        {/* Google Login Button */}
+        <div className="mt-6 pt-4 border-t border-orange-100 dark:border-gray-800">
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="relative flex w-full items-center justify-center gap-3 rounded-2xl bg-[#e8f0fe] hover:bg-[#d2e3fc] px-4 py-3 text-xs sm:text-sm font-semibold text-[#1a73e8] transition-all hover:shadow-md cursor-pointer active:scale-98 border border-[#d2e3fc]"
+          >
+            <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4"
               />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-medium text-stone-600 dark:text-stone-400 mb-1">
-                Mã PIN bảo mật Admin
-              </label>
-              <input
-                type="password"
-                required
-                placeholder="Nhập mã PIN Admin..."
-                value={adminPin}
-                onChange={(e) => setAdminPin(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-stone-50 dark:bg-gray-800 border border-stone-200 dark:border-gray-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-amber-500 text-stone-900 dark:text-stone-100 font-mono tracking-widest"
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"
               />
-            </div>
-
-            {errorMessage && (
-              <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-[11px]">
-                {errorMessage}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-98 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-xs"
-            >
-              {isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <KeyRound className="w-4 h-4" />
-                  <span>Xác thực Quản trị viên</span>
-                </>
-              )}
-            </button>
-          </form>
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335"
+              />
+            </svg>
+            <span>Đăng nhập bằng Google</span>
+          </button>
         </div>
 
         {/* Back to Staff App Button */}
@@ -183,3 +108,5 @@ export function AdminGuard({ children }: AdminGuardProps) {
     </div>
   );
 }
+
+export default AdminGuard;

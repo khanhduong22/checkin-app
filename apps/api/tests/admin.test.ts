@@ -176,7 +176,7 @@ describe("Admin Routes", () => {
   describe("Permission Guard", () => {
     it("returns 403 when user is not ADMIN", async () => {
       const res = await app.request("/api/admin/users", {
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
       expect(res.status).toBe(403);
     });
@@ -193,7 +193,7 @@ describe("Admin Routes", () => {
       mockHolidayFindMany.mockResolvedValue([]);
 
       const res = await app.request("/api/admin/dashboard", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -218,7 +218,7 @@ describe("Admin Routes", () => {
       mockUserFindMany.mockResolvedValue([]);
 
       const res = await app.request("/api/admin/dashboard-stats", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -241,7 +241,7 @@ describe("Admin Routes", () => {
       ]);
 
       const res = await app.request("/api/admin/users", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -263,7 +263,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({
           name: "Bob",
@@ -290,7 +290,7 @@ describe("Admin Routes", () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({
           name: "Alice Updated",
@@ -309,7 +309,7 @@ describe("Admin Routes", () => {
 
       const res = await app.request("/api/admin/users/u-1", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -326,7 +326,7 @@ describe("Admin Routes", () => {
       ]);
 
       const res = await app.request("/api/admin/ip-settings", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -346,7 +346,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ prefix: "10.0.0.", label: "Store" }),
       });
@@ -362,7 +362,7 @@ describe("Admin Routes", () => {
 
       const res = await app.request("/api/admin/ip-settings/2", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -381,7 +381,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({
           userId: "u-1",
@@ -412,7 +412,7 @@ describe("Admin Routes", () => {
       ]);
 
       const res = await app.request("/api/admin/requests", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -428,7 +428,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ action: "APPROVED" }),
       });
@@ -447,7 +447,7 @@ describe("Admin Routes", () => {
       ]);
 
       const res = await app.request("/api/admin/announcements", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -468,7 +468,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({
           title: "Họp công ty",
@@ -487,7 +487,7 @@ describe("Admin Routes", () => {
 
       const res = await app.request("/api/admin/announcements/a-2", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -511,7 +511,7 @@ describe("Admin Routes", () => {
       ]);
 
       const res = await app.request("/api/auth/audit-logs?page=1&limit=10", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -536,7 +536,7 @@ describe("Admin Routes", () => {
       ]);
 
       const res = await app.request("/api/admin/payroll?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -564,7 +564,7 @@ describe("Admin Routes", () => {
       });
 
       const res = await app.request("/api/admin/employees/u-1?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -585,7 +585,7 @@ describe("Admin Routes", () => {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ isActive: false }),
       });
@@ -603,7 +603,7 @@ describe("Admin Routes", () => {
 
       const res = await app.request("/api/admin/requests/10/approve", {
         method: "POST",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -623,7 +623,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ reason: "Bận ca" }),
       });
@@ -649,7 +649,7 @@ describe("Admin Routes", () => {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ allow: true }),
       });
@@ -671,7 +671,7 @@ describe("Admin Routes", () => {
       mockRequestFindMany.mockResolvedValue([]);
 
       const res = await app.request("/api/admin/export?from=2026-10-01&to=2026-10-31", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -706,7 +706,7 @@ describe("Admin Routes", () => {
       ]);
 
       const res = await app.request("/api/admin/schedule?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -736,7 +736,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({
           userId: "u-1",
@@ -774,7 +774,7 @@ describe("Admin Routes", () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({
           start: "2026-10-06T09:00:00Z",
@@ -800,7 +800,7 @@ describe("Admin Routes", () => {
 
       const res = await app.request("/api/admin/schedule/102", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -830,7 +830,7 @@ describe("Admin Routes", () => {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ isSenior: true }),
       });
@@ -858,7 +858,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({
           shifts: [
@@ -893,7 +893,7 @@ describe("Admin Routes", () => {
       mockShiftAuditLogCount.mockResolvedValue(1);
 
       const res = await app.request("/api/admin/schedule/history?page=1&pageSize=50", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -910,7 +910,7 @@ describe("Admin Routes", () => {
       const res = await app.request(
         "/api/admin/schedule/history?startDate=2026-10-01&endDate=2026-10-07",
         {
-          headers: { Authorization: `Bearer ${adminToken}` },
+          headers: { Cookie: `access_token=${adminToken}` },
         }
       );
 
@@ -946,7 +946,7 @@ describe("Admin Routes", () => {
       mockWorkShiftFindMany.mockResolvedValue([]);
 
       const res = await app.request("/api/admin/reports?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -990,7 +990,7 @@ describe("Admin Routes", () => {
       ]);
 
       const res = await app.request("/api/admin/tasks", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -1027,7 +1027,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ bonusPenalty: 1000, adminNote: "Làm tốt" }),
       });
@@ -1049,7 +1049,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ reason: "Không đạt yêu cầu" }),
       });
@@ -1082,7 +1082,7 @@ describe("Admin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ decision: "APPROVED", bonusPenalty: 0 }),
       });

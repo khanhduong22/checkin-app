@@ -41,9 +41,10 @@ export function Header({
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const currentTitle = ROUTE_TITLES[location.pathname] || "Admin Panel";
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm("Bạn có chắc chắn muốn đăng xuất khỏi Admin Panel?")) {
       removeToken();
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
       toast.success("Đã đăng xuất thành công");
       window.location.href = "/";
     }

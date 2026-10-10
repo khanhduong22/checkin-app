@@ -1,8 +1,7 @@
 import { Hono } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
 import { prisma } from "@checkin/db";
-import { LoginRequestSchema } from "@checkin/shared";
-import { signAccessToken, verifyAccessToken } from "../lib/auth";
+import { signAccessToken, verifyAccessToken, TOKEN_EXPIRY_SECONDS } from "../lib/auth";
 import { authMiddleware, adminMiddleware, AppEnv } from "../middleware/auth.middleware";
 import { getClientIP } from "../lib/ip-utils";
 import { authRateLimiter } from "../middleware/rate-limiter";
@@ -146,6 +145,14 @@ authRoute.get("/callback/google", async (c) => {
     });
   }
 
+  // Auto-assign PARTNER role if matches cuccung123456789@gmail.com
+  if (user.email === "cuccung123456789@gmail.com" && user.role !== "PARTNER") {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { role: "PARTNER" },
+    });
+  }
+
   const tokenPayload = {
     sub: user.id,
     email: user.email || "",
@@ -155,12 +162,12 @@ authRoute.get("/callback/google", async (c) => {
 
   const accessToken = await signAccessToken(tokenPayload);
 
-  // Set HttpOnly cookie for Web/PWA clients
+  // Set HttpOnly cookie for Web/PWA clients (30 days)
   setCookie(c, "access_token", accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "Lax",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: TOKEN_EXPIRY_SECONDS,
     path: "/",
   });
 
@@ -175,222 +182,15 @@ authRoute.get("/callback/google", async (c) => {
     requestId: c.var.requestId || c.get("requestId"),
   });
 
-  return c.redirect(user.role === "ADMIN" ? "/admin" : "/");
+  const redirectUrl =
+    user.role === "ADMIN" ? "/admin" : user.role === "PARTNER" ? "/tasks" : "/";
+  return c.redirect(redirectUrl);
 });
 
-// POST /api/auth/login
-authRoute.post("/login", async (c) => {
-  try {
-    const body = await c.req.json().catch(() => ({}));
-    const parseResult = LoginRequestSchema.safeParse(body);
-
-    if (!parseResult.success) {
-      return c.json(
-        {
-          success: false,
-          error: "Invalid request payload",
-          details: parseResult.error.flatten(),
-        },
-        400
-      );
-    }
-
-    const { email, googleToken, adminPin, password } = parseResult.data;
-
-    if (!email && !googleToken) {
-      return c.json(
-        { success: false, error: "Either email or googleToken is required" },
-        400
-      );
-    }
-
-    let lookupEmail = email ? email.toLowerCase().trim() : null;
-
-    // Handle googleToken: decode JWT payload if email was not directly provided
-    if (!lookupEmail && googleToken) {
-      try {
-        const parts = googleToken.split(".");
-        if (parts.length === 3) {
-          const payloadJson = Buffer.from(parts[1], "base64").toString("utf-8");
-          const payload = JSON.parse(payloadJson);
-          if (payload.email) {
-            lookupEmail = payload.email.toLowerCase().trim();
-          }
-        }
-      } catch {
-        // Fallback: lookupEmail remains null
-      }
-    }
-
-    const clientIp = getClientIP(c);
-    const userAgent = c.req.header("user-agent") || "unknown";
-    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
-
-    // Lookup user in DB
-    let user = null;
-    if (lookupEmail) {
-      user = await prisma.user.findUnique({
-        where: { email: lookupEmail },
-      });
-    }
-
-    if (!user) {
-      // Record failed audit log
-      await recordSecureAuditLog({
-        action: "LOGIN",
-        status: "FAILED",
-        ipAddress: clientIp,
-        userAgent: userAgent,
-        device: isMobile ? "Mobile" : "Desktop",
-        details: {
-          reason: "User not found or invalid credentials",
-          attemptedEmail: lookupEmail,
-        },
-        requestId: c.var.requestId || c.get("requestId"),
-      });
-
-      return c.json(
-        { success: false, error: "Tài khoản không tồn tại hoặc thông tin đăng nhập không đúng" },
-        401
-      );
-    }
-
-    if (!user.isActive) {
-      await recordSecureAuditLog({
-        userId: user.id,
-        action: "LOGIN",
-        status: "FAILED",
-        ipAddress: clientIp,
-        userAgent: userAgent,
-        device: isMobile ? "Mobile" : "Desktop",
-        details: {
-          reason: "Account inactive",
-        },
-        requestId: c.var.requestId || c.get("requestId"),
-      });
-
-      return c.json(
-        { success: false, error: "Tài khoản của bạn đã bị vô hiệu hóa" },
-        403
-      );
-    }
-
-    // Auto-promote system admin if matches khanhdev4@gmail.com
-    if (user.email === "khanhdev4@gmail.com" && user.role !== "ADMIN") {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { role: "ADMIN" },
-      });
-    }
-
-    // Security Hardening: Admin account protection
-    if (user.role === "ADMIN") {
-      const expectedAdminPin = process.env.ADMIN_PIN || "2202";
-      const providedPin = (adminPin || password || "").trim();
-      const hasValidPin = Boolean(providedPin && providedPin === expectedAdminPin);
-
-      let hasValidGoogleToken = false;
-      if (googleToken && typeof googleToken === "string") {
-        try {
-          const parts = googleToken.split(".");
-          if (parts.length === 3) {
-            const payloadJson = Buffer.from(parts[1], "base64").toString("utf-8");
-            const payload = JSON.parse(payloadJson);
-            if (payload && payload.email) {
-              hasValidGoogleToken = true;
-            }
-          }
-        } catch {
-          hasValidGoogleToken = false;
-        }
-      }
-
-      if (!hasValidPin && !hasValidGoogleToken) {
-        await recordSecureAuditLog({
-          userId: user.id,
-          action: "LOGIN",
-          status: "FAILED",
-          ipAddress: clientIp,
-          userAgent: userAgent,
-          device: isMobile ? "Mobile" : "Desktop",
-          details: {
-            reason: "Admin login attempted without PIN/credential",
-            attemptedEmail: user.email,
-          },
-          requestId: c.var.requestId || c.get("requestId"),
-        });
-
-        return c.json(
-          {
-            success: false,
-            error: "Tài khoản Quản trị viên yêu cầu mã PIN bảo mật Admin hoặc Google Workspace",
-          },
-          403
-        );
-      }
-    }
-
-    const tokenPayload = {
-      sub: user.id,
-      email: user.email || "",
-      name: user.name || "",
-      role: user.role,
-    };
-
-    const accessToken = await signAccessToken(tokenPayload);
-
-    // Record successful login audit log
-    await recordSecureAuditLog({
-      userId: user.id,
-      action: "LOGIN",
-      status: "SUCCESS",
-      ipAddress: clientIp,
-      userAgent: userAgent,
-      device: isMobile ? "Mobile" : "Desktop",
-      requestId: c.var.requestId || c.get("requestId"),
-    });
-
-    // Set HttpOnly cookie for Web/PWA clients
-    setCookie(c, "access_token", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: "/",
-    });
-
-    return c.json({
-      success: true,
-      accessToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        image: user.image,
-        employmentType: user.employmentType,
-        hourlyRate: user.hourlyRate,
-      },
-    });
-  } catch (err: any) {
-    return c.json(
-      { success: false, error: err?.message || "Internal server error" },
-      500
-    );
-  }
-});
-
-// POST /api/auth/logout
-authRoute.post("/logout", async (c) => {
+// POST & GET /api/auth/logout
+authRoute.all("/logout", async (c) => {
   let userId: string | null = null;
-  const authHeader = c.req.header("Authorization");
-  let token: string | null = null;
-
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    token = authHeader.substring(7).trim();
-  } else {
-    token = getCookie(c, "access_token") || null;
-  }
+  const token = getCookie(c, "access_token");
 
   if (token) {
     const payload = await verifyAccessToken(token);
@@ -417,6 +217,10 @@ authRoute.post("/logout", async (c) => {
     maxAge: 0,
     path: "/",
   });
+
+  if (c.req.query("redirect") || c.req.method === "GET") {
+    return c.redirect("/login");
+  }
 
   return c.json({
     success: true,
@@ -499,5 +303,3 @@ authRoute.get("/me", authMiddleware, async (c) => {
     user,
   });
 });
-
-

@@ -51,7 +51,7 @@ describe("Shift Duty Routes", () => {
       ]);
 
       const res = await app.request("/api/shift-duties/weekly", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);

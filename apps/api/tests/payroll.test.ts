@@ -96,7 +96,7 @@ describe("Payroll Routes", () => {
       mockHolidayFindMany.mockResolvedValue([]);
 
       const res = await app.request("/api/payroll/my-summary?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(200);

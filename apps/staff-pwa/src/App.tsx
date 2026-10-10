@@ -21,8 +21,6 @@ import {
   DEFAULT_STAFF,
   StaffProfile,
   fetcher,
-  getAuthToken,
-  setAuthToken,
 } from "./lib/api-client";
 import { useOfflineQueue } from "./lib/use-offline-queue";
 import { initPWARegistration } from "./lib/pwa-register";
@@ -34,16 +32,10 @@ import { useAppVersionGuard, VersionGuardBanner } from "@checkin/spa-version-gua
 function AppContent() {
   const pathname = usePathname();
   const router = useRouter();
-  const [hasCheckedSession, setHasCheckedSession] = useState<boolean>(() => Boolean(getAuthToken()));
+  const [hasCheckedSession, setHasCheckedSession] = useState<boolean>(false);
 
-  // Authentication Guard: check cookie session if localStorage token is not present
+  // Authentication Guard: check HttpOnly cookie session via /api/me
   useEffect(() => {
-    const token = getAuthToken();
-    if (token) {
-      setHasCheckedSession(true);
-      return;
-    }
-
     // Verify if user is authenticated via HttpOnly cookie (e.g. Google OAuth redirect)
     fetch("/api/me", { credentials: "include" })
       .then((res) => {
@@ -52,7 +44,6 @@ function AppContent() {
       })
       .then((data) => {
         if (data.success && data.user) {
-          setAuthToken("cookie_session");
           saveCachedProfile({
             id: data.user.id,
             name: data.user.name || "Nhân viên LimArt",
@@ -80,7 +71,7 @@ function AppContent() {
   }, [pathname, router]);
 
   const { data: homeRes } = useSWR<{ success: boolean; data: any }>(
-    getAuthToken() ? "/api/staff/home-data" : null,
+    hasCheckedSession && pathname !== "/login" ? "/api/staff/home-data" : null,
     fetcher
   );
   const liveUser = homeRes?.data?.user;
@@ -208,6 +199,7 @@ function AppContent() {
         <BottomNavigation
           currentTab={currentTab}
           onChangeTab={handleTabChange}
+          userRole={profile.role}
         />
       </div>
 

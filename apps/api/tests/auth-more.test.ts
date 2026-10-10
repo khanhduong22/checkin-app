@@ -27,8 +27,8 @@ describe("Auth Extended Routes", () => {
     vi.clearAllMocks();
   });
 
-  describe("POST /api/auth/logout", () => {
-    it("clears cookie and records SessionAuditLog", async () => {
+  describe("POST & GET /api/auth/logout", () => {
+    it("clears access_token cookie and records SessionAuditLog on POST", async () => {
       const token = await signAccessToken({
         sub: "u-123",
         email: "user@example.com",
@@ -40,7 +40,7 @@ describe("Auth Extended Routes", () => {
       const res = await app.request("/api/auth/logout", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Cookie: `access_token=${token}`,
         },
       });
 
@@ -58,39 +58,18 @@ describe("Auth Extended Routes", () => {
       );
       const setCookie = res.headers.get("set-cookie");
       expect(setCookie).toContain("access_token=");
+      expect(setCookie).toContain("Max-Age=0");
     });
-  });
 
-  describe("POST /api/auth/login with googleToken", () => {
-    it("logs in user when googleToken contains valid encoded email", async () => {
-      // Mock a simple 3-part JWT format token with email in payload
-      const payloadBase64 = Buffer.from(
-        JSON.stringify({ email: "google-user@example.com" })
-      ).toString("base64");
-      const fakeGoogleToken = `header.${payloadBase64}.signature`;
-
-      mockUserFindUnique.mockResolvedValue({
-        id: "u-google-1",
-        name: "Google User",
-        email: "google-user@example.com",
-        role: "USER",
-        isActive: true,
-        employmentType: "PART_TIME",
-        hourlyRate: 30000,
-      });
-      mockSessionAuditLogCreate.mockResolvedValue({ id: "audit-login" });
-
-      const res = await app.request("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ googleToken: fakeGoogleToken }),
+    it("clears access_token cookie and redirects to /login on GET", async () => {
+      const res = await app.request("/api/auth/logout", {
+        method: "GET",
       });
 
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.success).toBe(true);
-      expect(data.user.email).toBe("google-user@example.com");
-      expect(typeof data.accessToken).toBe("string");
+      expect(res.status).toBe(302);
+      expect(res.headers.get("location")).toBe("/login");
+      const setCookie = res.headers.get("set-cookie");
+      expect(setCookie).toContain("access_token=");
     });
   });
 
@@ -119,7 +98,7 @@ describe("Auth Extended Routes", () => {
       });
 
       const res = await app.request("/api/me", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Cookie: `access_token=${token}` },
       });
 
       expect(res.status).toBe(200);

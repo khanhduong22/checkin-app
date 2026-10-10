@@ -4,118 +4,52 @@
 
 import { enqueueCheckin, isNetworkOnline } from "./offline-queue";
 
-const TOKEN_KEY = "limart_staff_jwt_token";
 const HOME_CACHE_KEY = "limart_staff_home_data_cache";
 
 export function getAuthToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY) || null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
-export function setAuthToken(token: string) {
-  try {
-    localStorage.setItem(TOKEN_KEY, token);
-  } catch {}
+export function setAuthToken(_token: string) {
+  // Deprecated: Auth uses 100% HttpOnly cookie 'access_token'
 }
 
 export function removeAuthToken() {
   try {
-    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("limart_staff_jwt_token");
+    localStorage.removeItem("admin_token");
     localStorage.removeItem("limart_staff_profile_cache");
     localStorage.removeItem(HOME_CACHE_KEY);
   } catch {}
 }
 
 export function getAuthHeaders(): Record<string, string> {
-  const token = getAuthToken();
-  if (token && token !== "cookie_session") {
-    return { Authorization: `Bearer ${token}` };
-  }
   return {};
 }
 
-
-
-export async function loginWithEmail(
-  email: string,
-  adminPin?: string
-): Promise<{ success: boolean; token?: string; user?: any; error?: string }> {
-  try {
-    const payload: { email: string; adminPin?: string } = { email: email.trim() };
-    if (adminPin) {
-      payload.adminPin = adminPin.trim();
-    }
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (data.success && data.accessToken) {
-      setAuthToken(data.accessToken);
-      if (data.user?.role === "ADMIN") {
-        try {
-          localStorage.setItem("admin_token", data.accessToken);
-        } catch {}
-      }
-      if (data.user) {
-        saveCachedProfile({
-          id: data.user.id,
-          name: data.user.name || "Nhân viên",
-          email: data.user.email || email,
-          role: data.user.role || "USER",
-          avatarUrl: data.user.image || "/capybara_mascot.png",
-          employmentType: data.user.employmentType || "PART_TIME",
-          hourlyRate: data.user.hourlyRate || 25000,
-          streakDays: 0,
-          gachaTickets: 1,
-          achievements: [],
-        });
-      }
-      return { success: true, token: data.accessToken, user: data.user };
-    }
-    return { success: false, error: data.error || "Đăng nhập thất bại" };
-  } catch (err: any) {
-    return { success: false, error: err?.message || "Lỗi kết nối máy chủ" };
-  }
+export async function loginWithEmail(): Promise<{ success: boolean; error: string }> {
+  return {
+    success: false,
+    error: "Phương thức đăng nhập bằng Email/PIN đã ngừng hỗ trợ. Vui lòng đăng nhập bằng Google.",
+  };
 }
 
 /**
- * Resilient authenticated fetch with automatic stale token cleanup and cookie fallback.
- * Sends Bearer token (if present and valid) along with credentials: "include".
- * On HTTP 401, removes stale localStorage token and automatically retries with cookie credentials.
+ * Resilient authenticated fetch using HttpOnly cookie session (credentials: "include").
  */
 export async function authFetch(url: string, init?: RequestInit): Promise<Response> {
-  const authHeaders = getAuthHeaders();
-  const hadAuthHeader = Boolean(authHeaders.Authorization);
   const headers: Record<string, string> = {
-    ...authHeaders,
     ...((init?.headers as Record<string, string>) || {}),
   };
 
-  let res = await fetch(url, {
+  const res = await fetch(url, {
     ...init,
     headers,
-    credentials: init?.credentials || "include",
+    credentials: "include",
   });
 
   if (res.status === 401) {
     removeAuthToken();
-    if (hadAuthHeader) {
-      const retryHeaders = { ...headers };
-      delete retryHeaders["Authorization"];
-      res = await fetch(url, {
-        ...init,
-        headers: retryHeaders,
-        credentials: init?.credentials || "include",
-      });
-      if (res.status === 401) {
-        removeAuthToken();
-      }
-    }
   }
 
   return res;
@@ -320,14 +254,10 @@ export async function performCheckIn(
   }
 
   try {
-    const authHeaders = getAuthHeaders();
-    const hadAuthHeader = Boolean(authHeaders.Authorization);
-
-    let res = await fetch("/api/checkins", {
+    const res = await fetch("/api/checkins", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...authHeaders,
       },
       credentials: "include",
       body: JSON.stringify({
@@ -338,27 +268,6 @@ export async function performCheckIn(
         clientTimestamp: timestamp,
       }),
     });
-
-    // If 401 Unauthorized: clean stale token and retry with cookie credentials
-    if (res.status === 401) {
-      removeAuthToken();
-      if (hadAuthHeader) {
-        res = await fetch("/api/checkins", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            type,
-            note: note?.trim() || undefined,
-            latitude: coords?.lat,
-            longitude: coords?.lng,
-            clientTimestamp: timestamp,
-          }),
-        });
-      }
-    }
 
     if (res.ok) {
       const data = await res.json();

@@ -106,7 +106,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
 
     it("returns 403 for non-admin user", async () => {
       const res = await app.request("/api/admin/tasks/definitions", {
-        headers: { Authorization: `Bearer ${staffToken}` },
+        headers: { Cookie: `access_token=${staffToken}` },
       });
       expect(res.status).toBe(403);
     });
@@ -137,7 +137,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
       mockTaskDefinitionFindMany.mockResolvedValue(sampleDefinitions);
 
       const res = await app.request("/api/admin/tasks/definitions", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -153,7 +153,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
     it("works via alias /api/tasks/definitions", async () => {
       mockTaskDefinitionFindMany.mockResolvedValue([]);
       const res = await app.request("/api/tasks/definitions", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -167,7 +167,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ name: "" }),
       });
@@ -194,7 +194,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({
           name: "Kiểm đếm pallet hàng hóa",
@@ -228,7 +228,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ active: false }),
       });
@@ -255,7 +255,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({
           name: "Đóng gói Hộp quà Tết Limited (Updated)",
@@ -285,7 +285,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
 
       const res = await app.request("/api/admin/tasks/definitions/def-missing", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(404);
@@ -299,7 +299,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
 
       const res = await app.request("/api/admin/tasks/definitions/def-1", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(400);
@@ -317,7 +317,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
 
       const res = await app.request("/api/admin/tasks/definitions/def-unused", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -353,7 +353,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
 
       const res = await app.request("/api/admin/tasks/task-100/approve", {
         method: "POST",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -391,7 +391,7 @@ describe("Task Definitions & Approval Parity Endpoints", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({ reason: "Ảnh chụp bằng chứng không rõ nét" }),
       });

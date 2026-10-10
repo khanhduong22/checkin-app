@@ -255,6 +255,7 @@ model Holiday {
 enum UserRole {
   USER
   ADMIN
+  PARTNER
 }
 
 enum EmploymentType {

@@ -132,7 +132,7 @@ describe("Documents Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${userToken}`,
+          Cookie: `access_token=${userToken}`,
         },
         body: JSON.stringify({
           title: "Chính sách mới",
@@ -155,7 +155,7 @@ describe("Documents Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
         body: JSON.stringify({
           title: "Chính sách mới",
@@ -177,7 +177,7 @@ describe("Documents Routes", () => {
       const res = await app.request("/api/documents/doc-1", {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${userToken}`,
+          Cookie: `access_token=${userToken}`,
         },
       });
 
@@ -195,7 +195,7 @@ describe("Documents Routes", () => {
       const res = await app.request("/api/documents/doc-1", {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
         },
       });
 

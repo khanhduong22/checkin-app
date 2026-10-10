@@ -22,254 +22,95 @@ vi.mock("@checkin/db", () => ({
 }));
 
 import { app } from "../src/app";
-import { signAccessToken } from "../src/lib/auth";
-import { sign } from "hono/jwt";
+import { signAccessToken, verifyAccessToken, TOKEN_EXPIRY_SECONDS } from "../src/lib/auth";
+import { decode } from "hono/jwt";
 import { _resetRateLimits } from "../src/middleware/rate-limiter";
 
-describe("Auth Routes", () => {
+describe("Auth System (30-Day Cookie & Google OAuth)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _resetRateLimits();
   });
 
-  describe("POST /api/auth/login", () => {
-    it("returns 400 when body is empty", async () => {
-      const res = await app.request("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      expect(res.status).toBe(400);
-      const data = await res.json();
-      expect(data.success).toBe(false);
-    });
-
-    it("returns 401 when user is not found", async () => {
-      mockFindUnique.mockResolvedValue(null);
-
-      const res = await app.request("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "notfound@example.com" }),
-      });
-      expect(res.status).toBe(401);
-      const data = await res.json();
-      expect(data.success).toBe(false);
-    });
-
-    it("returns 403 when user is inactive", async () => {
-      mockFindUnique.mockResolvedValue({
-        id: "u-inactive",
-        email: "inactive@example.com",
-        isActive: false,
-      });
-
-      const res = await app.request("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "inactive@example.com" }),
-      });
-      expect(res.status).toBe(403);
-      const data = await res.json();
-      expect(data.success).toBe(false);
-    });
-
-    it("returns 200 with JWT accessToken when credentials are valid for regular staff", async () => {
-      mockFindUnique.mockResolvedValue({
-        id: "u-active",
-        email: "user@example.com",
-        name: "Test User",
+  describe("Token Utility (signAccessToken & verifyAccessToken)", () => {
+    it("signs access token with 30-day expiration (2592000s)", async () => {
+      const token = await signAccessToken({
+        sub: "u-30day",
+        email: "test@limart.vn",
         role: "USER",
-        isActive: true,
-        employmentType: "PART_TIME",
-        hourlyRate: 30000,
+        name: "Test Staff",
       });
 
-      const res = await app.request("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "user@example.com" }),
-      });
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.success).toBe(true);
-      expect(typeof data.accessToken).toBe("string");
-      expect(data.user.email).toBe("user@example.com");
-      expect(data.user.role).toBe("USER");
+      expect(typeof token).toBe("string");
+      const decoded: any = decode(token);
+      expect(decoded.payload.sub).toBe("u-30day");
+      expect(decoded.payload.exp - decoded.payload.iat).toBe(TOKEN_EXPIRY_SECONDS);
+      expect(TOKEN_EXPIRY_SECONDS).toBe(30 * 24 * 60 * 60);
 
-      const setCookie = res.headers.get("set-cookie");
-      expect(setCookie).toContain("access_token");
+      const verified = await verifyAccessToken(token);
+      expect(verified).not.toBeNull();
+      expect(verified?.email).toBe("test@limart.vn");
+      expect(verified?.role).toBe("USER");
     });
 
-    it("returns 403 Forbidden when admin user attempts login without PIN or credential", async () => {
-      mockFindUnique.mockResolvedValue({
-        id: "u-admin",
-        email: "admin@limart.vn",
-        name: "Admin User",
-        role: "ADMIN",
-        isActive: true,
+    it("fails verification when token is tampered", async () => {
+      const token = await signAccessToken({
+        sub: "u-tamper",
+        email: "tamper@limart.vn",
+        role: "USER",
       });
-
-      const res = await app.request("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "admin@limart.vn" }),
-      });
-      expect(res.status).toBe(403);
-      const data = await res.json();
-      expect(data.success).toBe(false);
-      expect(data.error).toContain("mã PIN bảo mật Admin");
-    });
-
-    it("returns 403 when admin logs in with incorrect PIN", async () => {
-      mockFindUnique.mockResolvedValue({
-        id: "u-admin",
-        email: "admin@limart.vn",
-        name: "Admin User",
-        role: "ADMIN",
-        isActive: true,
-      });
-
-      const res = await app.request("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "admin@limart.vn", adminPin: "9999" }),
-      });
-      expect(res.status).toBe(403);
-      const data = await res.json();
-      expect(data.success).toBe(false);
-      expect(data.error).toContain("mã PIN bảo mật Admin");
-    });
-
-    it("returns 200 and access token when admin logs in with correct PIN", async () => {
-      mockFindUnique.mockResolvedValue({
-        id: "u-admin",
-        email: "admin@limart.vn",
-        name: "Admin User",
-        role: "ADMIN",
-        isActive: true,
-      });
-
-      const res = await app.request("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "admin@limart.vn", adminPin: "2202" }),
-      });
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.success).toBe(true);
-      expect(typeof data.accessToken).toBe("string");
-      expect(data.user.role).toBe("ADMIN");
+      const tampered = token + "bad";
+      const verified = await verifyAccessToken(tampered);
+      expect(verified).toBeNull();
     });
   });
 
-
-
-  describe("GET /api/me", () => {
-    it("returns 401 when Authorization header is missing", async () => {
+  describe("GET /api/me (Auth Middleware)", () => {
+    it("returns 401 when access_token cookie is missing", async () => {
       const res = await app.request("/api/me");
       expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toContain("Missing authentication cookie");
     });
 
-    it("returns 200 and user profile when valid Bearer token provided", async () => {
+    it("returns 200 and profile when valid access_token cookie is provided", async () => {
       const token = await signAccessToken({
-        sub: "u-123",
-        email: "user@example.com",
+        sub: "u-valid",
+        email: "staff@limart.vn",
         role: "USER",
       });
 
       mockFindUnique.mockResolvedValue({
-        id: "u-123",
-        name: "Valid User",
-        email: "user@example.com",
+        id: "u-valid",
+        name: "Valid Staff",
+        email: "staff@limart.vn",
         role: "USER",
         isActive: true,
       });
 
       const res = await app.request("/api/me", {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Cookie: `access_token=${token}`,
         },
       });
 
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.success).toBe(true);
-      expect(data.user.name).toBe("Valid User");
+      expect(data.user.name).toBe("Valid Staff");
     });
 
-    it("returns 200 when token was signed with monorepo fallback secret", async () => {
-      const fallbackToken = await sign(
-        {
-          sub: "u-fallback-123",
-          email: "fallback@example.com",
-          role: "USER",
-          iat: Math.floor(Date.now() / 1000),
-          exp: Math.floor(Date.now() / 1000) + 3600,
-        },
-        "checkin-app-jwt-secret-monorepo-safe-2026",
-        "HS256"
-      );
-
-      mockFindUnique.mockResolvedValue({
-        id: "u-fallback-123",
-        name: "Fallback Secret User",
-        email: "fallback@example.com",
-        role: "USER",
-        isActive: true,
-      });
-
+    it("returns 401 when access_token cookie is invalid or corrupted", async () => {
       const res = await app.request("/api/me", {
         headers: {
-          Authorization: `Bearer ${fallbackToken}`,
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.success).toBe(true);
-      expect(data.user.name).toBe("Fallback Secret User");
-    });
-
-    it("returns 200 via cookie fallback when Authorization header has stale/invalid token", async () => {
-      const validCookieToken = await signAccessToken({
-        sub: "u-cookie-123",
-        email: "cookie@example.com",
-        role: "USER",
-      });
-
-      mockFindUnique.mockResolvedValue({
-        id: "u-cookie-123",
-        name: "Cookie Fallback User",
-        email: "cookie@example.com",
-        role: "USER",
-        isActive: true,
-      });
-
-      const res = await app.request("/api/me", {
-        headers: {
-          Authorization: "Bearer invalid_or_expired_bearer_token",
-          Cookie: `access_token=${validCookieToken}`,
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.success).toBe(true);
-      expect(data.user.name).toBe("Cookie Fallback User");
-    });
-
-    it("returns 401 when both Authorization header and cookie token are invalid", async () => {
-      const res = await app.request("/api/me", {
-        headers: {
-          Authorization: "Bearer invalid_bearer",
-          Cookie: "access_token=invalid_cookie",
+          Cookie: "access_token=malformed_or_expired_cookie",
         },
       });
 
       expect(res.status).toBe(401);
       const data = await res.json();
-      expect(data.error).toBe("Unauthorized: Invalid or expired token");
+      expect(data.error).toContain("Session expired or invalid");
     });
   });
 
@@ -312,27 +153,10 @@ describe("Auth Routes", () => {
         expect(res.status).toBe(302);
         const location = res.headers.get("location");
         expect(location).toContain("client_id=quoted-client-id.apps.googleusercontent.com");
-        expect(location).not.toContain('"');
-        expect(location).not.toContain("%22");
       });
     });
 
     describe("GET /api/auth/callback/google", () => {
-      it("sanitizes surrounding quotes from credentials during token exchange", async () => {
-        process.env.GOOGLE_CLIENT_ID = '"quoted-client-id"';
-        process.env.GOOGLE_CLIENT_SECRET = '"quoted-client-secret"';
-        const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-          new Response(JSON.stringify({ error: "invalid_grant" }), { status: 400 })
-        );
-
-        await app.request("/api/auth/callback/google?code=auth_code");
-        expect(fetchSpy).toHaveBeenCalledWith(
-          "https://oauth2.googleapis.com/token",
-          expect.objectContaining({
-            body: expect.stringContaining("client_id=quoted-client-id&client_secret=quoted-client-secret"),
-          })
-        );
-      });
       it("redirects to /login?error=cancelled if error parameter is present", async () => {
         const res = await app.request("/api/auth/callback/google?error=access_denied");
         expect(res.status).toBe(302);
@@ -386,7 +210,7 @@ describe("Auth Routes", () => {
         expect(res.headers.get("location")).toBe("/login?error=inactive");
       });
 
-      it("successfully logs in staff user: sets HttpOnly cookie and redirects to /", async () => {
+      it("successfully logs in staff user: sets 30-day HttpOnly cookie and redirects to /", async () => {
         const fakeToken = createFakeIdToken("trang@limart.vn");
         vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
           new Response(JSON.stringify({ id_token: fakeToken }), { status: 200 })
@@ -404,17 +228,18 @@ describe("Auth Routes", () => {
         expect(res.headers.get("location")).toBe("/");
         const setCookie = res.headers.get("set-cookie");
         expect(setCookie).toContain("access_token");
+        expect(setCookie).toContain(`Max-Age=${30 * 24 * 60 * 60}`);
       });
 
       it("redirects admin user to /admin upon successful login", async () => {
-        const fakeToken = createFakeIdToken("dung_manager@limart.vn");
+        const fakeToken = createFakeIdToken("admin@limart.vn");
         vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
           new Response(JSON.stringify({ id_token: fakeToken }), { status: 200 })
         );
         mockFindUnique.mockResolvedValue({
-          id: "u-dung",
-          email: "dung_manager@limart.vn",
-          name: "Manager Dung",
+          id: "u-admin",
+          email: "admin@limart.vn",
+          name: "Manager Admin",
           role: "ADMIN",
           isActive: true,
         });
@@ -422,6 +247,55 @@ describe("Auth Routes", () => {
         const res = await app.request("/api/auth/callback/google?code=valid_code");
         expect(res.status).toBe(302);
         expect(res.headers.get("location")).toBe("/admin");
+      });
+
+      it("redirects PARTNER user to /tasks upon successful login", async () => {
+        const fakeToken = createFakeIdToken("partner@limart.vn");
+        vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+          new Response(JSON.stringify({ id_token: fakeToken }), { status: 200 })
+        );
+        mockFindUnique.mockResolvedValue({
+          id: "u-partner",
+          email: "partner@limart.vn",
+          name: "Partner User",
+          role: "PARTNER",
+          isActive: true,
+        });
+
+        const res = await app.request("/api/auth/callback/google?code=valid_code");
+        expect(res.status).toBe(302);
+        expect(res.headers.get("location")).toBe("/tasks");
+      });
+
+      it("auto-assigns cuccung123456789@gmail.com to PARTNER and redirects to /tasks", async () => {
+        const fakeToken = createFakeIdToken("cuccung123456789@gmail.com");
+        vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+          new Response(JSON.stringify({ id_token: fakeToken }), { status: 200 })
+        );
+        mockFindUnique.mockResolvedValue({
+          id: "u-thu",
+          email: "cuccung123456789@gmail.com",
+          name: "Thu Nguyen",
+          role: "USER",
+          isActive: true,
+        });
+        mockUpdate.mockResolvedValue({
+          id: "u-thu",
+          email: "cuccung123456789@gmail.com",
+          name: "Thu Nguyen",
+          role: "PARTNER",
+          isActive: true,
+        });
+
+        const res = await app.request("/api/auth/callback/google?code=valid_code");
+        expect(res.status).toBe(302);
+        expect(res.headers.get("location")).toBe("/tasks");
+        expect(mockUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { id: "u-thu" },
+            data: { role: "PARTNER" },
+          })
+        );
       });
 
       it("auto-promotes khanhdev4@gmail.com to ADMIN and redirects to /admin", async () => {

@@ -121,7 +121,7 @@ describe("Lucky Wheel Routes", () => {
       mockLuckyWheelHistoryFindMany.mockResolvedValue([]);
 
       const res = await app.request("/api/lucky-wheel", {
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -147,7 +147,7 @@ describe("Lucky Wheel Routes", () => {
 
       const res = await app.request("/api/lucky-wheel/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(400);
@@ -182,7 +182,7 @@ describe("Lucky Wheel Routes", () => {
 
       const res = await app.request("/api/lucky-wheel/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -208,7 +208,7 @@ describe("Lucky Wheel Routes", () => {
 
       const res = await app.request("/api/lucky-wheel/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(400);
@@ -265,7 +265,7 @@ describe("Lucky Wheel Routes", () => {
       // Launch first spin (which holds lock until finishFirstTx is called)
       const promise1 = app.request("/api/lucky-wheel/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       // Small tick to ensure promise1 has acquired lock
@@ -274,7 +274,7 @@ describe("Lucky Wheel Routes", () => {
       // Launch second concurrent spin from same user
       const promise2 = app.request("/api/lucky-wheel/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       const res2 = await promise2;
@@ -302,7 +302,7 @@ describe("Lucky Wheel Routes", () => {
 
       const res = await app.request("/api/lucky-wheel/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(400);
@@ -322,7 +322,7 @@ describe("Lucky Wheel Routes", () => {
 
       const res1 = await app.request("/api/lucky-wheel/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
       expect(res1.status).toBe(400);
 
@@ -338,7 +338,7 @@ describe("Lucky Wheel Routes", () => {
       // Second attempt should be able to acquire lock immediately (not locked out)
       const res2 = await app.request("/api/lucky-wheel/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
       expect(res2.status).toBe(200);
     });

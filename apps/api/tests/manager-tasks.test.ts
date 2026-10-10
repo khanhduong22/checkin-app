@@ -113,7 +113,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       ]);
 
       const res = await app.request("/api/manager-tasks/users", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -132,7 +132,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
 
     it("returns 403 when non-admin accesses another user's checklist", async () => {
       const res = await app.request("/api/manager-tasks/checklist?userId=other-user", {
-        headers: { Authorization: `Bearer ${staffToken}` },
+        headers: { Cookie: `access_token=${staffToken}` },
       });
       expect(res.status).toBe(403);
     });
@@ -166,7 +166,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       mockCompletionFindMany.mockResolvedValueOnce(mockCompletions);
 
       const res = await app.request("/api/manager-tasks/checklist?userId=admin-1&date=2026-10-06", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -184,7 +184,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/checklist/toggle", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({}),
@@ -199,7 +199,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/checklist/toggle", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ taskId: "non-existent", date: "2026-10-06", completed: true }),
@@ -221,7 +221,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/checklist/toggle", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ taskId: "task-1", date: "2026-10-06", completed: true }),
@@ -239,7 +239,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/checklist", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${staffToken}`,
+          Cookie: `access_token=${staffToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ title: "Task 1", assigneeId: "admin-1" }),
@@ -252,7 +252,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/checklist", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ title: "", assigneeId: "admin-1" }),
@@ -274,7 +274,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/checklist", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -303,7 +303,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/checklist/task-1", {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ title: "Updated Title", active: false }),
@@ -324,7 +324,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
 
       const res = await app.request("/api/manager-tasks/checklist/task-1", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -340,7 +340,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/checklist/reorder", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ userId: "admin-1", taskIds: ["t-1", "t-2", "t-3"] }),
@@ -361,7 +361,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       ]);
 
       const res = await app.request("/api/manager-tasks/templates?userId=admin-1", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -413,7 +413,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       ]);
 
       const res = await app.request("/api/manager-tasks/stats-history?userId=admin-1&date=2026-10-06", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -433,7 +433,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       ]);
 
       const res = await app.request("/api/manager-tasks/weekly?userId=admin-1&date=2026-10-06", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -454,7 +454,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/weekly", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -477,7 +477,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/weekly/w-1", {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ title: "Sửa việc tuần" }),
@@ -495,7 +495,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
 
       const res = await app.request("/api/manager-tasks/weekly/w-1", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -510,7 +510,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/weekly/w-1/toggle", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ completed: true }),
@@ -558,7 +558,7 @@ describe("Manager Tasks REST Endpoints (/api/manager-tasks)", () => {
       const res = await app.request("/api/manager-tasks/weekly/w-1/carry-over", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ explanation: "Chưa kịp làm do quá tải" }),

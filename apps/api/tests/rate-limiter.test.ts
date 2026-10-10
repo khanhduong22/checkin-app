@@ -59,7 +59,7 @@ describe("Rate Limiting Middleware", () => {
 
   describe("Standard Headers and Basic Behavior", () => {
     it("returns standard rate limit headers on successful request", async () => {
-      const res = await app.request("/api/auth/login", {
+      const res = await app.request("/api/auth/logout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -76,14 +76,14 @@ describe("Rate Limiting Middleware", () => {
     it("decrements X-RateLimit-Remaining with each request", async () => {
       const ip = "10.0.0.2";
 
-      const res1 = await app.request("/api/auth/login", {
+      const res1 = await app.request("/api/auth/logout", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
         body: JSON.stringify({}),
       });
       expect(res1.headers.get("X-RateLimit-Remaining")).toBe("14");
 
-      const res2 = await app.request("/api/auth/login", {
+      const res2 = await app.request("/api/auth/logout", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
         body: JSON.stringify({}),
@@ -98,7 +98,7 @@ describe("Rate Limiting Middleware", () => {
 
       // Fire 15 requests (allowed)
       for (let i = 0; i < 15; i++) {
-        const res = await app.request("/api/auth/login", {
+        const res = await app.request("/api/auth/logout", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -110,7 +110,7 @@ describe("Rate Limiting Middleware", () => {
       }
 
       // 16th request must be rejected with 429 Too Many Requests
-      const res16 = await app.request("/api/auth/login", {
+      const res16 = await app.request("/api/auth/logout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -136,7 +136,7 @@ describe("Rate Limiting Middleware", () => {
 
       // Max out ipA (15 requests)
       for (let i = 0; i < 15; i++) {
-        await app.request("/api/auth/login", {
+        await app.request("/api/auth/logout", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-forwarded-for": ipA },
           body: JSON.stringify({}),
@@ -144,7 +144,7 @@ describe("Rate Limiting Middleware", () => {
       }
 
       // 16th request from ipA is blocked
-      const blockedRes = await app.request("/api/auth/login", {
+      const blockedRes = await app.request("/api/auth/logout", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-forwarded-for": ipA },
         body: JSON.stringify({}),
@@ -152,7 +152,7 @@ describe("Rate Limiting Middleware", () => {
       expect(blockedRes.status).toBe(429);
 
       // Request from ipB is allowed!
-      const allowedRes = await app.request("/api/auth/login", {
+      const allowedRes = await app.request("/api/auth/logout", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-forwarded-for": ipB },
         body: JSON.stringify({}),
@@ -168,7 +168,7 @@ describe("Rate Limiting Middleware", () => {
       for (let i = 0; i < 20; i++) {
         const res = await app.request("/api/checkins/today", {
           headers: {
-            Authorization: `Bearer ${userToken}`,
+            Cookie: `access_token=${userToken}`,
           },
         });
         expect(res.status).not.toBe(429);
@@ -177,7 +177,7 @@ describe("Rate Limiting Middleware", () => {
       // 21st request must return 429
       const res21 = await app.request("/api/checkins/today", {
         headers: {
-          Authorization: `Bearer ${userToken}`,
+          Cookie: `access_token=${userToken}`,
         },
       });
 
@@ -198,7 +198,7 @@ describe("Rate Limiting Middleware", () => {
         const res = await app.request("/api/lucky-wheel/spin", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${userToken}`,
+            Cookie: `access_token=${userToken}`,
           },
         });
         expect(res.status).not.toBe(429);
@@ -208,7 +208,7 @@ describe("Rate Limiting Middleware", () => {
       const res6 = await app.request("/api/lucky-wheel/spin", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${userToken}`,
+          Cookie: `access_token=${userToken}`,
         },
       });
 

@@ -1,4 +1,4 @@
-export type UserRole = "ADMIN" | "USER" | "MANAGER";
+export type UserRole = "ADMIN" | "USER" | "MANAGER" | "PARTNER";
 
 export type EmploymentType = "FULL_TIME" | "PART_TIME";
 

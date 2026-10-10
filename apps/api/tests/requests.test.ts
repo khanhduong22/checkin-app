@@ -49,7 +49,7 @@ describe("Requests Routes", () => {
       ]);
 
       const res = await app.request("/api/requests/me", {
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -75,7 +75,7 @@ describe("Requests Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${userToken}`,
+          Cookie: `access_token=${userToken}`,
         },
         body: JSON.stringify({
           type: "WFH",
@@ -96,7 +96,7 @@ describe("Requests Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${userToken}`,
+          Cookie: `access_token=${userToken}`,
         },
         body: JSON.stringify({
           type: "INVALID_TYPE",

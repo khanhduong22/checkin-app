@@ -92,7 +92,7 @@ describe("Marketplace Task Items Endpoints", () => {
     it("returns 403 for non-admin user", async () => {
       const res = await app.request("/api/tasks/items", {
         method: "GET",
-        headers: { Authorization: `Bearer ${staffToken}` },
+        headers: { Cookie: `access_token=${staffToken}` },
       });
       expect(res.status).toBe(403);
     });
@@ -123,7 +123,7 @@ describe("Marketplace Task Items Endpoints", () => {
 
       const res = await app.request("/api/tasks/items", {
         method: "GET",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -148,7 +148,7 @@ describe("Marketplace Task Items Endpoints", () => {
 
       const res = await app.request("/api/admin/tasks/items", {
         method: "GET",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -163,7 +163,7 @@ describe("Marketplace Task Items Endpoints", () => {
       const res = await app.request("/api/tasks/items", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -201,7 +201,7 @@ describe("Marketplace Task Items Endpoints", () => {
       const res = await app.request("/api/tasks/items", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -238,7 +238,7 @@ describe("Marketplace Task Items Endpoints", () => {
       const res = await app.request("/api/admin/tasks/items", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -261,7 +261,7 @@ describe("Marketplace Task Items Endpoints", () => {
       const res = await app.request("/api/tasks/items/not-exist", {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ title: "Updated" }),
@@ -281,7 +281,7 @@ describe("Marketplace Task Items Endpoints", () => {
       const res = await app.request("/api/tasks/items/item-1", {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -302,7 +302,7 @@ describe("Marketplace Task Items Endpoints", () => {
 
       const res = await app.request("/api/tasks/items/not-exist/close", {
         method: "POST",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(404);
@@ -317,7 +317,7 @@ describe("Marketplace Task Items Endpoints", () => {
 
       const res = await app.request("/api/admin/tasks/items/item-1/close", {
         method: "POST",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -339,7 +339,7 @@ describe("Marketplace Task Items Endpoints", () => {
 
       const res = await app.request("/api/tasks/items/not-exist/reset", {
         method: "POST",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(404);
@@ -359,7 +359,7 @@ describe("Marketplace Task Items Endpoints", () => {
 
       const res = await app.request("/api/admin/tasks/items/item-1/reset", {
         method: "POST",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -382,7 +382,7 @@ describe("Marketplace Task Items Endpoints", () => {
 
       const res = await app.request("/api/tasks/items/not-exist", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(404);
@@ -394,7 +394,7 @@ describe("Marketplace Task Items Endpoints", () => {
 
       const res = await app.request("/api/admin/tasks/items/item-1", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);

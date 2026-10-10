@@ -52,7 +52,7 @@ describe("Schedule Routes", () => {
       ]);
 
       const res = await app.request("/api/schedule/my-shifts?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(200);

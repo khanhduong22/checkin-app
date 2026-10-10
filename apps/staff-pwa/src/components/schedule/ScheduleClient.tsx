@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Clock, Trash2, RefreshCw } from "lucide-react";
 import { useRouter } from "@/lib/router";
 import { toast } from "sonner";
-import { authFetch, getAuthToken } from "@/lib/api-client";
+import { authFetch } from "@/lib/api-client";
 
 function getMonday(d: Date): Date {
   const date = new Date(d);

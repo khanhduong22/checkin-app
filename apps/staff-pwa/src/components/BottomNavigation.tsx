@@ -6,23 +6,36 @@ export type NavTab = "home" | "schedule" | "tasks" | "payroll" | "profile";
 interface BottomNavigationProps {
   currentTab: NavTab;
   onChangeTab: (tab: NavTab) => void;
+  userRole?: string;
 }
 
 export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   currentTab,
   onChangeTab,
+  userRole,
 }) => {
+  const isPartner = userRole === "PARTNER";
+
   const navItems: Array<{
     id: NavTab;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
-  }> = [
-    { id: "home", label: "Chấm công", icon: Clock },
-    { id: "schedule", label: "Lịch trực", icon: Calendar },
-    { id: "tasks", label: "Sàn việc", icon: Briefcase },
-    { id: "payroll", label: "Bảng lương", icon: Wallet },
-    { id: "profile", label: "Cá nhân", icon: User },
-  ];
+  }> = isPartner
+    ? [
+        { id: "home", label: "Tổng quan", icon: Clock },
+        { id: "tasks", label: "Sàn việc", icon: Briefcase },
+        { id: "payroll", label: "Bảng lương", icon: Wallet },
+        { id: "profile", label: "Cá nhân", icon: User },
+      ]
+    : [
+        { id: "home", label: "Chấm công", icon: Clock },
+        { id: "schedule", label: "Lịch trực", icon: Calendar },
+        { id: "tasks", label: "Sàn việc", icon: Briefcase },
+        { id: "payroll", label: "Bảng lương", icon: Wallet },
+        { id: "profile", label: "Cá nhân", icon: User },
+      ];
+
+  const gridColsClass = isPartner ? "grid-cols-4" : "grid-cols-5";
 
   return (
     <nav
@@ -31,7 +44,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none select-none pb-safe"
     >
       <div className="max-w-md mx-auto pointer-events-auto bg-[#faf6f0]/95 backdrop-blur-md border-t border-orange-100/90 shadow-lg">
-        <div className="grid grid-cols-5 h-14 items-center px-1">
+        <div className={`grid ${gridColsClass} h-14 items-center px-1`}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;

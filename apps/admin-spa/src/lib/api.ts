@@ -10,21 +10,8 @@ export class ApiError extends Error {
   }
 }
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return (
-    localStorage.getItem("admin_token") ||
-    sessionStorage.getItem("admin_token") ||
-    localStorage.getItem("limart_staff_jwt_token") ||
-    null
-  );
-}
-
-export function setToken(token: string) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("admin_token", token);
-    localStorage.setItem("limart_staff_jwt_token", token);
-  }
+export function setToken(_token: string) {
+  // Deprecated: Admin uses 100% HttpOnly cookie 'access_token'
 }
 
 export function removeToken() {
@@ -39,8 +26,6 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = getToken();
-
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
   const headers: Record<string, string> = {
@@ -48,10 +33,6 @@ async function request<T>(
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers as Record<string, string>),
   };
-
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
 
   // Normalize endpoint: ensure leading /api if relative path and not already /api
   let normalizedEndpoint = endpoint;

@@ -154,7 +154,7 @@ export const HomeCheckinView: React.FC = () => {
           <div className="p-4 sm:p-5 pb-3 flex items-center justify-between">
             <div>
               <h1 className="text-lg font-bold tracking-tight text-gray-900">
-                Chấm Công
+                {user?.role === "PARTNER" ? "Khu Vực Đối Tác" : "Chấm Công"}
               </h1>
               <div
                 id="home-user-info"
@@ -273,15 +273,51 @@ export const HomeCheckinView: React.FC = () => {
               </div>
             </div>
 
-            {/* Original Check-In Buttons Component */}
-            <div id="home-checkin-buttons">
-              <CheckInButtons
-                userId={user?.id}
-                todayCheckins={todayCheckins || []}
-                todayShift={todayShift}
-                onCheckinSuccess={handleCheckinSuccess}
-              />
-            </div>
+            {/* Partner Welcome Banner OR Check-In Buttons Component */}
+            {user?.role === "PARTNER" ? (
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 sm:p-5 shadow-sm text-left">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-xl shrink-0">
+                    🎨
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-stone-900 leading-tight">
+                      Chào mừng Đối tác LimArt!
+                    </h3>
+                    <p className="text-[11px] text-stone-600 mt-0.5">
+                      Tài khoản WFH / Marketing / Đối tác gia công. Tự do thời gian, nhận việc và tính lương theo KPI hiệu suất.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <Link to="/tasks" className="block w-full">
+                    <Button
+                      variant="default"
+                      className="w-full text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer py-2 h-auto"
+                    >
+                      💼 Vào Sàn việc (WFH)
+                    </Button>
+                  </Link>
+                  <Link to="/packing" className="block w-full">
+                    <Button
+                      variant="outline"
+                      className="w-full text-xs font-bold border-amber-300 text-amber-900 bg-white hover:bg-amber-50 shadow-xs cursor-pointer py-2 h-auto"
+                    >
+                      📦 Báo cáo Đóng gói
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div id="home-checkin-buttons">
+                <CheckInButtons
+                  userId={user?.id}
+                  todayCheckins={todayCheckins || []}
+                  todayShift={todayShift}
+                  onCheckinSuccess={handleCheckinSuccess}
+                />
+              </div>
+            )}
 
             {/* Internal Announcements List */}
             <div id="home-announcements-list">
@@ -321,21 +357,23 @@ export const HomeCheckinView: React.FC = () => {
                 </Link>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Link to="/schedule" className="block w-full">
-                  <Button variant="outline" className="w-full text-xs cursor-pointer">
-                    📅 Đăng ký Lịch
-                  </Button>
-                </Link>
-                <Link to="/requests" className="block w-full">
-                  <Button
-                    variant="ghost"
-                    className="w-full text-xs text-muted-foreground bg-gray-100/50 cursor-pointer"
-                  >
-                    📝 Xin giải trình
-                  </Button>
-                </Link>
-              </div>
+              {user?.role !== "PARTNER" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Link to="/schedule" className="block w-full">
+                    <Button variant="outline" className="w-full text-xs cursor-pointer">
+                      📅 Đăng ký Lịch
+                    </Button>
+                  </Link>
+                  <Link to="/requests" className="block w-full">
+                    <Button
+                      variant="ghost"
+                      className="w-full text-xs text-muted-foreground bg-gray-100/50 cursor-pointer"
+                    >
+                      📝 Xin giải trình
+                    </Button>
+                  </Link>
+                </div>
+              )}
 
               <div className="grid grid-cols-3 gap-2">
                 <Link to="/tasks" className="block w-full">

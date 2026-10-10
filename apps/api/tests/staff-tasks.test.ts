@@ -84,7 +84,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
       });
 
       const res = await app.request("/api/staff-tasks", {
-        headers: { Authorization: `Bearer ${unauthorizedToken}` },
+        headers: { Cookie: `access_token=${unauthorizedToken}` },
       });
       expect(res.status).toBe(403);
       const data = await res.json();
@@ -120,7 +120,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
       mockUserFindMany.mockResolvedValueOnce(mockUsers);
 
       const res = await app.request("/api/staff-tasks", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -138,7 +138,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
       const res = await app.request("/api/staff-tasks", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${staffToken}`,
+          Cookie: `access_token=${staffToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -154,7 +154,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
       const res = await app.request("/api/staff-tasks", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -176,7 +176,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
       const res = await app.request("/api/staff-tasks", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -214,7 +214,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
       const res = await app.request("/api/staff-tasks", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -239,7 +239,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
       const res = await app.request("/api/staff-tasks/unknown-id", {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ status: "APPROVED" }),
@@ -271,7 +271,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
       const res = await app.request("/api/staff-tasks/task-1", {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -315,7 +315,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
       const res = await app.request("/api/staff-tasks/task-1", {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${staffToken}`,
+          Cookie: `access_token=${staffToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -336,7 +336,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
     it("returns 403 for non-admin", async () => {
       const res = await app.request("/api/staff-tasks/task-1", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${staffToken}` },
+        headers: { Cookie: `access_token=${staffToken}` },
       });
       expect(res.status).toBe(403);
     });
@@ -347,7 +347,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
 
       const res = await app.request("/api/staff-tasks/task-1", {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -385,7 +385,7 @@ describe("Staff Tasks REST Endpoints (/api/staff-tasks)", () => {
       ]);
 
       const res = await app.request("/api/staff-tasks/stats?userId=staff-1", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);

@@ -114,7 +114,7 @@ describe("Gacha Routes", () => {
       mockLuckyWheelPrizeCount.mockResolvedValue(5);
 
       const res = await app.request("/api/gacha", {
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -133,7 +133,7 @@ describe("Gacha Routes", () => {
 
       const res = await app.request("/api/gacha/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(400);
@@ -149,7 +149,7 @@ describe("Gacha Routes", () => {
 
       const res = await app.request("/api/gacha/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(400);
@@ -178,7 +178,7 @@ describe("Gacha Routes", () => {
 
       const res = await app.request("/api/gacha/spin", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
 
       expect(res.status).toBe(200);

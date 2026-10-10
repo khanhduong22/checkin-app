@@ -294,7 +294,7 @@ describe("Staff Routes", () => {
 
       const res = await app.request("/api/staff/home-data", {
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
       });
 
@@ -340,7 +340,7 @@ describe("Staff Routes", () => {
       mockWorkShiftFindMany.mockResolvedValue(mockShifts);
 
       const res = await app.request("/api/staff/schedule?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -357,7 +357,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/schedule/register", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ shift: "INVALID" }),
@@ -379,7 +379,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/schedule/register", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -409,7 +409,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/schedule/register", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -430,7 +430,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/schedule/register", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -450,7 +450,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/schedule/register", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -470,7 +470,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/schedule/register", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -490,7 +490,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/schedule/register", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -517,7 +517,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/schedule/register", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -541,7 +541,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/schedule/cancel", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ shiftId: 999 }),
@@ -560,7 +560,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/schedule/cancel", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ shiftId: 105 }),
@@ -596,7 +596,7 @@ describe("Staff Routes", () => {
       mockPayrollPeriodFindUnique.mockResolvedValue({ status: "OPEN" });
 
       const res = await app.request("/api/staff/payroll?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -622,7 +622,7 @@ describe("Staff Routes", () => {
       ]);
 
       const res = await app.request("/api/staff/history", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -639,7 +639,7 @@ describe("Staff Routes", () => {
       ]);
 
       const res = await app.request("/api/staff/requests", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -652,7 +652,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/requests", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ type: "LEAVE" }),
@@ -674,7 +674,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/requests", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -706,7 +706,7 @@ describe("Staff Routes", () => {
 
       const res = await app.request("/api/staff/schedule/101/swap", {
         method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -726,7 +726,7 @@ describe("Staff Routes", () => {
 
       const res = await app.request("/api/staff/schedule/102/take", {
         method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(400);
@@ -756,7 +756,7 @@ describe("Staff Routes", () => {
 
       const res = await app.request("/api/staff/schedule/102/take", {
         method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -778,7 +778,7 @@ describe("Staff Routes", () => {
       ]);
 
       const res = await app.request("/api/staff/tasks/market", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -793,7 +793,7 @@ describe("Staff Routes", () => {
       ]);
 
       const res = await app.request("/api/staff/tasks/available", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -815,7 +815,7 @@ describe("Staff Routes", () => {
       ]);
 
       const res = await app.request("/api/staff/tasks/my", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -845,7 +845,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/tasks/claim", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ taskItemId: "item-1" }),
@@ -875,7 +875,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/tasks/start", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ taskDefId: "td-1" }),
@@ -904,7 +904,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/tasks/submit", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -937,7 +937,7 @@ describe("Staff Routes", () => {
       ]);
 
       const res = await app.request("/api/staff/tasks/packing-summary", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -964,7 +964,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/tasks/submit-packing", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -985,7 +985,7 @@ describe("Staff Routes", () => {
       mockUserTaskFindMany.mockResolvedValue([]);
 
       const res = await app.request("/api/staff/tasks/carrying-summary", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -1012,7 +1012,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/tasks/submit-carrying", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -1044,7 +1044,7 @@ describe("Staff Routes", () => {
       mockUserTaskFindMany.mockResolvedValue([]);
 
       const res = await app.request("/api/staff/rewards/leaderboard?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -1067,7 +1067,7 @@ describe("Staff Routes", () => {
       });
 
       const res = await app.request("/api/staff/staff-tasks", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(403);
@@ -1092,7 +1092,7 @@ describe("Staff Routes", () => {
       mockStaffTaskCount.mockResolvedValue(1);
 
       const res = await app.request("/api/staff/staff-tasks", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -1117,7 +1117,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/staff-tasks/st-1/toggle", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ status: "DOING" }),
@@ -1144,7 +1144,7 @@ describe("Staff Routes", () => {
       const res1 = await app.request("/api/staff/announcements/read", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ ids: [] }),
@@ -1154,7 +1154,7 @@ describe("Staff Routes", () => {
       const res2 = await app.request("/api/staff/announcements/read", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({}),
@@ -1166,7 +1166,7 @@ describe("Staff Routes", () => {
       const res = await app.request("/api/staff/announcements/read", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ ids: ["ann-1", "ann-2"] }),
@@ -1222,7 +1222,7 @@ describe("Staff Routes", () => {
 
       const res = await app.request("/api/staff/home-data", {
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
       });
 

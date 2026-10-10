@@ -63,7 +63,7 @@ describe("Checkin Routes", () => {
       mockFindMany.mockResolvedValue(mockRecords);
 
       const res = await app.request("/api/checkins/today", {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Cookie: `access_token=${authToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -88,7 +88,7 @@ describe("Checkin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
         body: JSON.stringify({ type: "invalid_type" }),
       });
@@ -109,7 +109,7 @@ describe("Checkin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
         body: JSON.stringify({ type: "checkin", note: "Starting morning shift" }),
       });
@@ -134,7 +134,7 @@ describe("Checkin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
         body: JSON.stringify({ type: "checkin" }),
       });
@@ -160,7 +160,7 @@ describe("Checkin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
         body: JSON.stringify({
           type: "checkin",
@@ -193,7 +193,7 @@ describe("Checkin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
         body: JSON.stringify({ type: "checkout" }),
       });
@@ -228,7 +228,7 @@ describe("Checkin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
         body: JSON.stringify({ type: "checkout" }),
       });
@@ -267,7 +267,7 @@ describe("Checkin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
         body: JSON.stringify({ type: "checkin" }),
       });
@@ -280,7 +280,7 @@ describe("Checkin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
         body: JSON.stringify({ type: "checkin" }),
       });
@@ -326,7 +326,7 @@ describe("Checkin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
         body: JSON.stringify({
           items: [
@@ -353,7 +353,7 @@ describe("Checkin Routes", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Cookie: `access_token=${authToken}`,
         },
         body: JSON.stringify({
           items: [{ id: "off-dup", type: "checkin", timestamp: clientTime }],

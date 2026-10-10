@@ -63,7 +63,7 @@ describe("Payslip Email Notification Endpoints", () => {
     it("returns 403 Forbidden for non-admin user on single email endpoint", async () => {
       const res = await app.request("/api/admin/payroll/email/user-1?month=10&year=2026", {
         method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
+        headers: { Cookie: `access_token=${userToken}` },
       });
       expect(res.status).toBe(403);
       const json = await res.json();
@@ -83,7 +83,7 @@ describe("Payslip Email Notification Endpoints", () => {
       const res = await app.request("/api/admin/payroll/email-all", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${userToken}`,
+          Cookie: `access_token=${userToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ month: 10, year: 2026 }),
@@ -98,7 +98,7 @@ describe("Payslip Email Notification Endpoints", () => {
 
       const res = await app.request("/api/admin/payroll/email/user-1?month=10&year=2026", {
         method: "POST",
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(400);
@@ -121,7 +121,7 @@ describe("Payslip Email Notification Endpoints", () => {
       const res = await app.request("/api/admin/payroll/email/user-1", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ month: 10, year: 2026 }),
@@ -162,7 +162,7 @@ describe("Payslip Email Notification Endpoints", () => {
       const res = await app.request("/api/admin/payroll/email/user-1", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ month: 10, year: 2026 }),
@@ -187,7 +187,7 @@ describe("Payslip Email Notification Endpoints", () => {
       const res = await app.request("/api/admin/payroll/email-all", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ month: 10, year: 2026 }),
@@ -225,7 +225,7 @@ describe("Payslip Email Notification Endpoints", () => {
       const res = await app.request("/api/admin/payroll/email-all", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Cookie: `access_token=${adminToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ month: 10, year: 2026 }),

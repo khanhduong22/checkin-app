@@ -316,7 +316,7 @@ describe("Payroll Engine & Business Rules Parity", () => {
       mockHolidayFindMany.mockResolvedValue([]);
 
       const res = await app.request("/api/admin/payroll?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
@@ -432,7 +432,7 @@ describe("Payroll Engine & Business Rules Parity", () => {
       mockHolidayFindMany.mockResolvedValue([]);
 
       const res = await app.request("/api/admin/payroll?month=10&year=2026", {
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: { Cookie: `access_token=${adminToken}` },
       });
 
       expect(res.status).toBe(200);
