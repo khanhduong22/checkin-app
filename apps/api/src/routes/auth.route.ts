@@ -13,9 +13,17 @@ export const authRoute = new Hono<AppEnv>();
 // Enforce Rate Limiting: max 15 requests per minute per IP across /api/auth/*
 authRoute.use("*", authRateLimiter);
 
+export const getGoogleCredentials = () => {
+  const rawId = process.env.GOOGLE_CLIENT_ID || "";
+  const rawSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+  const clientId = rawId.trim().replace(/^["']|["']$/g, "").trim();
+  const clientSecret = rawSecret.trim().replace(/^["']|["']$/g, "").trim();
+  return { clientId, clientSecret };
+};
+
 // GET /api/auth/google
 authRoute.get("/google", async (c) => {
-  const clientId = process.env.GOOGLE_CLIENT_ID || "";
+  const { clientId } = getGoogleCredentials();
   if (!clientId) {
     return c.json({ success: false, error: "GOOGLE_CLIENT_ID not configured" }, 500);
   }
@@ -38,8 +46,7 @@ authRoute.get("/callback/google", async (c) => {
     return c.redirect("/login?error=cancelled");
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID || "";
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+  const { clientId, clientSecret } = getGoogleCredentials();
 
   const proto = (c.req.header("x-forwarded-proto") || "https").split(",")[0].trim();
   const host = (c.req.header("x-forwarded-host") || c.req.header("host") || "limart.khanhdp.com").split(",")[0].trim();

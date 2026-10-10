@@ -230,9 +230,34 @@ describe("Auth Routes", () => {
         expect(location).toContain("response_type=code");
         expect(location).toContain("scope=openid%20email%20profile");
       });
+
+      it("sanitizes surrounding quotes and spaces from GOOGLE_CLIENT_ID", async () => {
+        process.env.GOOGLE_CLIENT_ID = ' "quoted-client-id.apps.googleusercontent.com" ';
+        const res = await app.request("/api/auth/google");
+        expect(res.status).toBe(302);
+        const location = res.headers.get("location");
+        expect(location).toContain("client_id=quoted-client-id.apps.googleusercontent.com");
+        expect(location).not.toContain('"');
+        expect(location).not.toContain("%22");
+      });
     });
 
     describe("GET /api/auth/callback/google", () => {
+      it("sanitizes surrounding quotes from credentials during token exchange", async () => {
+        process.env.GOOGLE_CLIENT_ID = '"quoted-client-id"';
+        process.env.GOOGLE_CLIENT_SECRET = '"quoted-client-secret"';
+        const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+          new Response(JSON.stringify({ error: "invalid_grant" }), { status: 400 })
+        );
+
+        await app.request("/api/auth/callback/google?code=auth_code");
+        expect(fetchSpy).toHaveBeenCalledWith(
+          "https://oauth2.googleapis.com/token",
+          expect.objectContaining({
+            body: expect.stringContaining("client_id=quoted-client-id&client_secret=quoted-client-secret"),
+          })
+        );
+      });
       it("redirects to /login?error=cancelled if error parameter is present", async () => {
         const res = await app.request("/api/auth/callback/google?error=access_denied");
         expect(res.status).toBe(302);
