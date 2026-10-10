@@ -79,7 +79,7 @@ wait_for_health() {
     local count=0
 
     while [ "$count" -lt "$max_retries" ]; do
-        if curl -s -f -o /dev/null -m 3 "${url}"; then
+        if docker exec "${service_name}" wget -q -O /dev/null "${url}" 2>/dev/null || curl -s -f -o /dev/null -m 3 "${url}" 2>/dev/null; then
             log_success "${service_name} is HEALTHY! (${url})"
             return 0
         fi
