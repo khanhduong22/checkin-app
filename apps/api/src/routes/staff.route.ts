@@ -1941,7 +1941,8 @@ staffRoute.post("/staff-tasks/:id/toggle", authMiddleware, async (c) => {
     if (nextStatus === "DONE") {
       updateData.submittedAt = new Date();
       if (body.evidenceLink !== undefined) updateData.evidenceLink = body.evidenceLink;
-      if (body.evidenceNote !== undefined) updateData.evidenceNote = body.evidenceNote;
+      const noteVal = body.evidenceNote !== undefined ? body.evidenceNote : body.note;
+      if (noteVal !== undefined) updateData.evidenceNote = noteVal;
     } else if (nextStatus === "APPROVED") {
       updateData.completedAt = new Date();
     }
