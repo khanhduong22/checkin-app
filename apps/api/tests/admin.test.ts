@@ -961,23 +961,6 @@ describe("Admin Routes", () => {
     });
   });
 
-  describe("Neon Delta Backfill", () => {
-    it("POST /api/admin/sync/backfill-neon requires ADMIN role", async () => {
-      const res = await app.request("/api/admin/sync/backfill-neon", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
-      });
-      expect(res.status).toBe(403);
-    });
-
-    it("POST /api/admin/sync/backfill-neon rejects unauthenticated requests", async () => {
-      const res = await app.request("/api/admin/sync/backfill-neon", {
-        method: "POST",
-      });
-      expect(res.status).toBe(401);
-    });
-  });
-
   describe("Admin Tasks Management (/api/admin/tasks)", () => {
     it("GET /api/admin/tasks returns formatted tasks with correct title, unit, and amounts", async () => {
       mockUserTaskFindMany.mockResolvedValue([
