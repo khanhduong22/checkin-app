@@ -1,0 +1,396 @@
+name: Deploy Monorepo to VPS
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - feat/monorepo-migration
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'infra/**'
+      - 'docker/**'
+      - 'docker-compose*.yml'
+      - 'scripts/**'
+      - '.github/workflows/deploy-monorepo.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - 'turbo.json'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service(s) to build and deploy'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - api
+          - admin
+          - staff
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ============================================================================
+  # 1. Change Detection Job (Path Filtering)
+  # ============================================================================
+  changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.targets.outputs.api }}
+      admin: ${{ steps.targets.outputs.admin }}
+      staff: ${{ steps.targets.outputs.staff }}
+      any: ${{ steps.targets.outputs.any }}
+      built_services: ${{ steps.targets.outputs.built_services }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Path Filter Check
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'packages/db/**'
+              - 'packages/audit-trail/**'
+              - 'packages/shared/**'
+              - 'packages/zero-downtime-deploy/**'
+              - 'docker-compose*.yml'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'tsconfig.base.json'
+              - 'turbo.json'
+            admin:
+              - 'apps/admin-spa/**'
+              - 'packages/shared/**'
+              - 'docker-compose*.yml'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'tsconfig.base.json'
+              - 'turbo.json'
+            staff:
+              - 'apps/staff-pwa/**'
+              - 'packages/shared/**'
+              - 'docker-compose*.yml'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'tsconfig.base.json'
+              - 'turbo.json'
+            scripts:
+              - 'scripts/**'
+              - '.github/workflows/deploy-monorepo.yml'
+
+      - name: Determine Target Services
+        id: targets
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SERVICE="${{ inputs.service }}"
+            echo "Workflow dispatch triggered with service filter: $SERVICE"
+            if [ "$SERVICE" = "all" ]; then
+              API=true; ADMIN=true; STAFF=true
+            elif [ "$SERVICE" = "api" ]; then
+              API=true; ADMIN=false; STAFF=false
+            elif [ "$SERVICE" = "admin" ]; then
+              API=false; ADMIN=true; STAFF=false
+            elif [ "$SERVICE" = "staff" ]; then
+              API=false; ADMIN=false; STAFF=true
+            fi
+          else
+            API="${{ steps.filter.outputs.api }}"
+            ADMIN="${{ steps.filter.outputs.admin }}"
+            STAFF="${{ steps.filter.outputs.staff }}"
+            SCRIPTS="${{ steps.filter.outputs.scripts }}"
+            echo "Filter results: api=$API, admin=$ADMIN, staff=$STAFF, scripts=$SCRIPTS"
+          fi
+
+          echo "api=$API" >> "$GITHUB_OUTPUT"
+          echo "admin=$ADMIN" >> "$GITHUB_OUTPUT"
+          echo "staff=$STAFF" >> "$GITHUB_OUTPUT"
+
+          BUILT=""
+          if [ "$API" = "true" ]; then BUILT="$BUILT api"; fi
+          if [ "$ADMIN" = "true" ]; then BUILT="$BUILT admin"; fi
+          if [ "$STAFF" = "true" ]; then BUILT="$BUILT staff"; fi
+          BUILT=$(echo "$BUILT" | xargs)
+          echo "built_services=$BUILT" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$BUILT" ] || [ "${{ steps.filter.outputs.scripts }}" = "true" ]; then
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "=========================================="
+          echo "Summary of Detected Targets:"
+          echo "  API:            $API"
+          echo "  Admin:          $ADMIN"
+          echo "  Staff:          $STAFF"
+          echo "  Built Services: '$BUILT'"
+          echo "=========================================="
+
+  # ============================================================================
+  # 2. Test & Quality Gates Job
+  # ============================================================================
+  test:
+    name: Run Unit Tests & Quality Gates
+    needs: changes
+    if: needs.changes.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js & Corepack (pnpm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.32.1 --activate
+
+      - name: Install Monorepo Dependencies
+        run: pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+
+      - name: Generate Prisma Client & Build Shared Packages
+        run: |
+          pnpm --filter @checkin/db generate
+          pnpm --filter @checkin/shared build
+          pnpm --filter @checkin/audit-trail build
+          pnpm --filter @checkin/zero-downtime-deploy build
+          pnpm --filter @checkin/db build
+
+      - name: Run Monorepo Unit Tests
+        run: |
+          pnpm --filter @checkin/shared test
+          pnpm --filter @checkin/audit-trail test
+          pnpm --filter @checkin/zero-downtime-deploy test
+          pnpm --filter @checkin/api test
+          pnpm --filter @checkin/staff-pwa test
+
+  # ============================================================================
+  # 3. Parallel Docker Builds (Conditional per component)
+  # ============================================================================
+  build-api:
+    name: Build & Push checkin-api Image
+    needs: [changes, test]
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push checkin-api Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/checkin-api:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/checkin-api:staging
+            ghcr.io/${{ github.repository }}/checkin-api:latest
+          cache-from: type=gha,scope=checkin-api
+          cache-to: type=gha,mode=max,scope=checkin-api
+
+  build-admin:
+    name: Build & Push checkin-admin Image
+    needs: [changes, test]
+    if: needs.changes.outputs.admin == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push checkin-admin Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/admin-spa/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/checkin-admin:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/checkin-admin:staging
+            ghcr.io/${{ github.repository }}/checkin-admin:latest
+          cache-from: type=gha,scope=checkin-admin
+          cache-to: type=gha,mode=max,scope=checkin-admin
+
+  build-staff:
+    name: Build & Push checkin-staff Image
+    needs: [changes, test]
+    if: needs.changes.outputs.staff == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push checkin-staff Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/staff-pwa/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/checkin-staff:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/checkin-staff:staging
+            ghcr.io/${{ github.repository }}/checkin-staff:latest
+          cache-from: type=gha,scope=checkin-staff
+          cache-to: type=gha,mode=max,scope=checkin-staff
+
+  # ============================================================================
+  # 4. Smart VPS Deployment
+  # ============================================================================
+  deploy:
+    name: VPS Deployment (Staging or Production)
+    needs: [changes, test, build-api, build-admin, build-staff]
+    if: |
+      !cancelled() &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled') &&
+      needs.changes.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # ------------------------------------------------------------------------
+      # Staging Deployment for limart2.khanhdp.com (feat/monorepo-migration)
+      # ------------------------------------------------------------------------
+      - name: Deploy Staging Stack (limart2.khanhdp.com)
+        if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/feat/monorepo-migration'
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          BUILT_SERVICES: ${{ needs.changes.outputs.built_services }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GITHUB_TOKEN,GITHUB_ACTOR,BUILT_SERVICES,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
+          script: |
+            set -e
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+            curl -sSL -H "Authorization: token $GITHUB_TOKEN" "https://raw.githubusercontent.com/khanhduong22/checkin-app/main/scripts/deploy-staging.sh" | GITHUB_TOKEN="$GITHUB_TOKEN" GITHUB_ACTOR="$GITHUB_ACTOR" BUILT_SERVICES="$BUILT_SERVICES" GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET" bash
+
+      # ------------------------------------------------------------------------
+      # Production Dual-Run Cutover for limart.khanhdp.com (main branch)
+      # ------------------------------------------------------------------------
+      - name: Deploy Production Stack (limart.khanhdp.com)
+        if: github.ref == 'refs/heads/main'
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          BUILT_SERVICES: ${{ needs.changes.outputs.built_services }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: DATABASE_URL,NEXTAUTH_URL,NEXTAUTH_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GEMINI_API_KEY,GOOGLE_GENERATIVE_AI_API_KEY,RESEND_API_KEY,EMAIL_FROM,CRON_SECRET,GITHUB_TOKEN,GITHUB_ACTOR,BUILT_SERVICES
+          script: |
+            cd /opt/checkin-app
+            git stash
+            git fetch origin
+            git checkout main
+            git pull
+            
+            cat << EOF > .env
+            DATABASE_URL="$DATABASE_URL"
+            NEXTAUTH_URL="$NEXTAUTH_URL"
+            NEXTAUTH_SECRET="$NEXTAUTH_SECRET"
+            GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID"
+            GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET"
+            NODE_ENV="production"
+            GEMINI_API_KEY="$GEMINI_API_KEY"
+            GOOGLE_GENERATIVE_AI_API_KEY="$GOOGLE_GENERATIVE_AI_API_KEY"
+            RESEND_API_KEY="$RESEND_API_KEY"
+            EMAIL_FROM="$EMAIL_FROM"
+            CRON_SECRET="$CRON_SECRET"
+            REDIS_URL="redis://checkin-valkey:6379"
+            MEILISEARCH_HOST="http://meilisearch:7700"
+            MEILISEARCH_KEY="kt_meilisearch_master_key_2026_safe"
+            PORT=4000
+            EOF
+            
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+            
+            # Pull only services that were built
+            PULL_TARGETS=""
+            for svc in $BUILT_SERVICES; do
+              case "$svc" in
+                api) PULL_TARGETS="$PULL_TARGETS limart-api" ;;
+                admin) PULL_TARGETS="$PULL_TARGETS limart-admin" ;;
+                staff) PULL_TARGETS="$PULL_TARGETS limart-staff" ;;
+              esac
+            done
+            if [ -n "$PULL_TARGETS" ]; then
+              docker compose -f docker-compose.monorepo.yml pull $PULL_TARGETS
+            fi
+            
+            chmod +x scripts/deploy-monorepo.sh
+            BUILT_SERVICES="$BUILT_SERVICES" ./scripts/deploy-monorepo.sh deploy
+            
+            echo "Production monorepo deployment successful!"

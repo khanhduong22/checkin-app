@@ -163,7 +163,7 @@ describe("Cache Invalidation & Route Revalidation Audit", () => {
         user: { email: "admin@example.com", role: "ADMIN" },
       });
       (prisma.request.findUnique as any).mockResolvedValue({
-        id: "req-1",
+        id: 1,
         userId: "staff-1",
         type: "LEAVE",
         date: new Date(),
@@ -283,7 +283,7 @@ describe("Cache Invalidation & Route Revalidation Audit", () => {
         status: "CLOSED",
       });
 
-      const res = await closePayrollMonth(10, 2026, 0);
+      const res = await closePayrollMonth(10, 2026);
       expect(res.success).toBe(true);
       expect(invalidatePayrollCache).toHaveBeenCalledWith(10, 2026);
       expect(revalidatePath).toHaveBeenCalledWith("/admin/payroll");

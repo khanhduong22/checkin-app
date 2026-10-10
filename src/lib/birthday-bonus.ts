@@ -14,11 +14,13 @@ export async function runBirthdayBonus(): Promise<void> {
         const todayMonth = vnNow.getUTCMonth() + 1; // 1-12
         const todayDay = vnNow.getUTCDate();
 
-        // Build today's range in local server time (for duplicate check)
-        const todayStart = new Date(now);
-        todayStart.setHours(0, 0, 0, 0);
-        const todayEnd = new Date(now);
-        todayEnd.setHours(23, 59, 59, 999);
+        const todayYear = vnNow.getUTCFullYear();
+
+        // Build today's and month's range in Vietnam time UTC+7 (for duplicate check)
+        const todayStart = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay, 0, 0, 0, 0) - 7 * 60 * 60 * 1000);
+        const todayEnd = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay, 23, 59, 59, 999) - 7 * 60 * 60 * 1000);
+        const monthStart = new Date(Date.UTC(todayYear, todayMonth - 1, 1, 0, 0, 0, 0) - 7 * 60 * 60 * 1000);
+        const monthEnd = new Date(Date.UTC(todayYear, todayMonth, 0, 23, 59, 59, 999) - 7 * 60 * 60 * 1000);
 
         // Fetch all users with a birthday set
         const allUsers = await prisma.user.findMany({
@@ -43,7 +45,7 @@ export async function runBirthdayBonus(): Promise<void> {
                 where: {
                     userId: user.id,
                     reason: { contains: "sinh nhật" },
-                    date: { gte: todayStart, lte: todayEnd },
+                    date: { gte: monthStart, lte: monthEnd },
                 },
             });
 

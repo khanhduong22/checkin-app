@@ -19,23 +19,21 @@ export async function registerShift(dateStr: string, shift: string) {
   if (!user) return { success: false, message: "User not found" };
 
   try {
-    const date = new Date(dateStr);
-    // Normalize to midnight UTC or specific timezone handling if needed
-    // For simplicity, let's just use the Input Date (YYYY-MM-DD) as UTC midnight
-    // Convert old shift types to new time range
-    const start = new Date(date);
-    const end = new Date(date);
+    // Extract clean YYYY-MM-DD
+    const cleanDateStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    let start: Date;
+    let end: Date;
 
-    // Default hours
+    // Explicit +07:00 Vietnam timezone prevents server UTC offset drift (BUG-TZ-02)
     if (shift === 'MORNING') {
-      start.setHours(8, 0, 0, 0);
-      end.setHours(12, 0, 0, 0);
+      start = new Date(`${cleanDateStr}T08:00:00+07:00`);
+      end = new Date(`${cleanDateStr}T12:00:00+07:00`);
     } else if (shift === 'AFTERNOON') {
-      start.setHours(13, 30, 0, 0);
-      end.setHours(17, 30, 0, 0);
+      start = new Date(`${cleanDateStr}T13:30:00+07:00`);
+      end = new Date(`${cleanDateStr}T17:30:00+07:00`);
     } else { // FULL or others
-      start.setHours(8, 0, 0, 0);
-      end.setHours(17, 0, 0, 0);
+      start = new Date(`${cleanDateStr}T08:00:00+07:00`);
+      end = new Date(`${cleanDateStr}T17:00:00+07:00`);
     }
 
     if (typeof assertPeriodOpen === "function") {
@@ -79,8 +77,8 @@ export async function registerShift(dateStr: string, shift: string) {
     revalidatePath(`/admin/employees/${user.id}`);
     revalidatePath('/');
     return { success: true, message: "Đăng ký thành công!" };
-  } catch (e: any) {
-    return { success: false, message: e.message || "Lỗi hoặc đã đăng ký ca này rồi." };
+  } catch (e) {
+    return { success: false, message: "Lỗi hoặc đã đăng ký ca này rồi." };
   }
 }
 
@@ -98,7 +96,7 @@ export async function cancelShift(shiftId: number) {
     try {
       await assertPeriodOpen(existing.start);
     } catch (e: any) {
-      return { success: false, message: e.message };
+      return { success: false, message: e?.message || "Kỳ lương đã chốt" };
     }
   }
 
@@ -139,19 +137,17 @@ export async function assignCustomShift(userId: string, dateStr: string, startTi
   if (!admin) return { success: false, message: "Admin user not found" };
 
   try {
-    const date = new Date(dateStr);
+    const cleanDateStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    const startStr = startTime.length === 5 ? `${startTime}:00` : startTime;
+    const endStr = endTime.length === 5 ? `${endTime}:00` : endTime;
 
-    // Create Date objects from time strings
-    const start = new Date(date);
-    const [startH, startM] = startTime.split(':').map(Number);
-    start.setHours(startH, startM, 0, 0);
+    const start = new Date(`${cleanDateStr}T${startStr}+07:00`);
+    let end = new Date(`${cleanDateStr}T${endStr}+07:00`);
 
-    const end = new Date(date);
-    const [endH, endM] = endTime.split(':').map(Number);
-    end.setHours(endH, endM, 0, 0);
-
-    // Validate end > start
-    if (end <= start) return { success: false, message: "Giờ kết thúc phải sau giờ bắt đầu" };
+    // Overnight shift: end time is on the next calendar day
+    if (end <= start) {
+      end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    }
 
     if (typeof assertPeriodOpen === "function") {
       await assertPeriodOpen(start);
@@ -189,8 +185,8 @@ export async function assignCustomShift(userId: string, dateStr: string, startTi
     revalidatePath(`/admin/employees/${userId}`);
     revalidatePath('/');
     return { success: true, message: "Đã gán ca thành công!" };
-  } catch (e: any) {
-    return { success: false, message: e.message || "Lỗi: Có thể nhân viên đã có ca trùng giờ." };
+  } catch (e) {
+    return { success: false, message: "Lỗi: Có thể nhân viên đã có ca trùng giờ." };
   }
 }
 
@@ -208,7 +204,7 @@ export async function toggleShiftSwap(shiftId: number, isOpen: boolean) {
     try {
       await assertPeriodOpen(existing.start);
     } catch (e: any) {
-      return { success: false, message: e.message };
+      return { success: false, message: e?.message || "Kỳ lương đã chốt" };
     }
   }
 
@@ -242,7 +238,7 @@ export async function takeShift(shiftId: number) {
     try {
       await assertPeriodOpen(existing.start);
     } catch (e: any) {
-      return { success: false, message: e.message };
+      return { success: false, message: e?.message || "Kỳ lương đã chốt" };
     }
   }
 

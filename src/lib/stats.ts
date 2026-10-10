@@ -94,11 +94,13 @@ async function fetchUserData(userId: string, startDate: Date, endDate: Date) {
 }
 
 async function fetchPeriodData(userId: string, startDate: Date, endDate: Date) {
+  const extendedStart = new Date(startDate.getTime() - 16 * 60 * 60 * 1000);
+  const extendedEnd = new Date(endDate.getTime() + 16 * 60 * 60 * 1000);
   const [checkins, shifts, allRequests, holidays] = await Promise.all([
     prisma.checkIn.findMany({
       where: {
         userId: userId,
-        timestamp: { gte: startDate, lte: endDate }
+        timestamp: { gte: extendedStart, lte: extendedEnd }
       },
       orderBy: { timestamp: 'asc' }
     }),
@@ -396,14 +398,94 @@ async function computeUserMonthlyStats(
     dayShifts.sort((a, b) => a.start.getTime() - b.start.getTime());
   });
 
-  const checkinsByDay: Record<string, CheckIn[]> = {};
+  // Pairing algorithm for overnight shifts and timeline pairing (BUG-PAY-01)
+  const sortedCheckins = [...checkins].sort(
+    (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+  );
+
+  const dedupedCheckins: CheckIn[] = [];
+  for (const ev of sortedCheckins) {
+    const prev = dedupedCheckins[dedupedCheckins.length - 1];
+    if (
+      prev &&
+      prev.type === ev.type &&
+      Math.abs(ev.timestamp.getTime() - prev.timestamp.getTime()) < 15 * 60 * 1000
+    ) {
+      continue;
+    }
+    dedupedCheckins.push(ev);
+  }
+
+  interface CheckInPair {
+    checkIn?: CheckIn;
+    checkOut?: CheckIn;
+    dateKey: string;
+    isValid: boolean;
+    error?: string;
+  }
+
+  const pairs: CheckInPair[] = [];
+  const consumedCheckoutIndices = new Set<number>();
+
+  for (let i = 0; i < dedupedCheckins.length; i++) {
+    const event = dedupedCheckins[i];
+    if (event.type === "checkin") {
+      let matchedCheckoutIndex = -1;
+      for (let j = i + 1; j < dedupedCheckins.length; j++) {
+        const nextEvent = dedupedCheckins[j];
+        if (nextEvent.type === "checkin") {
+          break;
+        }
+        if (nextEvent.type === "checkout" && !consumedCheckoutIndices.has(j)) {
+          const diffMs = nextEvent.timestamp.getTime() - event.timestamp.getTime();
+          if (diffMs > 0 && diffMs <= 16 * 60 * 60 * 1000) {
+            matchedCheckoutIndex = j;
+          }
+          break;
+        }
+      }
+
+      const dateKey = toVNDateKey(event.timestamp);
+      if (matchedCheckoutIndex !== -1) {
+        consumedCheckoutIndices.add(matchedCheckoutIndex);
+        const checkoutEvent = dedupedCheckins[matchedCheckoutIndex];
+        pairs.push({
+          checkIn: event,
+          checkOut: checkoutEvent,
+          dateKey,
+          isValid: true,
+        });
+      } else {
+        pairs.push({
+          checkIn: event,
+          dateKey,
+          isValid: false,
+          error: "Quên Check-out",
+        });
+      }
+    } else if (event.type === "checkout") {
+      if (!consumedCheckoutIndices.has(i)) {
+        const dateKey = toVNDateKey(event.timestamp);
+        pairs.push({
+          checkOut: event,
+          dateKey,
+          isValid: false,
+          error: "Thiếu Check-in",
+        });
+      }
+    }
+  }
+
+  const pairsByDay: Record<string, CheckInPair[]> = {};
   const daysWorked = new Set<string>();
 
-  checkins.forEach(c => {
-    const dateKey = toVNDateKey(c.timestamp);
-    daysWorked.add(dateKey);
-    if (!checkinsByDay[dateKey]) checkinsByDay[dateKey] = [];
-    checkinsByDay[dateKey].push(c);
+  pairs.forEach(p => {
+    const pDate = new Date(p.dateKey + "T00:00:00+07:00");
+    if (pDate >= startDate && pDate <= endDate) {
+      daysWorked.add(p.dateKey);
+      if (!pairsByDay[p.dateKey]) pairsByDay[p.dateKey] = [];
+      pairsByDay[p.dateKey].push(p);
+    }
   });
 
   wfhRequests.forEach(r => {
@@ -419,21 +501,20 @@ async function computeUserMonthlyStats(
   let totalOvertimeHours = 0;
   let leaderboardOvertimeHours = 0;
   const dailyDetails: DailyDetail[] = [];
-  const allDates = new Set([...Object.keys(checkinsByDay), ...Array.from(wfhMap.keys())]);
+  const allDates = new Set([...Object.keys(pairsByDay), ...Array.from(wfhMap.keys())]);
 
   Array.from(allDates).forEach(date => {
-    const dailyCheckins = checkinsByDay[date] || [];
+    const dailyPairs = pairsByDay[date] || [];
     const dayShifts = shiftsByDay[date] || [];
     let dayHours = 0;
 
     // Check-in Processing
-    let lastCheckIn: CheckIn | null = null;
     let firstCheckIn: Date | null = null;
     let firstCheckInEvent: CheckIn | null = null;
     let lastCheckOut: Date | null = null;
     let lastCheckOutEvent: CheckIn | null = null;
 
-    let isValidDay = true;
+    let isValidDay = dailyPairs.length > 0;
     let errorMsg = '';
     let isLate = false;
     let multiplier = holidayMap.get(date) || 1;
@@ -442,64 +523,56 @@ async function computeUserMonthlyStats(
     let tempRawHours = 0;
     let anomalies: string[] = [];
 
-    for (const event of dailyCheckins) {
-      if (event.type === 'checkin') {
-        lastCheckIn = event;
-        if (!firstCheckIn) {
-          firstCheckIn = event.timestamp;
-          firstCheckInEvent = event;
-        }
-      } else if (event.type === 'checkout') {
-        if (lastCheckIn) {
-          let startCalc = lastCheckIn.timestamp.getTime();
-          let endCalc = event.timestamp.getTime();
+    for (const p of dailyPairs) {
+      if (p.checkIn && !firstCheckIn) {
+        firstCheckIn = p.checkIn.timestamp;
+        firstCheckInEvent = p.checkIn;
+      }
+      if (p.checkOut) {
+        lastCheckOut = p.checkOut.timestamp;
+        lastCheckOutEvent = p.checkOut;
+      }
 
-          tempRawHours += (endCalc - startCalc) / (1000 * 60 * 60);
+      if (!p.isValid) {
+        isValidDay = false;
+        errorMsg = p.error || 'Lỗi chấm công';
+        anomalies.push(p.error === 'Thiếu Check-in' ? 'Thiếu check-in' : 'Quên check-out');
+      } else if (p.checkIn && p.checkOut) {
+        let startCalc = p.checkIn.timestamp.getTime();
+        let endCalc = p.checkOut.timestamp.getTime();
 
-          const matchedShift = findBestMatchingShift(lastCheckIn.timestamp, event.timestamp, dayShifts);
+        tempRawHours += (endCalc - startCalc) / (1000 * 60 * 60);
 
-          if (matchedShift) {
-            const shiftStart = matchedShift.start.getTime();
-            const shiftEnd = matchedShift.end.getTime();
+        const matchedShift = findBestMatchingShift(p.checkIn.timestamp, p.checkOut.timestamp, dayShifts);
 
-            // Shift Logic
-            if (startCalc < shiftStart) {
-              startCalc = shiftStart;
-              anomalies.push("Vào sớm (Làm tròn ca)");
-            }
+        if (matchedShift) {
+          const shiftStart = matchedShift.start.getTime();
+          const shiftEnd = matchedShift.end.getTime();
 
-            // Early Leave Logic
-            if (endCalc < shiftEnd) {
-              const currentDateStr = toVNDateKey(event.timestamp);
-              if (earlyLeaveApprovedMap.has(currentDateStr)) {
-                endCalc = shiftEnd;
-                anomalies.push("Về sớm (Đã duyệt)");
-              } else if (earlyLeavePendingMap.has(currentDateStr)) {
-                errorMsg = errorMsg ? `${errorMsg}, Xin về sớm (Đang chờ duyệt)` : 'Xin về sớm (Đang chờ duyệt)';
-                anomalies.push("Về sớm (Chờ duyệt)");
-              } else {
-                anomalies.push("Về sớm");
-              }
-            }
+          // Shift Logic
+          if (startCalc < shiftStart) {
+            startCalc = shiftStart;
+            anomalies.push("Vào sớm (Làm tròn ca)");
           }
 
-          const diff = Math.max(0, endCalc - startCalc);
-          dayHours += diff / (1000 * 60 * 60);
-          lastCheckIn = null;
-          lastCheckOut = event.timestamp;
-          lastCheckOutEvent = event;
-        } else {
-          isValidDay = false;
-          errorMsg = 'Thiếu Check-in';
-          anomalies.push("Thiếu check-in");
+          // Early Leave Logic
+          if (endCalc < shiftEnd) {
+            const currentDateStr = toVNDateKey(p.checkOut.timestamp);
+            if (earlyLeaveApprovedMap.has(currentDateStr)) {
+              endCalc = shiftEnd;
+              anomalies.push("Về sớm (Đã duyệt)");
+            } else if (earlyLeavePendingMap.has(currentDateStr)) {
+              errorMsg = errorMsg ? `${errorMsg}, Xin về sớm (Đang chờ duyệt)` : 'Xin về sớm (Đang chờ duyệt)';
+              anomalies.push("Về sớm (Chờ duyệt)");
+            } else {
+              anomalies.push("Về sớm");
+            }
+          }
         }
-      }
-    }
 
-    if (lastCheckIn) {
-      isValidDay = false;
-      errorMsg = 'Quên Check-out';
-      anomalies.push("Quên check-out");
+        const diff = Math.max(0, endCalc - startCalc);
+        dayHours += diff / (1000 * 60 * 60);
+      }
     }
 
     let scheduledHours = user.employmentType === 'FULL_TIME' ? 8 : 0;
@@ -668,11 +741,17 @@ async function computeUserMonthlyStats(
   const latePenaltyHours = calculateLatePenalty(lateCount);
   const latePenaltyAmount = latePenaltyHours * dynamicHourlyRate;
 
-  const totalSalary = baseSalary + totalAdjustments - latePenaltyAmount;
+  const totalSalary = Math.max(0, baseSalary + totalAdjustments - latePenaltyAmount);
 
-  let projectedSalary = baseSalary + totalAdjustments - latePenaltyAmount;
+  const currentVN = new Date(Date.now() + VN_OFFSET_MS);
+  const currentYear = currentVN.getUTCFullYear();
+  const currentMonth = currentVN.getUTCMonth();
+
+  let projectedSalary = totalSalary;
   if (user.employmentType === 'FULL_TIME') {
     projectedSalary = (user.monthlySalary || 0) + totalSeniorBonus + totalAdjustments - latePenaltyAmount;
+  } else if (vnYear < currentYear || (vnYear === currentYear && vnMonth < currentMonth)) {
+    projectedSalary = totalSalary;
   }
 
   let statsResult = {

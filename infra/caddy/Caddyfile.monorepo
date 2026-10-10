@@ -1,0 +1,100 @@
+# ==============================================================================
+# Caddyfile for Checkin App 3-Tier Monorepo Architecture
+# Domain: limart.khanhdp.com
+# Zero-Downtime Multi-Service Reverse Proxy Configuration
+# ==============================================================================
+
+limart.khanhdp.com {
+    # 1. Global Compression (Zstandard & Gzip)
+    encode zstd gzip
+
+    # 2. Strict Security Headers
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        -Server
+    }
+
+    # 3. Static Assets Immutable Caching
+    @static_assets {
+        path /assets/* *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.webp *.avif
+        not path /sw.js
+        not path /registerSW.js
+        not path /manifest.webmanifest
+        not path /manifest.json
+    }
+    header @static_assets {
+        Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    # 4. PWA Service Worker & Manifest (Never cache)
+    @pwa_lifecycle {
+        path /sw.js /registerSW.js /manifest.webmanifest /manifest.json
+    }
+    header @pwa_lifecycle {
+        Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    }
+
+    # 5. Routing: API Backend (/api/* and /health) -> checkin-api:4000
+    handle /api/* {
+        reverse_proxy checkin-api:4000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            transport http {
+                keepalive 60s
+                keepalive_idle_conns 100
+            }
+        }
+    }
+
+    handle /health* {
+        reverse_proxy checkin-api:4000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # 6. Routing: Admin SPA (/admin/*) -> checkin-admin:3001
+    handle /admin* {
+        reverse_proxy checkin-admin:3001 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            transport http {
+                keepalive 60s
+                keepalive_idle_conns 50
+            }
+        }
+    }
+
+    # 7. Routing: Staff PWA (/*) -> checkin-staff:3002 (Default Fallback)
+    handle {
+        reverse_proxy checkin-staff:3002 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            transport http {
+                keepalive 60s
+                keepalive_idle_conns 50
+            }
+        }
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/checkin_access.log {
+            roll_size 50mb
+            roll_keep 5
+        }
+        format json
+    }
+}

@@ -197,7 +197,8 @@ describe("Shift Duty Actions", () => {
       const res = await toggleCompleteShiftDuty("duty-1");
 
       expect(res.success).toBe(true);
-      expect(res.data?.isCompleted).toBe(true);
+      if (!res.success) return;
+      expect(res.data.isCompleted).toBe(true);
       expect(mockDutyUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "duty-1" },
@@ -224,6 +225,7 @@ describe("Shift Duty Actions", () => {
       const res = await toggleCompleteShiftDuty("duty-2");
 
       expect(res.success).toBe(false);
+      if (res.success) return;
       expect(res.error).toBe("Bạn không có quyền cập nhật nhiệm vụ này");
     });
   });
@@ -278,11 +280,11 @@ describe("Shift Duty Actions", () => {
 
       expect(res.success).toBe(true);
       if (!res.success) return;
-      expect(res.data?.myDuties).toHaveLength(1);
-      expect(res.data?.myDuties[0].title).toBe("Việc của tôi");
-      expect(res.data?.colleagues).toHaveLength(1);
-      expect(res.data?.colleagues[0].user.name).toBe("Trần Thị B");
-      expect(res.data?.colleagues[0].duties).toHaveLength(1);
+      expect(res.data.myDuties).toHaveLength(1);
+      expect(res.data.myDuties[0].title).toBe("Việc của tôi");
+      expect(res.data.colleagues).toHaveLength(1);
+      expect(res.data.colleagues[0].user.name).toBe("Trần Thị B");
+      expect(res.data.colleagues[0].duties).toHaveLength(1);
     });
   });
 
@@ -303,7 +305,7 @@ describe("Shift Duty Actions", () => {
       expect(res.success).toBe(true);
       if (!res.success) return;
       expect(res.data).toHaveLength(1);
-      expect(res.data?.[0].title).toBe("Việc ca 10");
+      expect(res.data[0].title).toBe("Việc ca 10");
     });
   });
 });

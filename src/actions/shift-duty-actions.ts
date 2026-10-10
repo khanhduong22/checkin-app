@@ -130,7 +130,7 @@ export async function deleteShiftDuty(id: string) {
   }
 }
 
-export async function toggleCompleteShiftDuty(id: string) {
+export async function toggleCompleteShiftDuty(id: string): Promise<ShiftDutyActionResult<any>> {
   try {
     const { user } = await requireUserOrAdmin();
     const duty = await prisma.shiftDuty.findUnique({ where: { id } });

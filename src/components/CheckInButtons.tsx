@@ -150,7 +150,7 @@ export default function CheckInButtons({ userId, todayCheckins, todayShift }: { 
 
     const handleToggleDuty = async (dutyId: string) => {
         const res = await toggleCompleteShiftDuty(dutyId);
-        if (res.success && res.data) {
+        if (res.success) {
             setTodayDuties(prev => prev.map(d => d.id === dutyId ? { ...d, isCompleted: res.data.isCompleted } : d));
             toast.success(res.data.isCompleted ? "✅ Đã hoàn thành nhiệm vụ!" : "Đã hủy đánh dấu hoàn thành");
         } else {

@@ -19,7 +19,7 @@ export async function registerShift(start: Date, end: Date, override: boolean = 
     try {
       await assertPeriodOpen(start);
     } catch (e: any) {
-      return { success: false, error: e.message };
+      return { success: false, error: e?.message || "Kỳ lương đã chốt" };
     }
   }
 
@@ -123,7 +123,7 @@ export async function deleteShift(shiftId: number) {
     try {
       await assertPeriodOpen(existing.start);
     } catch (e: any) {
-      return { success: false, error: e.message };
+      return { success: false, error: e?.message || "Kỳ lương đã chốt" };
     }
   }
 
@@ -173,7 +173,7 @@ export async function updateShift(shiftId: number, start: Date, end: Date) {
       await assertPeriodOpen(existing.start);
       await assertPeriodOpen(start);
     } catch (e: any) {
-      return { success: false, error: e.message };
+      return { success: false, error: e?.message || "Kỳ lương đã chốt" };
     }
   }
 
@@ -239,7 +239,7 @@ export async function toggleShiftSenior(shiftId: number, isSenior: boolean) {
     try {
       await assertPeriodOpen(shift.start);
     } catch (e: any) {
-      return { success: false, error: e.message };
+      return { success: false, error: e?.message || "Kỳ lương đã chốt" };
     }
   }
 

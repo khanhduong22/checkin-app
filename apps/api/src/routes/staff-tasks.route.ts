@@ -1,0 +1,591 @@
+import { Hono } from "hono";
+import { authMiddleware, AppEnv } from "../middleware/auth.middleware";
+import { prisma } from "@checkin/db";
+import { invalidateCachePattern } from "../lib/cache";
+import { VN_OFFSET_MS } from "../lib/date-utils";
+
+export const staffTasksRoute = new Hono<AppEnv>();
+
+function getWeekThursday(date: Date): Date {
+  const local = new Date(date.getTime() + VN_OFFSET_MS);
+  const day = local.getUTCDay();
+  const diffToThursday = day === 0 ? -3 : 4 - day;
+  const thursLocal = new Date(local);
+  thursLocal.setUTCDate(local.getUTCDate() + diffToThursday);
+  thursLocal.setUTCHours(12, 0, 0, 0);
+  return new Date(thursLocal.getTime() - VN_OFFSET_MS);
+}
+
+function computeStaffTaskStats(tasks: any[], now: Date = new Date()) {
+  const total = tasks.length;
+  const doing = tasks.filter((t) => t.status === "DOING").length;
+  const pendingReview = tasks.filter((t) => t.status === "DONE").length;
+  const todo = tasks.filter((t) => t.status === "TODO").length;
+  const rejected = tasks.filter((t) => t.status === "REJECTED").length;
+
+  const kpiAchieved = tasks.filter(
+    (t) =>
+      t.status === "APPROVED" ||
+      t.status === "DONE" ||
+      (t.status === "REJECTED" &&
+        now.getTime() - new Date(t.updatedAt).getTime() <= 24 * 60 * 60 * 1000)
+  ).length;
+
+  const overdue = tasks.filter((t) => {
+    if (t.status === "APPROVED" || t.status === "DONE") return false;
+    if (t.status === "REJECTED") {
+      const diffHours =
+        (now.getTime() - new Date(t.updatedAt).getTime()) / (1000 * 60 * 60);
+      if (diffHours <= 24) return false;
+    }
+    return t.deadline && new Date(t.deadline).getTime() < now.getTime();
+  }).length;
+
+  const completionRate = total === 0 ? 1.0 : kpiAchieved / total;
+
+  return {
+    total,
+    approved: kpiAchieved,
+    doing,
+    pendingReview,
+    todo,
+    rejected,
+    overdue,
+    completionRate,
+  };
+}
+
+/**
+ * GET /api/staff-tasks
+ * Query params: userId (optional)
+ * Returns { tasks, users } where users are active users with staffTasksAllowed: true
+ */
+staffTasksRoute.get("/", authMiddleware, async (c) => {
+  try {
+    const tokenPayload = c.get("user");
+    const userId = tokenPayload.sub;
+    const role = tokenPayload.role;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true, staffTasksAllowed: true },
+    });
+
+    if (!user) {
+      return c.json({ success: false, error: "User not found" }, 404);
+    }
+
+    const isAdmin = role === "ADMIN" || user.role === "ADMIN";
+    if (!isAdmin && !user.staffTasksAllowed) {
+      return c.json(
+        {
+          success: false,
+          error: "Bạn không có quyền truy cập Công việc và KPI",
+          allowed: false,
+        },
+        403
+      );
+    }
+
+    const requestedUserId = c.req.query("userId");
+    const targetUserId = isAdmin ? requestedUserId : userId;
+
+    const whereClause: any = {};
+    if (targetUserId) {
+      whereClause.assigneeId = targetUserId;
+    }
+
+    const tasks = await prisma.staffTask.findMany({
+      where: whereClause,
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            staffTasksAllowed: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    let users: any[] = [];
+    if (isAdmin) {
+      users = await prisma.user.findMany({
+        where: {
+          isActive: true,
+          staffTasksAllowed: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          staffTasksAllowed: true,
+        },
+        orderBy: { name: "asc" },
+      });
+    }
+
+    return c.json({
+      success: true,
+      allowed: true,
+      data: { tasks, users },
+      tasks,
+      users,
+    });
+  } catch (err: any) {
+    return c.json(
+      { success: false, error: err?.message || "Failed to fetch staff tasks" },
+      500
+    );
+  }
+});
+
+/**
+ * GET /api/staff-tasks/stats
+ * Query params: userId, userIds (comma-separated)
+ */
+staffTasksRoute.get("/stats", authMiddleware, async (c) => {
+  try {
+    const tokenPayload = c.get("user");
+    const userId = tokenPayload.sub;
+    const role = tokenPayload.role;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true, staffTasksAllowed: true },
+    });
+
+    if (!user) {
+      return c.json({ success: false, error: "User not found" }, 404);
+    }
+
+    const isAdmin = role === "ADMIN" || user.role === "ADMIN";
+    if (!isAdmin && !user.staffTasksAllowed) {
+      return c.json(
+        { success: false, error: "Bạn không có quyền truy cập Công việc và KPI" },
+        403
+      );
+    }
+
+    let targetUserIds: string[] = [];
+    const queryUserId = c.req.query("userId");
+    const queryUserIds = c.req.query("userIds");
+
+    if (!isAdmin) {
+      targetUserIds = [userId];
+    } else if (queryUserId) {
+      targetUserIds = [queryUserId];
+    } else if (queryUserIds) {
+      targetUserIds = queryUserIds.split(",").map((s) => s.trim()).filter(Boolean);
+    } else {
+      const allowedUsers = await prisma.user.findMany({
+        where: { isActive: true, staffTasksAllowed: true },
+        select: { id: true },
+      });
+      targetUserIds = allowedUsers.map((u) => u.id);
+    }
+
+    if (targetUserIds.length === 0) {
+      return c.json({ success: true, data: {}, stats: {} });
+    }
+
+    const now = new Date();
+    const vnNow = new Date(now.getTime() + VN_OFFSET_MS);
+
+    // Monthly boundaries
+    const vnYear = vnNow.getUTCFullYear();
+    const vnMonth = vnNow.getUTCMonth();
+    const monthStart = new Date(Date.UTC(vnYear, vnMonth, 1) - VN_OFFSET_MS);
+    const monthEnd = new Date(Date.UTC(vnYear, vnMonth + 1, 0, 23, 59, 59, 999) - VN_OFFSET_MS);
+
+    // Weekly boundaries (Mon-Sun VN time)
+    const currentDay = vnNow.getUTCDay();
+    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+    const weekStartLocal = new Date(vnNow);
+    weekStartLocal.setUTCDate(vnNow.getUTCDate() + diffToMonday);
+    weekStartLocal.setUTCHours(0, 0, 0, 0);
+    const weekStart = new Date(weekStartLocal.getTime() - VN_OFFSET_MS);
+
+    const weekEndLocal = new Date(weekStartLocal);
+    weekEndLocal.setUTCDate(weekStartLocal.getUTCDate() + 6);
+    weekEndLocal.setUTCHours(23, 59, 59, 999);
+    const weekEnd = new Date(weekEndLocal.getTime() - VN_OFFSET_MS);
+
+    const extendedStartDate = new Date(monthStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const extendedEndDate = new Date(monthEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const tasksRaw = await prisma.staffTask.findMany({
+      where: {
+        assigneeId: { in: targetUserIds },
+        OR: [
+          { startDate: { gte: extendedStartDate, lte: extendedEndDate } },
+          {
+            AND: [
+              { startDate: null },
+              { createdAt: { gte: extendedStartDate, lte: extendedEndDate } },
+            ],
+          },
+        ],
+      },
+    });
+
+    const statsMap: Record<string, { monthly: any; weekly: any }> = {};
+
+    for (const uid of targetUserIds) {
+      const userTasks = tasksRaw.filter((t) => t.assigneeId === uid);
+
+      const monthlyTasks = userTasks.filter((t) => {
+        const dateToUse =
+          t.startDate ||
+          t.createdAt ||
+          new Date(monthStart.getTime() + 15 * 24 * 60 * 60 * 1000);
+        const inMonth = dateToUse >= monthStart && dateToUse <= monthEnd;
+        const thursday = getWeekThursday(dateToUse);
+        const thursdayInMonth = thursday >= monthStart && thursday <= monthEnd;
+        return inMonth || thursdayInMonth;
+      });
+
+      const weeklyTasks = userTasks.filter((t) => {
+        const dateToUse = t.startDate || t.createdAt;
+        return dateToUse >= weekStart && dateToUse <= weekEnd;
+      });
+
+      statsMap[uid] = {
+        monthly: computeStaffTaskStats(monthlyTasks, now),
+        weekly: computeStaffTaskStats(weeklyTasks, now),
+      };
+    }
+
+    if (queryUserId && statsMap[queryUserId]) {
+      return c.json({
+        success: true,
+        data: statsMap[queryUserId],
+        stats: statsMap,
+        monthly: statsMap[queryUserId].monthly,
+        weekly: statsMap[queryUserId].weekly,
+      });
+    }
+
+    return c.json({
+      success: true,
+      data: statsMap,
+      stats: statsMap,
+    });
+  } catch (err: any) {
+    return c.json(
+      { success: false, error: err?.message || "Failed to fetch staff task stats" },
+      500
+    );
+  }
+});
+
+/**
+ * POST /api/staff-tasks
+ * Admin creates a new staff task
+ */
+staffTasksRoute.post("/", authMiddleware, async (c) => {
+  try {
+    const tokenPayload = c.get("user");
+    const role = tokenPayload.role;
+    if (role !== "ADMIN") {
+      return c.json({ success: false, error: "Unauthorized: Admin role required" }, 403);
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    if (!body.title || !body.title.trim()) {
+      return c.json({ success: false, error: "Tiêu đề không được để trống" }, 400);
+    }
+    if (!body.assigneeId) {
+      return c.json({ success: false, error: "Vui lòng chọn nhân viên" }, 400);
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: body.assigneeId },
+      select: { id: true, name: true, email: true, staffTasksAllowed: true },
+    });
+
+    if (!targetUser?.staffTasksAllowed) {
+      return c.json(
+        {
+          success: false,
+          error: `Nhân viên ${targetUser?.name || targetUser?.email || ""} chưa được bật cấp quyền KPI!`,
+        },
+        400
+      );
+    }
+
+    const task = await prisma.staffTask.create({
+      data: {
+        title: body.title.trim(),
+        description: body.description?.trim() || null,
+        status: body.status || "TODO",
+        assigneeId: body.assigneeId,
+        createdById: tokenPayload.sub,
+        startDate: body.startDate ? new Date(body.startDate) : null,
+        deadline: body.deadline ? new Date(body.deadline) : null,
+        adminNote: body.adminNote?.trim() || null,
+        evidenceLink: body.evidenceLink?.trim() || null,
+        evidenceNote: body.evidenceNote?.trim() || null,
+      },
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            staffTasksAllowed: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    await invalidateCachePattern("payroll:*");
+    await invalidateCachePattern("stats:*");
+
+    return c.json({ success: true, data: task, task }, 201);
+  } catch (err: any) {
+    return c.json(
+      { success: false, error: err?.message || "Failed to create staff task" },
+      500
+    );
+  }
+});
+
+/**
+ * PATCH /api/staff-tasks/:id
+ * Admin or Assignee updates task
+ */
+staffTasksRoute.patch("/:id", authMiddleware, async (c) => {
+  try {
+    const tokenPayload = c.get("user");
+    const userId = tokenPayload.sub;
+    const role = tokenPayload.role;
+    const taskId = c.req.param("id");
+
+    if (!taskId) {
+      return c.json({ success: false, error: "Thiếu mã công việc" }, 400);
+    }
+
+    const task = await prisma.staffTask.findUnique({
+      where: { id: taskId },
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            staffTasksAllowed: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!task) {
+      return c.json({ success: false, error: "Không tìm thấy công việc" }, 404);
+    }
+
+    const isAdmin = role === "ADMIN";
+    const body = await c.req.json().catch(() => ({}));
+
+    if (!isAdmin) {
+      if (task.assigneeId !== userId) {
+        return c.json(
+          { success: false, error: "Bạn không có quyền chỉnh sửa công việc này" },
+          403
+        );
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { staffTasksAllowed: true },
+      });
+      if (!user?.staffTasksAllowed) {
+        return c.json(
+          { success: false, error: "Bạn không có quyền truy cập Công việc và KPI" },
+          403
+        );
+      }
+
+      const newStatus = body.status;
+      if (newStatus && !["TODO", "DOING", "DONE"].includes(newStatus)) {
+        return c.json(
+          { success: false, error: "Trạng thái không hợp lệ cho nhân viên" },
+          400
+        );
+      }
+
+      const updateData: any = {};
+      if (newStatus) updateData.status = newStatus;
+      if (body.evidenceLink !== undefined) {
+        updateData.evidenceLink = body.evidenceLink ? String(body.evidenceLink).trim() : null;
+      }
+      if (body.evidenceNote !== undefined) {
+        updateData.evidenceNote = body.evidenceNote ? String(body.evidenceNote).trim() : null;
+      }
+      if (newStatus === "DONE") {
+        updateData.submittedAt = new Date();
+      }
+
+      const updated = await prisma.staffTask.update({
+        where: { id: taskId },
+        data: updateData,
+        include: {
+          assignee: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              staffTasksAllowed: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      await invalidateCachePattern("payroll:*");
+      await invalidateCachePattern("stats:*");
+
+      return c.json({ success: true, data: updated, task: updated });
+    }
+
+    // Admin updates
+    const updateData: any = {};
+    if (body.title !== undefined) updateData.title = String(body.title).trim();
+    if (body.description !== undefined) {
+      updateData.description = body.description ? String(body.description).trim() : null;
+    }
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.assigneeId !== undefined) {
+      const targetUser = await prisma.user.findUnique({
+        where: { id: body.assigneeId },
+        select: { staffTasksAllowed: true },
+      });
+      if (!targetUser?.staffTasksAllowed) {
+        return c.json(
+          { success: false, error: "Nhân viên chưa được cấp quyền KPI" },
+          400
+        );
+      }
+      updateData.assigneeId = body.assigneeId;
+    }
+    if (body.startDate !== undefined) {
+      updateData.startDate = body.startDate ? new Date(body.startDate) : null;
+    }
+    if (body.deadline !== undefined) {
+      updateData.deadline = body.deadline ? new Date(body.deadline) : null;
+    }
+    if (body.adminNote !== undefined) {
+      updateData.adminNote = body.adminNote ? String(body.adminNote).trim() : null;
+    }
+    if (body.evidenceLink !== undefined) {
+      updateData.evidenceLink = body.evidenceLink ? String(body.evidenceLink).trim() : null;
+    }
+    if (body.evidenceNote !== undefined) {
+      updateData.evidenceNote = body.evidenceNote ? String(body.evidenceNote).trim() : null;
+    }
+    if (body.status === "APPROVED") {
+      updateData.completedAt = new Date();
+    }
+
+    const updated = await prisma.staffTask.update({
+      where: { id: taskId },
+      data: updateData,
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            staffTasksAllowed: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    await invalidateCachePattern("payroll:*");
+    await invalidateCachePattern("stats:*");
+
+    return c.json({ success: true, data: updated, task: updated });
+  } catch (err: any) {
+    return c.json(
+      { success: false, error: err?.message || "Failed to update staff task" },
+      500
+    );
+  }
+});
+
+/**
+ * DELETE /api/staff-tasks/:id
+ * Admin deletes a task
+ */
+staffTasksRoute.delete("/:id", authMiddleware, async (c) => {
+  try {
+    const tokenPayload = c.get("user");
+    if (tokenPayload.role !== "ADMIN") {
+      return c.json({ success: false, error: "Unauthorized: Admin role required" }, 403);
+    }
+
+    const taskId = c.req.param("id");
+    if (!taskId) {
+      return c.json({ success: false, error: "Thiếu mã công việc" }, 400);
+    }
+
+    const task = await prisma.staffTask.findUnique({
+      where: { id: taskId },
+    });
+    if (!task) {
+      return c.json({ success: false, error: "Không tìm thấy công việc" }, 404);
+    }
+
+    await prisma.staffTask.delete({
+      where: { id: taskId },
+    });
+
+    await invalidateCachePattern("payroll:*");
+    await invalidateCachePattern("stats:*");
+
+    return c.json({ success: true, message: "Đã xóa nhiệm vụ thành công!" });
+  } catch (err: any) {
+    return c.json(
+      { success: false, error: err?.message || "Failed to delete staff task" },
+      500
+    );
+  }
+});

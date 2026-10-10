@@ -1,3 +1,4 @@
+name: limart
 version: '3.8'
 
 services:
@@ -33,16 +34,28 @@ services:
       - ops_bridge
 
   checkin-db:
-    image: pgvector/pgvector:pg17
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
+    image: checkin-db:pg17-pgbackrest
     container_name: checkin-db
     restart: unless-stopped
     shm_size: 256mb
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=pgbackrest --stanza=checkin archive-push %p
     environment:
       POSTGRES_DB: checkin_db
       POSTGRES_USER: kido
       POSTGRES_PASSWORD: KidoVPS2026!
     volumes:
       - checkin_pgdata:/var/lib/postgresql/data
+      - checkin_pgbackrest_data:/var/lib/pgbackrest
     networks:
       - ops_bridge
 
@@ -52,3 +65,4 @@ networks:
 
 volumes:
   checkin_pgdata:
+  checkin_pgbackrest_data:

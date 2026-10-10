@@ -1,0 +1,162 @@
+name: limart
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Limart API Service (Staging Canary on checkin_db)
+  # ----------------------------------------------------------------------------
+  limart-api:
+    image: ghcr.io/khanhduong22/checkin-app/checkin-api:staging
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: limart-api
+    init: true
+    restart: unless-stopped
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://kido:KidoVPS2026!@limart-db:5432/checkin_db?sslmode=disable
+      - REDIS_URL=redis://limart-valkey:6379
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=kt_meilisearch_master_key_2026_safe
+      - NEXTAUTH_SECRET=checkin-app-jwt-secret-monorepo-safe-2026
+      - ADMIN_PIN=${ADMIN_PIN:-2202}
+      - CRON_SECRET=a21e2ad85126de9699d09872a2034011
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-pay-check@lim-art.store}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    networks:
+      ops_bridge:
+        aliases:
+          - limart-api
+          - checkin-api-v2
+          - checkin-api
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:4000/health | grep -q '\"status\":\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # 2. Limart Admin SPA (Vite React + Nginx Alpine static server)
+  # ----------------------------------------------------------------------------
+  limart-admin:
+    image: ghcr.io/khanhduong22/checkin-app/checkin-admin:staging
+    build:
+      context: .
+      dockerfile: apps/admin-spa/Dockerfile
+    container_name: limart-admin
+    restart: unless-stopped
+    networks:
+      ops_bridge:
+        aliases:
+          - limart-admin
+          - checkin-admin-v2
+          - checkin-admin
+    mem_limit: 64m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/ || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # 3. Limart Staff PWA (Vite React PWA + Nginx Alpine static server)
+  # ----------------------------------------------------------------------------
+  limart-staff:
+    image: ghcr.io/khanhduong22/checkin-app/checkin-staff:staging
+    build:
+      context: .
+      dockerfile: apps/staff-pwa/Dockerfile
+    container_name: limart-staff
+    restart: unless-stopped
+    networks:
+      ops_bridge:
+        aliases:
+          - limart-staff
+          - checkin-staff-v2
+          - checkin-staff
+    mem_limit: 64m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3002/ || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # 4. Limart Valkey Cache (High performance Redis-compatible cache)
+  # ----------------------------------------------------------------------------
+  limart-valkey:
+    image: valkey/valkey:8-alpine
+    container_name: limart-valkey
+    restart: unless-stopped
+    command: valkey-server --maxmemory 64mb --maxmemory-policy allkeys-lru --save ""
+    ports:
+      - "6389:6379"
+    mem_limit: 64m
+    networks:
+      ops_bridge:
+        aliases:
+          - limart-valkey
+          - checkin-valkey
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # ----------------------------------------------------------------------------
+  # 5. PostgreSQL 17 Database with pgvector
+  # ----------------------------------------------------------------------------
+  limart-db:
+    image: pgvector/pgvector:pg17
+    container_name: limart-db
+    restart: unless-stopped
+    shm_size: 256mb
+    environment:
+      POSTGRES_DB: checkin_db
+      POSTGRES_USER: kido
+      POSTGRES_PASSWORD: KidoVPS2026!
+    volumes:
+      - checkin-app_checkin_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kido -d checkin_db"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      ops_bridge:
+        aliases:
+          - limart-db
+          - checkin-db
+
+networks:
+  ops_bridge:
+    external: true
+
+volumes:
+  checkin-app_checkin_pgdata:
+    external: true

@@ -369,6 +369,7 @@ export async function updateUserDates(userId: string, birthday: Date | null, sta
         startDate
       }
     });
+    await invalidatePayrollCache();
     await invalidateUserStatsCache(userId);
     revalidatePath('/admin');
     revalidatePath('/admin/employees');

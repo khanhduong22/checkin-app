@@ -125,11 +125,15 @@ export async function performCheckIn(userId: string, type: 'checkin' | 'checkout
     // Or just look for a shift where start <= now <= end? Or start and end are same day.
     // Let's look for shift starting within last 24h?
 
-    // Best approach: Find shift where start matches today's date in VN time.
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(now);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Best approach: Find shift where start matches today's date in VN time (+07:00).
+    const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const vnNow = new Date(now.getTime() + VN_OFFSET_MS);
+    const vnYear = vnNow.getUTCFullYear();
+    const vnMonth = vnNow.getUTCMonth();
+    const vnDate = vnNow.getUTCDate();
+
+    const startOfDay = new Date(Date.UTC(vnYear, vnMonth, vnDate, 0, 0, 0, 0) - VN_OFFSET_MS);
+    const endOfDay = new Date(Date.UTC(vnYear, vnMonth, vnDate, 23, 59, 59, 999) - VN_OFFSET_MS);
 
     const todayShift = await prisma.workShift.findFirst({
       where: {

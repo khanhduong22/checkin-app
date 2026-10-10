@@ -16,9 +16,11 @@ export async function rollGacha(userId: string) {
   if (!user) return { success: false, message: 'Không tìm thấy người dùng' };
 
   if (user.role !== 'ADMIN') {
-    // 1. Check if check-in today?
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // 1. Check if check-in today (in Vietnam time UTC+7)?
+    const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const now = new Date();
+    const vnNow = new Date(now.getTime() + VN_OFFSET_MS);
+    const today = new Date(Date.UTC(vnNow.getUTCFullYear(), vnNow.getUTCMonth(), vnNow.getUTCDate(), 0, 0, 0, 0) - VN_OFFSET_MS);
 
     const checkin = await prisma.checkIn.findFirst({
       where: {

@@ -17,9 +17,10 @@ function createRedisClient(): Redis | null {
       maxRetriesPerRequest: 1,
       connectTimeout: 2000,
       commandTimeout: 2000,
-      enableOfflineQueue: true,
+      enableOfflineQueue: false,
       retryStrategy(times) {
-        return Math.min(times * 200, 2000);
+        if (times > 3) return null;
+        return Math.min(times * 200, 1000);
       },
     });
 
@@ -36,8 +37,13 @@ function createRedisClient(): Redis | null {
 }
 
 export function getRedisClient(): Redis | null {
-  const client = globalForRedis.redisClient;
-  if (!client || client.status === "end") {
+  if (process.env.NODE_ENV === "test") {
+    if (!globalForRedis.redisClient || globalForRedis.redisClient.status === "end") {
+      globalForRedis.redisClient = createRedisClient();
+    }
+    return globalForRedis.redisClient;
+  }
+  if (!globalForRedis.redisClient || globalForRedis.redisClient.status === "end") {
     globalForRedis.redisClient = createRedisClient();
   }
   return globalForRedis.redisClient;
@@ -59,9 +65,9 @@ export async function getOrSetCache<T>(
     return await fetcher();
   }
 
-  let client: Redis | null = null;
+  const client = getRedisClient();
+
   try {
-    client = getRedisClient();
     if (client) {
       const cached = await client.get(key);
       if (cached) {
@@ -90,8 +96,8 @@ export async function getOrSetCache<T>(
  * Invalidate a single cache key
  */
 export async function invalidateCache(key: string): Promise<void> {
+  const client = getRedisClient();
   try {
-    const client = getRedisClient();
     if (client) {
       await client.del(key);
     }
@@ -101,7 +107,7 @@ export async function invalidateCache(key: string): Promise<void> {
 }
 
 /**
- * Invalidate cache keys matching a pattern (e.g. "shift-duties:*") using non-blocking scanStream
+ * Invalidate cache keys matching a pattern (e.g. "shift-duties:*")
  */
 export async function invalidateCachePattern(pattern: string): Promise<void> {
   try {
@@ -110,8 +116,7 @@ export async function invalidateCachePattern(pattern: string): Promise<void> {
       return;
     }
 
-    if (typeof client.scanStream !== "function") {
-      // Fallback if scanStream is not available
+    if (typeof (client as any).scanStream !== "function") {
       if (typeof client.keys === "function") {
         const keys = await client.keys(pattern);
         if (keys && keys.length > 0) {
@@ -122,7 +127,7 @@ export async function invalidateCachePattern(pattern: string): Promise<void> {
     }
 
     await new Promise<void>((resolve, reject) => {
-      const stream = client.scanStream({ match: pattern, count: 100 });
+      const stream = (client as any).scanStream({ match: pattern, count: 100 });
       const pipelinePromises: Promise<unknown>[] = [];
 
       stream.on("data", (keys: string[]) => {
@@ -142,7 +147,7 @@ export async function invalidateCachePattern(pattern: string): Promise<void> {
         }
       });
 
-      stream.on("error", (err) => {
+      stream.on("error", (err: any) => {
         reject(err);
       });
     });

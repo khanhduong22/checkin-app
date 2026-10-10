@@ -52,4 +52,8 @@ coverage/
 # Temporary Scratch
 scratch/
 
+# Turborepo
+.turbo/
+
+
 

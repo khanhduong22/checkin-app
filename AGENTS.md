@@ -9,15 +9,17 @@
 - **SSL / TLS**: Cloudflare Origin CA wildcard + Cloudflare Full Strict Proxy.
 - **Client IP Forwarding**: Caddy extracts `Cf-Connecting-Ip` and passes via `X-Forwarded-For` and `X-Real-IP`.
 
-### Dual-Environment Inventory
-| Environment | Domain / URL | Branch | Active Containers | Architecture |
+### Active Environment & Domain Inventory
+| Environment | Domain / URL | Branch / Compose | Active Containers | Architecture |
 | :--- | :--- | :--- | :--- | :--- |
-| 🚀 **Production** | `https://limart.khanhdp.com` | `main` | `checkin-app` (Port 3000) | Next.js 16 Monolith Standalone |
-| 🧪 **Staging Canary** | `https://limart2.khanhdp.com` | `feat/monorepo-migration` | `checkin-api-v2` (:4000)<br>`checkin-admin-v2` (:3001)<br>`checkin-staff-v2` (:3002) | Monorepo 3-Tier (Hono API + Admin SPA + Staff PWA) |
+| 🚀 **Production** | `https://limart.khanhdp.com` | `feat/monorepo-migration` (`/opt/limart`) | `limart-api` (:4000)<br>`limart-admin` (:3001)<br>`limart-staff` (:3002) | Monorepo 3-Tier (Hono RESTful API + Vite Admin SPA + Vite Staff PWA) |
+| 🧪 **Staging Canary** | `https://limart2.khanhdp.com` | `feat/monorepo-migration` (`/opt/limart`) | Routes to Monorepo 3-Tier stack via Caddy | Monorepo 3-Tier (Canary domain) |
+| 🔄 **Backup Domain** | `https://limart3.khanhdp.com` | Caddy Redirect | None | Permanent HTTP 301 redirect ➔ `https://limart.khanhdp.com/` |
+| 🛑 **Legacy Monolith** | N/A | `/opt/checkin-app` | `checkin-app` (:3000) | **Stopped & Decommissioned** (Next.js 16 Monolith, saves ~280 MiB RAM) |
 
 ### Shared Backing Services
-- 🗄️ **PostgreSQL 17** (`checkin-db` on port 5432): Database `checkin_db`. Backed by volume `checkin_pgdata`. Continuous WAL archiving via pgBackRest into volume `checkin_pgbackrest_data`.
-- ⚡ **Valkey 8 Cache** (`checkin-valkey` on port 6389:6379): 64MB LRU cache, singleflight anti-stampede protection.
+- 🗄️ **PostgreSQL 17** (`limart-db` on port 5432): Database `checkin_db`. Backed by volume `checkin-app_checkin_pgdata`. Continuous WAL archiving via pgBackRest into volume `checkin_pgbackrest_data`.
+- ⚡ **Valkey 8 Cache** (`limart-valkey` on port 6389:6379): 64MB LRU cache, singleflight anti-stampede protection.
 - 🔍 **Meilisearch** (`meilisearch` on port 7700): Sub-50ms typo-tolerant search for unaccented Vietnamese names & tasks.
 
 ================================================================================
@@ -64,18 +66,21 @@ checkin-app/
 5. **Evidence-First Verification**:
    - Always run tests (`pnpm test`) before reporting completion. Show real passing output.
    - Never suppress errors with empty `catch {}` blocks or silence types with `@ts-ignore` or unchecked `any`.
+6. **Zero Public Staff Lists & Strict Zero-Trust Auth (STRICT PRIVACY INVARIANT)**:
+   - 🚫 **NEVER** expose employee account lists, search/dropdown selectors, or passwordless quick-switchers in client-facing applications or public API endpoints.
+   - Staff authentication MUST strictly require verified Google OAuth credentials matching active database records.
+   - Development debug shortcuts, mock accounts, or bypass logins must NEVER be committed to client code or deployed to staging/production environments.
 
 ================================================================================
 4. CI/CD DEPLOYMENT WORKFLOWS
 ================================================================================
-- **Staging Deployment (`limart2.khanhdp.com`)**:
-  - Trigger: Push commit to `feat/monorepo-migration`.
-  - Workflow: `.github/workflows/deploy-monorepo.yml`.
-  - Mechanism: Builds GHCR images ➡️ SSH invokes `scripts/deploy-staging.sh` ➡️ Starts candidate container on port 4000 ➡️ Healthchecks `/health` (45s timeout) ➡️ Atomic container rename swap ➡️ Caddy reload with zero downtime.
-- **Production Deployment (`limart.khanhdp.com`)**:
-  - Trigger: Push/merge to `main`.
-  - Workflow: `.github/workflows/deploy.yml`.
-  - Mechanism: Runs tests & build ➡️ SSH updates `/opt/checkin-app` ➡️ Pulls GHCR image ➡️ Restarts `checkin-app` ➡️ Runs safe `prisma db push --skip-generate`.
+- **Unified Monorepo Deployment (`deploy-monorepo.yml`)**:
+  - **Triggers**: Push commit to `main` or `feat/monorepo-migration` (filtered by active monorepo paths), or manual `workflow_dispatch`.
+  - **Target Domains**: Serves Production (`limart.khanhdp.com`) and Staging Canary (`limart2.khanhdp.com`).
+  - **Mechanism**: Builds GHCR multi-tier images (`api`, `admin`, `staff`) ➡️ SSH invokes deployment script (`scripts/deploy-staging.sh` / `scripts/deploy-monorepo.sh`) ➡️ Starts candidate container on port 4000 ➡️ Healthchecks `/health` (45s timeout) ➡️ Atomic container rename swap ➡️ Caddy zero-downtime reload.
+- **Legacy Monolith Pipeline (`deploy.yml`) - DEPRECATED**:
+  - Previously built and deployed the Next.js 16 standalone monolith (`checkin-app` on port 3000).
+  - Kept for historical reference only; inactive now that production runs on the Monorepo 3-Tier stack.
 
 ================================================================================
 5. ESSENTIAL COMMANDS CHEATSHEET
@@ -98,29 +103,29 @@ npm run test:e2e
 
 ### Read-Only Production & Staging Diagnostics (Safe to run)
 ```bash
-# Check running checkin containers
-ssh contabo "docker ps --filter 'name=checkin' --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+# Check running Limart Monorepo containers
+ssh contabo "docker ps --filter 'name=limart' --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
 
 # Check memory status (Must maintain >= 2.0 GiB available)
 ssh contabo "free -h"
 
 # Inspect live logs via terminal
-ssh contabo "docker logs --tail 100 -f checkin-app"        # Prod logs
-ssh contabo "docker logs --tail 100 -f checkin-api-v2"     # Staging API logs
-ssh contabo "docker logs --tail 50 checkin-db"             # Database logs
+ssh contabo "docker logs --tail 100 -f limart-api"         # Hono API logs
+ssh contabo "docker logs --tail 100 -f limart-admin"       # Admin SPA logs
+ssh contabo "docker logs --tail 100 -f limart-staff"       # Staff PWA logs
+ssh contabo "docker logs --tail 50 limart-db"              # PostgreSQL database logs
+ssh contabo "docker logs --tail 50 limart-valkey"          # Valkey cache logs
 
 # Probe HTTP health
 curl -sI https://limart.khanhdp.com | head -n 5           # Prod HTTP status
-curl -s https://limart2.khanhdp.com/health                # Staging health JSON
+curl -s https://limart.khanhdp.com/health                 # Prod API health JSON
+curl -s https://limart2.khanhdp.com/health                # Staging canary API health JSON
 ```
 
 ### Safe Recovery & Restart Procedures
 ```bash
-# Restart Production web container (Safe: no data loss)
-ssh contabo "docker restart checkin-app"
-
-# Restart Staging Canary containers
-ssh contabo "docker restart checkin-api-v2 checkin-admin-v2 checkin-staff-v2"
+# Restart Monorepo 3-Tier containers (Safe: no data loss)
+ssh contabo "docker restart limart-api limart-admin limart-staff"
 
 # Reload Caddy Reverse Proxy
 ssh contabo "docker exec caddy caddy reload --config /etc/caddy/Caddyfile"
@@ -132,7 +137,7 @@ ssh contabo "docker exec caddy caddy reload --config /etc/caddy/Caddyfile"
 ### pgBackRest Backup & Point-in-Time Recovery (PITR)
 ```bash
 # Inspect backup status & WAL archive health
-ssh contabo "docker exec -u postgres checkin-db pgbackrest --stanza=checkin info"
+ssh contabo "docker exec -u postgres limart-db pgbackrest --stanza=checkin info"
 
 # Trigger manual backup
 ssh contabo "/opt/checkin-app/scripts/pgbackrest-backup.sh incr"
