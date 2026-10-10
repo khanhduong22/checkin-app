@@ -244,6 +244,7 @@ export async function flushQueue(): Promise<{
     const response = await fetch("/api/checkins/sync-offline", {
       method: "POST",
       headers: authHeaders,
+      credentials: "include",
       body: JSON.stringify({
         items: pendingItems.map((i) => ({
           id: i.id,
@@ -290,6 +291,7 @@ export async function flushQueue(): Promise<{
           const res = await fetch("/api/checkins", {
             method: "POST",
             headers: authHeaders,
+            credentials: "include",
             body: JSON.stringify({
               type: item.type,
               latitude: item.latitude,
