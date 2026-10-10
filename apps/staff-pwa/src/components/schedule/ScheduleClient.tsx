@@ -16,13 +16,13 @@ function getMonday(d: Date): Date {
 }
 
 const DAY_NAMES = [
-  { short: "T2", full: "Thứ Hai" },
-  { short: "T3", full: "Thứ Ba" },
-  { short: "T4", full: "Thứ Tư" },
-  { short: "T5", full: "Thứ Năm" },
-  { short: "T6", full: "Thứ Sáu" },
-  { short: "T7", full: "Thứ Bảy" },
-  { short: "CN", full: "Chủ Nhật" },
+  { short: "T2", full: "Thứ Hai", color: "bg-blue-600 text-white shadow-blue-500/25" },
+  { short: "T3", full: "Thứ Ba", color: "bg-purple-600 text-white shadow-purple-500/25" },
+  { short: "T4", full: "Thứ Tư", color: "bg-teal-600 text-white shadow-teal-500/25" },
+  { short: "T5", full: "Thứ Năm", color: "bg-orange-500 text-white shadow-orange-500/25" },
+  { short: "T6", full: "Thứ Sáu", color: "bg-indigo-600 text-white shadow-indigo-500/25" },
+  { short: "T7", full: "Thứ Bảy", color: "bg-pink-600 text-white shadow-pink-500/25" },
+  { short: "CN", full: "Chủ Nhật", color: "bg-red-600 text-white shadow-red-500/25" },
 ];
 
 const START_HOURS = Array.from({ length: 10 }, (_, i) => String(i + 8).padStart(2, "0")); // 08..17
@@ -349,24 +349,21 @@ export default function ScheduleClient({
                     ? "bg-amber-50/80 dark:bg-amber-950/30 border-amber-400/80 dark:border-amber-700/80 ring-1 ring-amber-400/40 shadow-xs"
                     : hasShift
                     ? "bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/90 dark:border-emerald-800/80 hover:border-emerald-300"
-                    : "bg-[#fdfbf9] dark:bg-stone-900/60 border-orange-50/90 dark:border-stone-800/80 hover:bg-orange-50/40 dark:hover:bg-stone-800/40"
+                    : "bg-[#fdfbf9] dark:bg-stone-900/60 border-stone-200/80 dark:border-stone-800/80 hover:bg-stone-50/80 dark:hover:bg-stone-800/50"
                 }`}
               >
                 {/* Left: Day info */}
                 <div className="flex items-center gap-3">
                   <div
-                    className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center font-bold shrink-0 transition-transform ${
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shrink-0 shadow-xs transition-transform active:scale-95 ${
+                      dayInfo.color
+                    } ${
                       isToday
-                        ? "bg-amber-500 text-white shadow-xs"
-                        : hasShift
-                        ? "bg-emerald-600 text-white shadow-2xs"
-                        : "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200/60 dark:border-stone-700"
+                        ? "ring-2 ring-offset-2 ring-amber-400 dark:ring-offset-stone-900"
+                        : ""
                     }`}
                   >
-                    <span className="text-[11px] leading-tight uppercase font-extrabold tracking-tight">
-                      {dayInfo.short}
-                    </span>
-                    <span className="text-xs leading-none font-bold">
+                    <span className="text-xl sm:text-2xl font-black leading-none tracking-tight">
                       {d.getDate()}
                     </span>
                   </div>
@@ -375,6 +372,9 @@ export default function ScheduleClient({
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100">
                         {dayInfo.full}
+                      </span>
+                      <span className="text-[11px] font-semibold text-stone-400 dark:text-stone-500">
+                        ({dayInfo.short})
                       </span>
                       {isToday && (
                         <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-amber-500 text-white leading-tight">
