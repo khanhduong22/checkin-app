@@ -122,7 +122,12 @@ export default function ScheduleClient({
   });
 
   const weekEnd = weekDays[6];
-  const isCurrentWeek = getMonday(new Date()).toDateString() === weekStart.toDateString();
+  const todayMonday = getMonday(new Date());
+  const nextWeekMonday = new Date(todayMonday);
+  nextWeekMonday.setDate(nextWeekMonday.getDate() + 7);
+
+  const isCurrentWeek = weekStart.toDateString() === todayMonday.toDateString();
+  const isNextWeek = weekStart.toDateString() === nextWeekMonday.toDateString();
 
   const safeShifts = Array.isArray(shifts) ? shifts : [];
 
@@ -161,10 +166,16 @@ export default function ScheduleClient({
   };
 
   const handleTodayWeek = () => {
-    const todayMonday = getMonday(new Date());
     setWeekStart(todayMonday);
     if (onMonthChange && todayMonday.getMonth() !== weekStart.getMonth()) {
       onMonthChange(todayMonday);
+    }
+  };
+
+  const handleJumpNextWeek = () => {
+    setWeekStart(nextWeekMonday);
+    if (onMonthChange && nextWeekMonday.getMonth() !== weekStart.getMonth()) {
+      onMonthChange(nextWeekMonday);
     }
   };
 
@@ -284,53 +295,38 @@ export default function ScheduleClient({
 
       {/* Weekly Vertical Schedule Card */}
       <Card className="rounded-3xl shadow-sm border border-orange-100/90 dark:border-stone-800 overflow-hidden bg-white/95 dark:bg-stone-900/90 backdrop-blur-md">
-        <CardHeader className="flex flex-row items-center justify-between py-3 px-3.5 bg-orange-50/70 dark:bg-stone-800/60 border-b border-orange-100/70 dark:border-stone-800">
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handlePrevWeek}
-              className="h-8 w-8 p-0 rounded-xl hover:bg-orange-100 text-stone-700 dark:text-stone-300 cursor-pointer"
-              title="Tuần trước"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleNextWeek}
-              className="h-8 w-8 p-0 rounded-xl hover:bg-orange-100 text-stone-700 dark:text-stone-300 cursor-pointer"
-              title="Tuần sau"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+        <CardHeader className="flex flex-row items-center justify-between py-2.5 px-3 bg-orange-50/70 dark:bg-stone-800/60 border-b border-orange-100/70 dark:border-stone-800 gap-2">
+          <Button
+            variant={isCurrentWeek ? "default" : "outline"}
+            size="sm"
+            onClick={handleTodayWeek}
+            className={`h-8 text-xs px-2.5 sm:px-3 rounded-xl font-bold cursor-pointer transition-all ${
+              isCurrentWeek
+                ? "bg-amber-600 hover:bg-amber-700 text-white shadow-2xs"
+                : "border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
+            }`}
+          >
+            Tuần này
+          </Button>
 
-          <div className="text-center">
-            <CardTitle className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100 tracking-tight">
+          <div className="text-center px-1">
+            <CardTitle className="text-xs sm:text-sm font-black text-stone-900 dark:text-stone-100 tracking-tight whitespace-nowrap">
               {weekStart.getDate()}/{weekStart.getMonth() + 1} - {weekEnd.getDate()}/{weekEnd.getMonth() + 1}/{weekEnd.getFullYear()}
             </CardTitle>
-            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold block">
-              Thứ 2 ➔ Chủ Nhật
-            </span>
           </div>
 
-          {!isCurrentWeek ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleTodayWeek}
-              className="h-7 text-[11px] px-2.5 rounded-xl border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 font-bold hover:bg-amber-100/50 cursor-pointer"
-            >
-              Tuần này
-            </Button>
-          ) : (
-            <div className="w-14 text-right">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
-                Hiện tại
-              </span>
-            </div>
-          )}
+          <Button
+            variant={isNextWeek ? "default" : "outline"}
+            size="sm"
+            onClick={handleJumpNextWeek}
+            className={`h-8 text-xs px-2.5 sm:px-3 rounded-xl font-bold cursor-pointer transition-all ${
+              isNextWeek
+                ? "bg-amber-600 hover:bg-amber-700 text-white shadow-2xs"
+                : "border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
+            }`}
+          >
+            Tuần sau
+          </Button>
         </CardHeader>
 
         <CardContent className="p-2.5 sm:p-3 space-y-2">
@@ -430,6 +426,31 @@ export default function ScheduleClient({
               </div>
             );
           })}
+
+          {/* Week Navigation under Sunday */}
+          <div className="flex items-center justify-center gap-3 pt-2.5 pb-1 border-t border-stone-200/60 dark:border-stone-800">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrevWeek}
+              className="h-8.5 px-3.5 rounded-xl border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer font-bold text-xs gap-1.5 shadow-2xs"
+              title="Tuần trước"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span>Tuần trước</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextWeek}
+              className="h-8.5 px-3.5 rounded-xl border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer font-bold text-xs gap-1.5 shadow-2xs"
+              title="Tuần sau"
+            >
+              <span>Tuần sau</span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
