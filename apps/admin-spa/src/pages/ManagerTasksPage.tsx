@@ -541,7 +541,7 @@ export function ManagerTasksPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4 space-y-6">
+    <div className="w-full space-y-6">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
@@ -553,13 +553,13 @@ export function ManagerTasksPage() {
       </div>
 
       {/* Selection Control Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-slate-50 p-4 rounded-2xl border">
+      <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center bg-slate-50 p-3 sm:p-4 rounded-2xl border">
         {/* User Selector */}
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <div className="p-2 bg-indigo-100 rounded-lg text-indigo-700">
+        <div className="flex items-center gap-2.5 w-full lg:w-auto">
+          <div className="p-2 bg-indigo-100 rounded-lg text-indigo-700 shrink-0">
             <UserIcon className="h-5 w-5" />
           </div>
-          <div className="flex-1 sm:flex-initial">
+          <div className="flex-1 lg:flex-initial min-w-0">
             <label className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">
               Nhân sự phụ trách
             </label>
@@ -567,7 +567,7 @@ export function ManagerTasksPage() {
               value={selectedUserId}
               onChange={(e) => setSelectedUserId(e.target.value)}
               aria-label="Chọn nhân sự quản lý phụ trách"
-              className="bg-white border rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-800 shadow-xs focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto"
+              className="bg-white border rounded-lg px-3 py-1.5 h-10 sm:h-9 text-base sm:text-sm font-semibold text-slate-800 shadow-xs focus:ring-2 focus:ring-indigo-500 outline-none w-full lg:w-auto"
             >
               {selectableUsers.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -579,22 +579,22 @@ export function ManagerTasksPage() {
         </div>
 
         {/* Date Picker & Tabs */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-          <div className="flex items-center gap-2 bg-white border rounded-lg px-3 py-1.5 shadow-xs">
-            <Calendar className="h-4 w-4 text-slate-500" />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          <div className="flex items-center gap-2 bg-white border rounded-lg px-3 py-1.5 h-10 sm:h-9 shadow-xs w-full sm:w-auto">
+            <Calendar className="h-4 w-4 text-slate-500 shrink-0" />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               aria-label="Chọn ngày xem checklist quản lý"
-              className="text-sm font-semibold text-slate-700 outline-none border-0 p-0 w-32 focus:ring-0 focus:border-0"
+              className="text-base sm:text-sm font-semibold text-slate-700 outline-none border-0 p-0 w-full sm:w-32 focus:ring-0 focus:border-0"
             />
           </div>
 
-          <div className="flex bg-slate-200/80 rounded-xl p-1 gap-1">
+          <div className="flex bg-slate-200/80 rounded-xl p-1 gap-1 overflow-x-auto w-full sm:w-auto">
             <button
               onClick={() => setActiveTab("checklist")}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 min-h-[38px] rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 activeTab === "checklist"
                   ? "bg-white text-indigo-950 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
@@ -604,7 +604,7 @@ export function ManagerTasksPage() {
             </button>
             <button
               onClick={() => setActiveTab("templates")}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 min-h-[38px] rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 activeTab === "templates"
                   ? "bg-white text-indigo-950 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
@@ -614,7 +614,7 @@ export function ManagerTasksPage() {
             </button>
             <button
               onClick={() => setActiveTab("history")}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 min-h-[38px] rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 activeTab === "history"
                   ? "bg-white text-indigo-950 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
@@ -1226,8 +1226,8 @@ export function ManagerTasksPage() {
                 </div>
 
                 {/* Grid table */}
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="min-w-full divide-y text-sm">
+                <div className="border rounded-lg overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
+                  <table className="min-w-full divide-y text-sm min-w-[550px]">
                     <thead className="bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider">
                       <tr>
                         <th className="px-4 py-3 text-left">Ngày</th>

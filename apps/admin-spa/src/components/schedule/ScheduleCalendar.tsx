@@ -939,15 +939,15 @@ export default function ScheduleCalendar({
           </div>
         </div>
       ) : (
-        // --- DESKTOP INTERFACE ---
-        <div className="flex flex-col flex-1">
-          <div className="flex items-center justify-between mb-2 px-2 pb-2 border-b">
-            <div className="flex items-center space-x-3">
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* --- DESKTOP / TABLET INTERFACE --- */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2 px-2 pb-2 border-b flex-wrap">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setDutySheetOpen(true)}
-                className="border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700 font-semibold flex items-center gap-1.5 shadow-xs h-8 text-xs"
+                className="border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700 font-semibold flex items-center gap-1.5 shadow-xs h-9 min-h-[36px] text-xs"
               >
                 <ListTodo className="h-4 w-4 text-indigo-600" />
                 <span>Bảng nhiệm vụ tuần này</span>
@@ -978,7 +978,7 @@ export default function ScheduleCalendar({
               </div>
             </div>
 
-            <div className="flex items-center space-x-5">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-5">
               <div className="flex items-center space-x-2">
                 <Switch
                   id="show-all-shifts"
@@ -987,7 +987,7 @@ export default function ScheduleCalendar({
                 />
                 <Label
                   htmlFor="show-all-shifts"
-                  className="cursor-pointer text-sm font-medium"
+                  className="cursor-pointer text-xs sm:text-sm font-medium"
                 >
                   Xem lịch toàn cửa hàng
                 </Label>
@@ -1000,7 +1000,7 @@ export default function ScheduleCalendar({
                 />
                 <Label
                   htmlFor="hide-full-time"
-                  className="cursor-pointer text-sm font-medium"
+                  className="cursor-pointer text-xs sm:text-sm font-medium"
                 >
                   Ẩn nhân viên Full-time
                 </Label>
@@ -1008,8 +1008,9 @@ export default function ScheduleCalendar({
             </div>
           </div>
 
-          <div className="flex-1 w-full h-full min-h-0 flex flex-col">
-            <DnDCalendar
+          <div className="flex-1 w-full h-full min-h-0 flex flex-col overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
+            <div className="min-w-[700px] h-full flex flex-col flex-1">
+              <DnDCalendar
               localizer={localizer}
               culture="vi"
               dayLayoutAlgorithm="no-overlap"
@@ -1049,6 +1050,7 @@ export default function ScheduleCalendar({
                 noEventsInRange: 'Không có lịch làm việc nào trong khoảng này',
               }}
             />
+            </div>
           </div>
         </div>
       )}

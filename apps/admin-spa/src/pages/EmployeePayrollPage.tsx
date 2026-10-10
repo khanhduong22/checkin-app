@@ -127,7 +127,7 @@ export function EmployeePayrollPage() {
                 setSearchParams({ month: m, year: y });
               }}
             >
-              <SelectTrigger className="border-0 focus:ring-0 font-medium text-xs h-9">
+              <SelectTrigger className="border-0 focus:ring-0 font-medium text-xs h-10 sm:h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -143,7 +143,7 @@ export function EmployeePayrollPage() {
             variant="outline"
             size="sm"
             onClick={handleDownload}
-            className="flex-1 sm:flex-initial h-9 gap-1.5 border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs"
+            className="flex-1 sm:flex-initial h-10 sm:h-9 min-h-[38px] gap-1.5 border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs"
           >
             <Download className="h-3.5 w-3.5" /> Xuất Excel
           </Button>
@@ -156,7 +156,7 @@ export function EmployeePayrollPage() {
             onSuccess={() => mutate()}
           />
           <Link to={`/employees/${user.id}`} className="flex-1 sm:flex-initial">
-            <Button variant="outline" size="sm" className="w-full h-9 gap-1.5 text-xs">
+            <Button variant="outline" size="sm" className="w-full h-10 sm:h-9 min-h-[38px] gap-1.5 text-xs">
               <User className="h-3.5 w-3.5" /> Hồ Sơ
             </Button>
           </Link>
@@ -164,7 +164,7 @@ export function EmployeePayrollPage() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-3 sm:p-4 bg-emerald-50/80 border-emerald-200">
           <div className="flex items-center gap-2 text-emerald-700 mb-1">
             <DollarSign className="h-4 w-4" />
@@ -276,7 +276,7 @@ export function EmployeePayrollPage() {
           <CardTitle className="font-bold text-slate-800 text-sm">Chi tiết công theo từng ngày</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
             {!stats?.dailyDetails || stats.dailyDetails.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground">
                 Chưa có dữ liệu chấm công tháng này.

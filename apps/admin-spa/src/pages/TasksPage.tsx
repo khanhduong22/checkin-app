@@ -379,28 +379,28 @@ export function TasksPage() {
             <TabsTrigger
               id="tab-trigger-review"
               value="review"
-              className="data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm text-stone-700 font-medium py-2 rounded-lg text-xs sm:text-sm transition-all"
+              className="data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm text-stone-700 font-medium py-2.5 min-h-[38px] rounded-lg text-xs sm:text-sm transition-all"
             >
               Review Pending ({pendingTasks.length})
             </TabsTrigger>
             <TabsTrigger
               id="tab-trigger-history"
               value="history"
-              className="data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm text-stone-700 font-medium py-2 rounded-lg text-xs sm:text-sm transition-all"
+              className="data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm text-stone-700 font-medium py-2.5 min-h-[38px] rounded-lg text-xs sm:text-sm transition-all"
             >
               History
             </TabsTrigger>
             <TabsTrigger
               id="tab-trigger-definitions"
               value="definitions"
-              className="data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm text-stone-700 font-medium py-2 rounded-lg text-xs sm:text-sm transition-all"
+              className="data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm text-stone-700 font-medium py-2.5 min-h-[38px] rounded-lg text-xs sm:text-sm transition-all"
             >
               Task Definitions
             </TabsTrigger>
             <TabsTrigger
               id="tab-trigger-items"
               value="items"
-              className="data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm text-stone-700 font-medium py-2 rounded-lg text-xs sm:text-sm transition-all"
+              className="data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm text-stone-700 font-medium py-2.5 min-h-[38px] rounded-lg text-xs sm:text-sm transition-all"
             >
               Marketplace ({taskItems.length})
             </TabsTrigger>
@@ -429,8 +429,8 @@ export function TasksPage() {
                   No pending tasks to review.
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-xl border border-stone-200/80">
-                  <Table className="w-full">
+                <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch] rounded-xl border border-stone-200/80">
+                  <Table className="w-full min-w-[700px]">
                     <TableHeader className="bg-stone-50/60">
                       <TableRow className="border-b border-stone-200 hover:bg-transparent">
                         <TableHead className="font-semibold text-stone-600 text-xs py-3.5">
@@ -507,14 +507,14 @@ export function TasksPage() {
                           <TableCell className="text-right space-x-2 whitespace-nowrap py-3.5">
                             <Button
                               size="sm"
-                              className="bg-[#8B5E3C] hover:bg-[#724C30] text-white text-xs px-4 py-1.5 h-8 rounded-lg shadow-sm font-medium"
+                              className="bg-[#8B5E3C] hover:bg-[#724C30] text-white text-xs px-4 py-1.5 h-9 min-h-[36px] rounded-lg shadow-sm font-medium"
                               onClick={() => openReview(task)}
                             >
                               Review
                             </Button>
                             <Button
                               size="sm"
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 h-8 rounded-lg shadow-sm font-medium"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 h-9 min-h-[36px] rounded-lg shadow-sm font-medium"
                               onClick={() => handleQuickApprove(task.id)}
                             >
                               <Check className="h-3.5 w-3.5 mr-1" /> Duyệt
@@ -552,7 +552,7 @@ export function TasksPage() {
                     value={historyMonth}
                     onValueChange={setHistoryMonth}
                   >
-                    <SelectTrigger className="w-[160px] bg-white border-stone-200">
+                    <SelectTrigger className="w-[160px] bg-white border-stone-200 h-10 sm:h-9 text-xs sm:text-sm">
                       <SelectValue placeholder="All/Recent" />
                     </SelectTrigger>
                     <SelectContent>
@@ -573,8 +573,8 @@ export function TasksPage() {
                   No reviewed tasks found.
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-xl border border-stone-200/80">
-                  <Table className="w-full">
+                <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch] rounded-xl border border-stone-200/80">
+                  <Table className="w-full min-w-[650px]">
                     <TableHeader className="bg-stone-50/60">
                       <TableRow className="border-b border-stone-200 hover:bg-transparent">
                         <TableHead className="font-semibold text-stone-600 text-xs py-3.5">
@@ -694,7 +694,7 @@ export function TasksPage() {
                     placeholder="Search task name, unit, description..."
                     value={defSearch}
                     onChange={(e) => setDefSearch(e.target.value)}
-                    className="pl-9 bg-white border-stone-200 h-9 text-xs"
+                    className="pl-9 bg-white border-stone-200 h-10 sm:h-9 text-base sm:text-xs"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -702,7 +702,7 @@ export function TasksPage() {
                   <select
                     value={defStatusFilter}
                     onChange={(e) => setDefStatusFilter(e.target.value as any)}
-                    className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs text-stone-700 shadow-sm"
+                    className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 h-10 sm:h-9 text-base sm:text-xs text-stone-700 shadow-sm"
                   >
                     <option value="ALL">All Status</option>
                     <option value="ACTIVE">Active</option>
@@ -718,8 +718,8 @@ export function TasksPage() {
                     : "No task definitions found."}
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-xl border border-stone-200/80">
-                  <Table className="w-full">
+                <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch] rounded-xl border border-stone-200/80">
+                  <Table className="w-full min-w-[600px]">
                     <TableHeader className="bg-stone-50/60">
                       <TableRow className="border-b border-stone-200 hover:bg-transparent">
                         <TableHead className="font-semibold text-stone-600 text-xs py-3.5">
@@ -839,7 +839,7 @@ export function TasksPage() {
                     placeholder="Search title, description, assignee..."
                     value={itemSearch}
                     onChange={(e) => setItemSearch(e.target.value)}
-                    className="pl-9 bg-white border-stone-200 h-9 text-xs"
+                    className="pl-9 bg-white border-stone-200 h-10 sm:h-9 text-base sm:text-xs"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -847,7 +847,7 @@ export function TasksPage() {
                   <select
                     value={itemStatusFilter}
                     onChange={(e) => setItemStatusFilter(e.target.value as any)}
-                    className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-xs text-stone-700 shadow-sm"
+                    className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 h-10 sm:h-9 text-base sm:text-xs text-stone-700 shadow-sm"
                   >
                     <option value="ALL">All Status</option>
                     <option value="OPEN">OPEN</option>
@@ -865,8 +865,8 @@ export function TasksPage() {
                     : "No marketplace tasks found."}
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-xl border border-stone-200/80">
-                  <Table className="w-full">
+                <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch] rounded-xl border border-stone-200/80">
+                  <Table className="w-full min-w-[700px]">
                     <TableHeader className="bg-stone-50/60">
                       <TableRow className="border-b border-stone-200 hover:bg-transparent">
                         <TableHead className="font-semibold text-stone-600 text-xs py-3.5">

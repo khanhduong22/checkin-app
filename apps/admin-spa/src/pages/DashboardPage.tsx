@@ -180,7 +180,7 @@ export function DashboardPage() {
             size="sm"
             onClick={handleBatchCloseShifts}
             disabled={closingShifts}
-            className="flex-1 sm:flex-initial bg-white border-amber-300 text-amber-800 hover:bg-amber-50 text-xs sm:text-sm py-2"
+            className="flex-1 sm:flex-initial min-h-[38px] bg-white border-amber-300 text-amber-800 hover:bg-amber-50 text-xs sm:text-sm py-2"
           >
             {closingShifts ? "Đang xử lý..." : "⚡ Đóng ca hàng loạt"}
           </Button>
@@ -188,7 +188,7 @@ export function DashboardPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowChangelog(true)}
-            className="flex-1 sm:flex-initial bg-white border-gray-200 text-xs sm:text-sm py-2"
+            className="flex-1 sm:flex-initial min-h-[38px] bg-white border-gray-200 text-xs sm:text-sm py-2"
           >
             📜 Lịch sử cập nhật
           </Button>

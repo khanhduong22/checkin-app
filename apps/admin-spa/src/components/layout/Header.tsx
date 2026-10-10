@@ -38,6 +38,7 @@ export function Header({
 }: HeaderProps) {
   const location = useLocation();
   const { stats } = useDashboardStats();
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const currentTitle = ROUTE_TITLES[location.pathname] || "Admin Panel";
 
   const handleLogout = () => {
@@ -69,9 +70,14 @@ export function Header({
           </Button>
         )}
 
-        <Sheet>
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="lg:hidden -ml-1 sm:-ml-2 shrink-0 h-9 w-9">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden -ml-1 sm:-ml-2 shrink-0 h-9 w-9 text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+              aria-label="Mở menu điều hướng"
+            >
               <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="sr-only">Toggle Menu</span>
             </Button>
@@ -84,6 +90,7 @@ export function Header({
               <AdminNavLinks
                 pendingRequestsCount={stats?.pendingRequestsCount || 0}
                 pendingTasksCount={stats?.pendingTasksCount || 0}
+                onItemClick={() => setMobileMenuOpen(false)}
               />
             </div>
           </SheetContent>

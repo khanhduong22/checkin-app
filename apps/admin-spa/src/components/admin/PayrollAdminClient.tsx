@@ -258,7 +258,7 @@ export default function PayrollAdminClient({
                 const [yStr, mStr] = e.target.value.split("-");
                 if (onMonthChange) onMonthChange(parseInt(mStr), parseInt(yStr));
               }}
-              className="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm"
+              className="flex h-10 sm:h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-base sm:text-sm shadow-sm"
             >
               {monthOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -281,7 +281,7 @@ export default function PayrollAdminClient({
                     onChange={(e) =>
                       setBonusPercent(parseFloat(e.target.value) || 0)
                     }
-                    className="h-9"
+                    className="h-10 sm:h-9 text-base sm:text-sm"
                     min={0}
                     max={100}
                   />
@@ -290,6 +290,7 @@ export default function PayrollAdminClient({
                     variant="ghost"
                     onClick={handleUpdateBonus}
                     disabled={isUpdatingBonus}
+                    className="h-10 sm:h-9 px-3"
                     title="Lưu thưởng"
                   >
                     {isUpdatingBonus ? "..." : "Lưu"}
@@ -304,7 +305,7 @@ export default function PayrollAdminClient({
                 </label>
                 <Button
                   variant="outline"
-                  className="h-9 w-full sm:w-[180px] justify-between font-normal text-xs bg-white"
+                  className="h-10 sm:h-9 w-full sm:w-[180px] justify-between font-normal text-xs bg-white"
                   onClick={() => setShowTargetDropdown(!showTargetDropdown)}
                 >
                   {bonusTargets.length === 2
@@ -373,7 +374,7 @@ export default function PayrollAdminClient({
             id="payroll-export-btn"
             variant="outline"
             onClick={handleDownloadXLSX}
-            className="flex-1 sm:flex-initial text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-xs sm:text-sm"
+            className="flex-1 sm:flex-initial min-h-[38px] text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-xs sm:text-sm"
           >
             <FileText className="h-4 w-4 mr-1.5" />
             Xuất Excel (tất cả)
@@ -384,7 +385,7 @@ export default function PayrollAdminClient({
               variant="outline"
               onClick={handleReopenMonth}
               disabled={isClosing}
-              className="flex-1 sm:flex-initial text-orange-600 border-orange-200 hover:bg-orange-50 text-xs sm:text-sm"
+              className="flex-1 sm:flex-initial min-h-[38px] text-orange-600 border-orange-200 hover:bg-orange-50 text-xs sm:text-sm"
             >
               {isClosing ? "Đang xử lý..." : "Mở lại tháng"}
             </Button>
@@ -392,7 +393,7 @@ export default function PayrollAdminClient({
             <Button
               onClick={handleCloseMonth}
               disabled={isClosing || filteredData.length === 0}
-              className="flex-1 sm:flex-initial bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm"
+              className="flex-1 sm:flex-initial min-h-[38px] bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm"
             >
               <Banknote className="h-4 w-4 mr-1.5" />
               {isClosing ? "Đang chốt..." : "Chốt lương tháng"}
@@ -405,14 +406,14 @@ export default function PayrollAdminClient({
         <Input
           id="payroll-search-input"
           placeholder="Tìm kiếm nhân viên..."
-          className="w-full sm:max-w-sm bg-white"
+          className="w-full sm:max-w-sm bg-white h-10 sm:h-9 text-base sm:text-sm"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
       <div id="payroll-table-container" className="rounded-xl border bg-white shadow-sm overflow-hidden">
-        <div className="relative w-full overflow-auto">
+        <div className="relative w-full overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
           <table className="w-full caption-bottom text-sm text-left min-w-[780px]">
             <thead className="[&_tr]:border-b bg-gray-50/70">
               <tr className="border-b transition-colors hover:bg-muted/50">
@@ -581,7 +582,7 @@ export default function PayrollAdminClient({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 px-2"
+                          className="h-9 min-h-[36px] min-w-[36px] px-2.5 font-bold"
                           onClick={() => setSelectedUser(user)}
                           title="Thưởng/Phạt"
                           disabled={closedState}
@@ -591,17 +592,17 @@ export default function PayrollAdminClient({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 px-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                          className="h-9 min-h-[36px] min-w-[36px] px-2.5 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
                           onClick={() => handleDownloadSingleXLSX(user)}
                           title="Xuất phiếu lương"
                         >
-                          <Download className="h-3.5 w-3.5" />
+                          <Download className="h-4 w-4" />
                         </Button>
                         <Link to={`/employees/${userId}`}>
                           <Button
                             variant="default"
                             size="sm"
-                            className="h-8 px-3 text-xs"
+                            className="h-9 min-h-[36px] px-3 text-xs font-semibold"
                           >
                             Chi tiết
                           </Button>

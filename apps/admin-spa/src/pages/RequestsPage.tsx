@@ -7,7 +7,7 @@ export function RequestsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
             Duyệt yêu cầu nhân sự

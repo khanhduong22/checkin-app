@@ -25,6 +25,20 @@ export function AdminLayout() {
 
   const isSchedulePage = location.pathname.startsWith("/schedule");
 
+  // Media query detection for desktop (lg: >= 1024px)
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : true
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    setIsDesktop(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
   // Sidebar collapsed state - auto collapsed on /schedule
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     if (window.location.pathname.startsWith("/schedule")) {
@@ -146,7 +160,8 @@ export function AdminLayout() {
         {/* Main Content Area */}
         <div
           style={{
-            paddingLeft: isSidebarCollapsed ? 0 : `${sidebarWidth}px`,
+            paddingLeft:
+              isDesktop && !isSidebarCollapsed ? `${sidebarWidth}px` : 0,
           }}
           className="flex flex-col min-h-screen min-w-0 overflow-x-hidden transition-[padding-left] duration-200 ease-in-out"
         >

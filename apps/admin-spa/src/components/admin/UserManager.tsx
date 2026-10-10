@@ -81,7 +81,7 @@ function AddEmployeeDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="bg-white">
+      <DialogContent className="bg-white max-w-[95vw] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Thêm nhân viên mới</DialogTitle>
           <DialogDescription>
@@ -452,101 +452,112 @@ function UserItem({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0">
-          <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto pt-2.5 md:pt-0 border-t md:border-t-0">
+          <div className="flex items-center justify-between sm:justify-start gap-2 text-xs sm:text-sm bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-md border sm:border-0 w-full sm:w-auto">
             {user.employmentType === "FULL_TIME" ? (
               <>
-                <span className="text-muted-foreground">
+                <span className="text-muted-foreground font-medium sm:font-normal shrink-0">
                   Lương cứng:
                 </span>
-                <input
-                  type="number"
-                  className="w-24 sm:w-28 h-8 rounded border px-2 text-xs sm:text-sm text-right bg-white"
-                  value={monthlySalary}
-                  onChange={(e) => setMonthlySalary(e.target.value)}
-                  onBlur={handleUpdateMonthlySalary}
-                  disabled={!isUserActive}
-                />
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    className="w-28 sm:w-28 h-8 rounded border px-2 text-xs sm:text-sm text-right bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
+                    value={monthlySalary}
+                    onChange={(e) => setMonthlySalary(e.target.value)}
+                    onBlur={handleUpdateMonthlySalary}
+                    disabled={!isUserActive}
+                  />
+                  <span className="text-xs text-muted-foreground">đ</span>
+                </div>
               </>
             ) : (
               <>
-                <span className="text-muted-foreground">
+                <span className="text-muted-foreground font-medium sm:font-normal shrink-0">
                   Lương/h:
                 </span>
-                <input
-                  type="number"
-                  className="w-20 sm:w-24 h-8 rounded border px-2 text-xs sm:text-sm text-right bg-white"
-                  value={rate}
-                  onChange={(e) => setRate(e.target.value)}
-                  onBlur={handleUpdateRate}
-                  disabled={!isUserActive}
-                />
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    className="w-24 sm:w-24 h-8 rounded border px-2 text-xs sm:text-sm text-right bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
+                    value={rate}
+                    onChange={(e) => setRate(e.target.value)}
+                    onBlur={handleUpdateRate}
+                    disabled={!isUserActive}
+                  />
+                  <span className="text-xs text-muted-foreground">đ/h</span>
+                </div>
               </>
             )}
           </div>
 
-          <Button
-            variant={user.staffTasksAllowed ? "default" : "outline"}
-            size="sm"
-            onClick={handleToggleStaffTasksAllowed}
-            className={`text-xs h-8 ${
-              user.staffTasksAllowed
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-            }`}
-            disabled={!isUserActive || loading}
-          >
-            {user.staffTasksAllowed ? "Gỡ KPI" : "Cấp KPI"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+            <Button
+              variant={user.staffTasksAllowed ? "default" : "outline"}
+              size="sm"
+              onClick={handleToggleStaffTasksAllowed}
+              className={`text-xs h-8 flex-1 sm:flex-none ${
+                user.staffTasksAllowed
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              }`}
+              disabled={!isUserActive || loading}
+            >
+              {user.staffTasksAllowed ? "Gỡ KPI" : "Cấp KPI"}
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleRole}
-            className="text-xs h-8"
-            disabled={!isUserActive || loading}
-          >
-            {user.role === "ADMIN" ? "Gỡ Admin" : "Cấp Admin"}
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleRole}
+              className="text-xs h-8 flex-1 sm:flex-none"
+              disabled={!isUserActive || loading}
+            >
+              {user.role === "ADMIN" ? "Gỡ Admin" : "Cấp Admin"}
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggleActiveStatus}
-            className={`text-xs h-8 ${
-              !isUserActive
-                ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                : "border-amber-200 text-amber-700 hover:bg-amber-50"
-            }`}
-            disabled={loading}
-          >
-            {!isUserActive ? "Đi làm lại" : "Cho nghỉ"}
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggleActiveStatus}
+              className={`text-xs h-8 flex-1 sm:flex-none ${
+                !isUserActive
+                  ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  : "border-amber-200 text-amber-700 hover:bg-amber-50"
+              }`}
+              disabled={loading}
+            >
+              {!isUserActive ? "Đi làm lại" : "Cho nghỉ"}
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            title="Chỉnh sửa ngày đặc biệt"
-            onClick={() => setShowEditDatesDialog(true)}
-            disabled={!isUserActive}
-          >
-            <span className="text-base sm:text-xl">📅</span>
-          </Button>
+            <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                title="Chỉnh sửa ngày đặc biệt"
+                onClick={() => setShowEditDatesDialog(true)}
+                disabled={!isUserActive}
+              >
+                <span className="text-base sm:text-xl">📅</span>
+              </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                title="Xóa nhân viên"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
       <Dialog open={showEditDatesDialog} onOpenChange={setShowEditDatesDialog}>
-        <DialogContent className="bg-white">
+        <DialogContent className="bg-white max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Cập nhật ngày đặc biệt</DialogTitle>
             <DialogDescription>
@@ -554,32 +565,32 @@ function UserItem({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="dob" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-1.5 sm:gap-4">
+              <Label htmlFor="dob" className="sm:text-right">
                 Ngày sinh
               </Label>
               <Input
                 id="dob"
                 type="date"
-                className="col-span-3"
+                className="sm:col-span-3"
                 value={birthday}
                 onChange={(e) => setBirthday(e.target.value)}
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="start-date" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-1.5 sm:gap-4">
+              <Label htmlFor="start-date" className="sm:text-right">
                 Ngày vào làm
               </Label>
               <Input
                 id="start-date"
                 type="date"
-                className="col-span-3"
+                className="sm:col-span-3"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setShowEditDatesDialog(false)}
@@ -594,7 +605,7 @@ function UserItem({
       </Dialog>
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-white">
+        <DialogContent className="bg-white max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-red-600">Xóa nhân viên?</DialogTitle>
             <DialogDescription>
@@ -620,7 +631,7 @@ function UserItem({
             />
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
@@ -813,8 +824,9 @@ export default function UserManager({
           {resignedUsers.length > 0 && (
             <div className="space-y-2 pt-2">
               <button
+                type="button"
                 onClick={() => setShowResigned(!showResigned)}
-                className="text-xs font-semibold text-gray-500 hover:text-gray-700 flex items-center gap-1.5 focus:outline-none transition-colors"
+                className="text-xs font-semibold text-gray-500 hover:text-gray-700 flex items-center gap-1.5 focus:outline-none transition-colors cursor-pointer py-1.5 px-1 -ml-1 rounded active:bg-gray-100"
               >
                 <span>{showResigned ? "▼" : "▶"}</span>
                 <span>NHÂN VIÊN ĐÃ NGHỈ VIỆC ({resignedUsers.length})</span>
