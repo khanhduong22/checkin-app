@@ -19,7 +19,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   }> = [
     { id: "home", label: "Chấm công", icon: Clock },
     { id: "schedule", label: "Lịch trực", icon: Calendar },
-    { id: "tasks", label: "Nhiệm vụ", icon: Briefcase },
+    { id: "tasks", label: "Sàn việc", icon: Briefcase },
     { id: "payroll", label: "Bảng lương", icon: Wallet },
     { id: "profile", label: "Cá nhân", icon: User },
   ];

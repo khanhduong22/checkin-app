@@ -19,7 +19,7 @@ export async function authMiddleware(c: Context<AppEnv>, next: Next) {
   const authHeader = c.req.header("Authorization");
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const candidate = authHeader.substring(7).trim();
-    if (candidate && candidate !== "cookie_session") {
+    if (candidate && candidate !== "cookie_session" && candidate !== "null" && candidate !== "undefined") {
       token = candidate;
     }
   }

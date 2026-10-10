@@ -247,11 +247,7 @@ export const DEFAULT_HOME_DATA: StaffHomeData = {
     end: new Date(new Date().setHours(17, 30, 0, 0)).toISOString(),
     title: "Ca Sáng - Bán hàng & Soạn đơn",
   },
-  todayDuties: [
-    { id: "d_1", title: "Kiểm kê đầu ca và nhận ca", isCompleted: true },
-    { id: "d_2", title: "Đóng gói đơn tồn kho", isCompleted: false },
-    { id: "d_3", title: "Bàn giao tiền két cuối ca", isCompleted: false },
-  ],
+  todayDuties: [],
   hasCheckedInToday: false,
   ipStatus: {
     isAllowed: true,
@@ -292,14 +288,14 @@ export async function performCheckIn(
     };
   }
 
-  const token = getAuthToken();
   try {
     const res = await fetch("/api/checkins", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...getAuthHeaders(),
       },
+      credentials: "include",
       body: JSON.stringify({
         type,
         note: note?.trim() || undefined,
@@ -342,7 +338,8 @@ export async function performCheckIn(
 export async function getIPStatus(): Promise<{ isAllowed: boolean; locationName: string; ip: string }> {
   try {
     const res = await fetch("/api/staff/home-data", {
-      headers: { Authorization: `Bearer ${getAuthToken()}` },
+      headers: getAuthHeaders(),
+      credentials: "include",
     });
     if (res.ok) {
       const json = await res.json();
@@ -359,30 +356,35 @@ export async function getIPStatus(): Promise<{ isAllowed: boolean; locationName:
 export async function getTodayUserShiftDuties(userId: string): Promise<{ success: boolean; data: ShiftDutyItem[] }> {
   try {
     const res = await fetch("/api/staff/home-data", {
-      headers: { Authorization: `Bearer ${getAuthToken()}` },
+      headers: getAuthHeaders(),
+      credentials: "include",
     });
     if (res.ok) {
       const json = await res.json();
       return { success: true, data: json.data?.todayDuties || [] };
     }
   } catch {}
-  return { success: true, data: DEFAULT_HOME_DATA.todayDuties };
+  return { success: true, data: [] };
 }
 
 export async function toggleCompleteShiftDuty(dutyId: string): Promise<{ success: boolean; data?: ShiftDutyItem; error?: string }> {
   try {
     const res = await fetch(`/api/staff/duties/${dutyId}/toggle`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${getAuthToken()}` },
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      credentials: "include",
     });
     if (res.ok) {
       const json = await res.json();
       return { success: true, data: json.data };
     }
     const err = await res.json().catch(() => ({}));
-    return { success: false, error: err.error };
+    return { success: false, error: err.error || "Không thể cập nhật trạng thái nhiệm vụ" };
   } catch (e: any) {
-    return { success: false, error: e.message || "Lỗi kết nối" };
+    return { success: false, error: e.message || "Lỗi kết nối máy chủ" };
   }
 }
 

@@ -1864,7 +1864,7 @@ adminRoute.post("/schedule/duties", async (c) => {
         description: description?.trim() || null,
         userId,
         shiftId: shiftId ? parseInt(shiftId, 10) : null,
-        createdById: tokenPayload?.id || userId,
+        createdById: tokenPayload?.id || tokenPayload?.sub || userId,
         date: date ? new Date(date) : new Date(),
       },
       include: {

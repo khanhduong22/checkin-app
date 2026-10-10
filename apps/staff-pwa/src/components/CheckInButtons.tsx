@@ -131,9 +131,12 @@ export default function CheckInButtons({
         setReason("");
         if (type === "checkin") {
           confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
-          const duties = result.todayDuties || todayDuties;
+          const dutyRes = await getTodayUserShiftDuties(userId);
+          const duties = dutyRes.success && Array.isArray(dutyRes.data) ? dutyRes.data : (result.todayDuties || []);
           setTodayDuties(duties);
-          setDutyModalOpen(true);
+          if (duties.length > 0) {
+            setDutyModalOpen(true);
+          }
         } else {
           getTodayUserShiftDuties(userId).then(
             (r) => r.success && setTodayDuties(r.data || [])
@@ -319,7 +322,7 @@ export default function CheckInButtons({
             </DialogTitle>
             <DialogDescription className="text-emerald-100 text-xs mt-1 font-medium">
               {todayDuties.length > 0
-                ? "Nhiệm vụ của bạn hôm nay là:"
+                ? "Nhiệm vụ ca làm của bạn hôm nay:"
                 : "Chào mừng bạn đến với ca làm hôm nay!"}
             </DialogDescription>
           </div>
@@ -329,7 +332,7 @@ export default function CheckInButtons({
               <div className="text-center py-6 px-4 space-y-2 bg-white rounded-xl border border-dashed border-slate-200">
                 <span className="text-3xl block">✨</span>
                 <p className="font-bold text-slate-800 text-sm">
-                  Hôm nay bạn không có nhiệm vụ đặc biệt nào!
+                  Hôm nay bạn không có nhiệm vụ ca làm nào được giao!
                 </p>
                 <p className="text-xs text-slate-500">
                   Chúc bạn có một ca làm việc vui vẻ, tập trung và tràn đầy năng lượng.
@@ -338,7 +341,7 @@ export default function CheckInButtons({
             ) : (
               <div className="space-y-3">
                 <div className="text-xs font-semibold text-slate-500 flex items-center justify-between px-1">
-                  <span>Danh sách nhiệm vụ ({todayDuties.length})</span>
+                  <span>Danh sách nhiệm vụ ca làm ({todayDuties.length})</span>
                   <span className="text-[11px] text-emerald-600 font-medium">
                     Đã xong {completedCount}/{todayDuties.length}
                   </span>

@@ -139,7 +139,10 @@ staffRoute.get("/home-data", authMiddleware, async (c) => {
       prisma.shiftDuty.findMany({
         where: {
           userId,
-          date: { gte: startOfDay, lte: endOfDay },
+          OR: [
+            { date: { gte: startOfDay, lte: endOfDay } },
+            { shift: { start: { gte: startOfDay, lte: endOfDay } } },
+          ],
         },
         include: {
           shift: true,

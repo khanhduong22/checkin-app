@@ -114,4 +114,12 @@ describe("Staff PWA API Client", () => {
     expect(dutiesRes.data.length).toBe(1);
     expect(dutiesRes.data[0].title).toBe("Nhiệm vụ kiểm kho");
   });
+
+  it("should return empty array when fetching shift duties fails", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
+
+    const dutiesRes = await getTodayUserShiftDuties("user_1");
+    expect(dutiesRes.success).toBe(true);
+    expect(dutiesRes.data).toEqual([]);
+  });
 });
