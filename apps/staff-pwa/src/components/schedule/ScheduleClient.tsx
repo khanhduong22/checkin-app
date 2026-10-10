@@ -428,27 +428,23 @@ export default function ScheduleClient({
           })}
 
           {/* Week Navigation under Sunday */}
-          <div className="flex items-center justify-center gap-3 pt-2.5 pb-1 border-t border-stone-200/60 dark:border-stone-800">
+          <div className="flex items-center justify-center gap-4 pt-3 pb-1 border-t border-stone-200/60 dark:border-stone-800">
             <Button
               variant="outline"
-              size="sm"
               onClick={handlePrevWeek}
-              className="h-8.5 px-3.5 rounded-xl border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer font-bold text-xs gap-1.5 shadow-2xs"
+              className="h-11 w-20 sm:w-24 rounded-2xl border-stone-300 dark:border-stone-700 bg-stone-50/70 dark:bg-stone-800/80 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 cursor-pointer shadow-xs active:scale-95 transition-all p-0 flex items-center justify-center"
               title="Tuần trước"
             >
-              <ChevronLeft className="h-4 w-4" />
-              <span>Tuần trước</span>
+              <ChevronLeft className="h-6 w-6 stroke-[2.5]" />
             </Button>
 
             <Button
               variant="outline"
-              size="sm"
               onClick={handleNextWeek}
-              className="h-8.5 px-3.5 rounded-xl border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer font-bold text-xs gap-1.5 shadow-2xs"
+              className="h-11 w-20 sm:w-24 rounded-2xl border-stone-300 dark:border-stone-700 bg-stone-50/70 dark:bg-stone-800/80 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 cursor-pointer shadow-xs active:scale-95 transition-all p-0 flex items-center justify-center"
               title="Tuần sau"
             >
-              <span>Tuần sau</span>
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-6 w-6 stroke-[2.5]" />
             </Button>
           </div>
         </CardContent>
