@@ -133,8 +133,6 @@ services:
     container_name: limart-db
     restart: unless-stopped
     shm_size: 256mb
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_DB: checkin_db
       POSTGRES_USER: kido
