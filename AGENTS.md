@@ -1,4 +1,4 @@
-# Project Directives & System Topology (checkin-app)
+# Project Directives & System Topology (limart)
 
 ================================================================================
 1. CONTABO VPS HOST & RUNTIME TOPOLOGY
@@ -15,7 +15,7 @@
 | 🚀 **Production** | `https://limart.khanhdp.com`<br>`https://limart2.khanhdp.com` (Canary) | `main` (`/opt/limart`) | `limart-api` (:4000)<br>`limart-admin` (:3001)<br>`limart-staff` (:3002) | Monorepo 3-Tier (Hono RESTful API + Vite Admin SPA + Vite Staff PWA) |
 | 🔄 **Backup Domain** | `https://limart3.khanhdp.com` | Caddy Redirect | None | Permanent HTTP 301 redirect ➔ `https://limart.khanhdp.com/` |
 | 📦 **Legacy V1 Archive Branch** | N/A | `backup/legacy-v1-main` | None | Remote archive of original Next.js 16 monolith standalone |
-| 🛑 **Legacy Monolith Container** | N/A | `/opt/checkin-app` | `checkin-app` (:3000) | **Stopped & Decommissioned** (~280 MiB RAM saved) |
+| 🛑 **Legacy Monolith Directory** | N/A | `/opt/checkin-app -> /opt/limart` | None | **Decommissioned & Symlinked** (~280 MiB RAM saved) |
 
 ### Shared Backing Services
 - 🗄️ **PostgreSQL 17** (`limart-db` on port 5432): Database `checkin_db`. Backed by volume `checkin-app_checkin_pgdata`. Continuous WAL archiving via pgBackRest into volume `checkin_pgbackrest_data`.
@@ -26,7 +26,7 @@
 2. MONOREPO CODEBASE STRUCTURE
 ================================================================================
 ```
-checkin-app/
+limart/
 ├── apps/
 │   ├── admin-spa/            # Admin management dashboard (Vite + React SPA, Nginx container)
 │   ├── api/                  # High-performance RESTful API (Bun/Node + Hono, Port 4000)
@@ -98,7 +98,7 @@ checkin-app/
   - **Automated Pipeline Stages**:
     1. **Path Filter Change Detection**: Detects which apps (`api`, `admin-spa`, `staff-pwa`) or packages were modified to build only affected targets.
     2. **Test & Quality Gate**: Executes monorepo unit tests (`pnpm test`) and verifies builds across shared packages before triggering any container builds.
-    3. **Parallel Docker Image Builds**: Builds Docker images in parallel and pushes to GHCR (`ghcr.io/khanhduong22/checkin-app/*:latest` and `:${{ github.sha }}`).
+    3. **Parallel Docker Image Builds**: Builds Docker images in parallel and pushes to GHCR (`ghcr.io/khanhduong22/limart/*:latest` and `:${{ github.sha }}`).
     4. **Blue-Green Zero-Downtime Container Swap on Port 4000**:
        - SSH invokes `scripts/deploy-monorepo.sh deploy`.
        - Pulls newly built GHCR images on the VPS.
@@ -169,10 +169,10 @@ ssh contabo "docker exec caddy caddy reload --config /etc/caddy/Caddyfile"
 ssh contabo "docker exec -u postgres limart-db pgbackrest --stanza=checkin info"
 
 # Trigger manual backup
-ssh contabo "/opt/checkin-app/scripts/pgbackrest-backup.sh incr"
+ssh contabo "/opt/limart/scripts/pgbackrest-backup.sh incr"
 
 # Rewind database to exact time before an accident (Time Travel)
-ssh contabo "cd /opt/checkin-app && ./scripts/pgbackrest-restore.sh --time 'YYYY-MM-DD HH:MM:SS'"
+ssh contabo "cd /opt/limart && ./scripts/pgbackrest-restore.sh --time 'YYYY-MM-DD HH:MM:SS'"
 ```
 
 ================================================================================
