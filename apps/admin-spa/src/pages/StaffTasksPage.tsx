@@ -479,14 +479,14 @@ export function StaffTasksPage() {
               mutateStats();
               toast.info("Đã làm mới dữ liệu công việc và KPI");
             }}
-            className="text-xs text-slate-600 gap-1.5 font-medium"
+            className="text-xs text-slate-600 gap-1.5 font-medium min-h-[38px]"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Làm mới
           </Button>
 
           <Button
             onClick={handleOpenCreate}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-1.5 shadow-sm text-xs sm:text-sm"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-1.5 shadow-sm text-xs sm:text-sm min-h-[38px]"
           >
             <Plus className="h-4 w-4" /> Giao nhiệm vụ mới
           </Button>
@@ -502,7 +502,7 @@ export function StaffTasksPage() {
           <select
             value={selectedUserFilter}
             onChange={(e) => setSelectedUserFilter(e.target.value)}
-            className="border rounded-lg text-xs sm:text-sm px-3 py-2 bg-white outline-hidden focus:ring-2 focus:ring-indigo-500 text-slate-800 font-medium"
+            className="border rounded-lg text-base sm:text-sm px-3 py-2 bg-white outline-hidden focus:ring-2 focus:ring-indigo-500 text-slate-800 font-medium w-full sm:w-auto min-h-[38px] h-10 sm:h-9"
           >
             <option value="ALL">Tất cả nhân sự được cấp quyền KPI</option>
             {allowedUsers.map((u) => (
@@ -512,13 +512,13 @@ export function StaffTasksPage() {
             ))}
           </select>
 
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 font-medium ml-0 md:ml-4">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 font-medium ml-0 sm:ml-2">
             <Calendar className="h-4 w-4 text-indigo-500" /> Lọc thời gian:
           </div>
           <select
             value={selectedWeekFilter}
             onChange={(e) => setSelectedWeekFilter(e.target.value as any)}
-            className="border rounded-lg text-xs sm:text-sm px-3 py-2 bg-white outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700"
+            className="border rounded-lg text-base sm:text-sm px-3 py-2 bg-white outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium text-slate-700 w-full sm:w-auto min-h-[38px] h-10 sm:h-9"
           >
             <option value="LAST_WEEK">Tuần trước</option>
             <option value="THIS_WEEK">Tuần này</option>
@@ -677,7 +677,7 @@ export function StaffTasksPage() {
       )}
 
       {/* Kanban Board Columns */}
-      <div className="flex gap-4 overflow-x-auto pb-6 pt-2">
+      <div className="flex gap-4 overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch] pb-6 pt-2">
         {COLUMNS.map((col) => {
           const colTasks = filteredTasks.filter((t) => t.status === col.id);
           return (

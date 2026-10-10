@@ -81,7 +81,7 @@ export function ReportsPage() {
               setMonth(m);
             }}
           >
-            <SelectTrigger className="border-0 focus:ring-0 font-medium text-slate-700">
+            <SelectTrigger className="border-0 focus:ring-0 font-medium text-slate-700 min-h-[38px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -96,7 +96,7 @@ export function ReportsPage() {
       </div>
 
       {/* 📊 SUMMARY STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card id="report-summary-stats" className="bg-emerald-50/70 border-emerald-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-emerald-800">
@@ -354,7 +354,7 @@ export function ReportsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto touch-pan-x [-webkit-overflow-scrolling:touch]">
             <table className="w-full text-sm text-left min-w-[550px]">
               <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
                 <tr>
