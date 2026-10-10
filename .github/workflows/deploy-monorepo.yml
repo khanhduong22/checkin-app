@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-      - staging
-      - feat/monorepo-migration
     paths:
       - 'apps/**'
       - 'packages/**'
@@ -215,7 +213,6 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/checkin-api:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/checkin-api:staging
             ghcr.io/${{ github.repository }}/checkin-api:latest
           cache-from: type=gha,scope=checkin-api
           cache-to: type=gha,mode=max,scope=checkin-api
@@ -250,7 +247,6 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/checkin-admin:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/checkin-admin:staging
             ghcr.io/${{ github.repository }}/checkin-admin:latest
           cache-from: type=gha,scope=checkin-admin
           cache-to: type=gha,mode=max,scope=checkin-admin
@@ -285,7 +281,6 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/checkin-staff:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/checkin-staff:staging
             ghcr.io/${{ github.repository }}/checkin-staff:latest
           cache-from: type=gha,scope=checkin-staff
           cache-to: type=gha,mode=max,scope=checkin-staff
@@ -294,7 +289,7 @@ jobs:
   # 4. Smart VPS Deployment
   # ============================================================================
   deploy:
-    name: VPS Deployment (Staging or Production)
+    name: VPS Production Deployment (Trunk-Based)
     needs: [changes, test, build-api, build-admin, build-staff]
     if: |
       !cancelled() &&
@@ -304,32 +299,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # ------------------------------------------------------------------------
-      # Staging Deployment for limart2.khanhdp.com (feat/monorepo-migration)
-      # ------------------------------------------------------------------------
-      - name: Deploy Staging Stack (limart2.khanhdp.com)
-        if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/feat/monorepo-migration'
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
-          BUILT_SERVICES: ${{ needs.changes.outputs.built_services }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GITHUB_TOKEN,GITHUB_ACTOR,BUILT_SERVICES,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
-          script: |
-            set -e
-            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-            curl -sSL -H "Authorization: token $GITHUB_TOKEN" "https://raw.githubusercontent.com/khanhduong22/checkin-app/main/scripts/deploy-staging.sh" | GITHUB_TOKEN="$GITHUB_TOKEN" GITHUB_ACTOR="$GITHUB_ACTOR" BUILT_SERVICES="$BUILT_SERVICES" GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET" bash
-
-      # ------------------------------------------------------------------------
-      # Production Dual-Run Cutover for limart.khanhdp.com (main branch)
+      # Production Trunk-Based Deployment (limart.khanhdp.com & canary limart2.khanhdp.com)
       # ------------------------------------------------------------------------
       - name: Deploy Production Stack (limart.khanhdp.com)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         uses: appleboy/ssh-action@v1.0.3
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

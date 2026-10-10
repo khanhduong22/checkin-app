@@ -2,10 +2,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
+import { viteVersionPlugin } from "@checkin/spa-version-guard";
 
 export default defineConfig({
   plugins: [
     react(),
+    viteVersionPlugin({
+      version: "1.0.0",
+      title: "LimArt Chấm Công Staff",
+    }),
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: "auto",

@@ -12,8 +12,7 @@
 ### Active Environment & Domain Inventory
 | Environment | Domain / URL | Branch / Compose | Active Containers | Architecture |
 | :--- | :--- | :--- | :--- | :--- |
-| 🚀 **Production** | `https://limart.khanhdp.com` | `main` (`/opt/limart`) | `limart-api` (:4000)<br>`limart-admin` (:3001)<br>`limart-staff` (:3002) | Monorepo 3-Tier (Hono RESTful API + Vite Admin SPA + Vite Staff PWA) |
-| 🧪 **Staging Canary** | `https://limart2.khanhdp.com` | `staging` (`/opt/limart`) | Routes to Monorepo 3-Tier stack via Caddy | Monorepo 3-Tier (Canary domain) |
+| 🚀 **Production** | `https://limart.khanhdp.com`<br>`https://limart2.khanhdp.com` (Canary) | `main` (`/opt/limart`) | `limart-api` (:4000)<br>`limart-admin` (:3001)<br>`limart-staff` (:3002) | Monorepo 3-Tier (Hono RESTful API + Vite Admin SPA + Vite Staff PWA) |
 | 🔄 **Backup Domain** | `https://limart3.khanhdp.com` | Caddy Redirect | None | Permanent HTTP 301 redirect ➔ `https://limart.khanhdp.com/` |
 | 📦 **Legacy V1 Archive Branch** | N/A | `backup/legacy-v1-main` | None | Remote archive of original Next.js 16 monolith standalone |
 | 🛑 **Legacy Monolith Container** | N/A | `/opt/checkin-app` | `checkin-app` (:3000) | **Stopped & Decommissioned** (~280 MiB RAM saved) |
@@ -36,10 +35,11 @@ checkin-app/
 │   ├── audit-trail/          # Cryptographic SHA-256 chained audit logger (@checkin/audit-trail)
 │   ├── db/                   # Centralized Prisma client singleton & schema (@checkin/db)
 │   ├── shared/               # Shared DTOs, types, helpers, and constants (@checkin/shared)
+│   ├── spa-version-guard/    # Automatic SPA version checker, cache buster & service worker reloader (@checkin/spa-version-guard)
 │   └── zero-downtime-deploy/ # Blue-green deployment swap orchestrator (@checkin/zero-downtime-deploy)
 ├── src/                      # Production Next.js 16 monolith application (v1)
 ├── prisma/                   # Root Prisma schema (mirrored to packages/db/prisma/schema.prisma)
-├── scripts/                  # Deploy scripts (deploy-staging.sh, deploy-monorepo.sh, pgbackrest-*)
+├── scripts/                  # Deploy scripts (deploy-monorepo.sh, deploy-staging.sh, pgbackrest-*)
 └── .agent/                   # AI Agent rules & skills
 ```
 
@@ -53,38 +53,49 @@ checkin-app/
 1. **Clear, Supportive Vietnamese Communication**:
    - Explain what you are doing, why you are doing it, and the risk level (Thấp / Trung bình / Cao) before modifying code.
    - Avoid intimidating dev jargon. Provide exact copy-pasteable commands and verification steps.
-2. **Zero Destructive Database Resets (STRICTLY PROHIBITED)**:
+2. **Trunk-Based Single Branch (`main` Only)**:
+   - All bugfixes, new features, and automated CI/CD deployments flow strictly through the single `main` branch.
+   - No separate staging branches or long-lived feature branches.
+   - All PRs and feature branches are squashed and merged directly into `main`.
+3. **Zero Destructive Database Resets (STRICTLY PROHIBITED)**:
    - 🚫 **NEVER** run `prisma migrate reset` or `prisma db push --force-reset`.
-   - 🚫 **NEVER** run `docker volume rm checkin_pgdata` or `docker volume prune -a` on VPS.
+   - 🚫 **NEVER** run `docker volume rm checkin-app_checkin_pgdata` or `docker volume prune -a` on VPS.
    - 🚫 **NEVER** delete raw database records without explicit user confirmation.
-3. **Dual-Run DB Safety on Staging (ZERO AUTO-PUSH)**:
-   - Staging canary connects directly to `checkin_db` in dual-run mode.
-   - Staging deploy scripts (`scripts/deploy-staging.sh`) MUST NEVER execute `prisma db push` against the shared database.
-   - Production schema updates run via non-destructive `prisma db push --skip-generate` ONLY during production CI/CD deployments.
-4. **CI/CD Over Manual SSH Builds**:
-   - 🚫 **NEVER** run `docker compose build` or `npm run build` on the remote VPS via SSH. Manual builds consume CPU/RAM and bypass test gates.
-   - Deployments must always flow through Git commits to GitHub Actions. SSH is reserved for read-only diagnostics and container restarts.
-5. **Evidence-First Verification**:
-   - Always run tests (`pnpm test`) before reporting completion. Show real passing output.
+   - All schema changes must be non-destructive and backward-compatible, executed via `pnpm prisma db push --skip-generate` in production CI/CD.
+4. **Test Evidence Gate (Real Passing Test Output Required)**:
+   - 🚫 **NEVER** declare a task complete or push a commit without running the native test suite (`pnpm test`) and displaying real passing test output in the session.
    - Never suppress errors with empty `catch {}` blocks or silence types with `@ts-ignore` or unchecked `any`.
+5. **1-Commit Rule (Single Conventional Commit)**:
+   - Every PR, bugfix, or feature branch merged to `main` MUST contain **EXACTLY ONE single commit** adhering to the Conventional Commits specification (e.g., `feat: Add QR code scanner`, `fix: Resolve token expiration edge case`).
+   - Work-in-progress or ad-hoc commits must be squashed prior to merge.
 6. **Zero Public Staff Lists & Strict Zero-Trust Auth (STRICT PRIVACY INVARIANT)**:
    - 🚫 **NEVER** expose employee account lists, search/dropdown selectors, or passwordless quick-switchers in client-facing applications or public API endpoints.
    - Staff authentication MUST strictly require verified Google OAuth credentials matching active database records.
    - Development debug shortcuts, mock accounts, or bypass logins must NEVER be committed to client code or deployed to staging/production environments.
+7. **CI/CD Over Manual SSH Builds**:
+   - 🚫 **NEVER** run `docker compose build` or `npm run build` on the remote VPS via SSH. Manual builds consume VPS CPU/RAM and bypass test gates.
+   - Deployments must always flow through Git commits to GitHub Actions. SSH is reserved strictly for read-only diagnostics and safe container restarts.
 
 ================================================================================
 4. CI/CD DEPLOYMENT WORKFLOWS
 ================================================================================
 - **Unified Monorepo Deployment (`deploy-monorepo.yml`)**:
-  - **Production Deployment (`limart.khanhdp.com`)**:
-    - **Trigger**: Push commit or merge to `main`.
-    - **Workflow**: `.github/workflows/deploy-monorepo.yml`.
-  - **Staging Deployment (`limart2.khanhdp.com`)**:
-    - **Trigger**: Push commit to `staging`.
-    - **Workflow**: `.github/workflows/deploy-monorepo.yml`.
-  - **Mechanism**: Builds GHCR images ➡️ SSH invokes deployment script (`scripts/deploy-monorepo.sh` / `scripts/deploy-staging.sh`) ➡️ Blue-Green zero-downtime swap on port 4000 ➡️ Healthchecks `/health` ➡️ Caddy zero-downtime reload.
-- **Legacy Monolith Pipeline (`deploy.yml`) - DECOMMISSIONED**:
-  - `.github/workflows/deploy.yml` has been completely deleted and decommissioned.
+  - **Trunk-Based Trigger**: Push commit or merge to `main` (or manual trigger via `workflow_dispatch`).
+  - **Automated Pipeline Stages**:
+    1. **Path Filter Change Detection**: Detects which apps (`api`, `admin-spa`, `staff-pwa`) or packages were modified to build only affected targets.
+    2. **Test & Quality Gate**: Executes monorepo unit tests (`pnpm test`) and verifies builds across shared packages before triggering any container builds.
+    3. **Parallel Docker Image Builds**: Builds Docker images in parallel and pushes to GHCR (`ghcr.io/khanhduong22/checkin-app/*:latest` and `:${{ github.sha }}`).
+    4. **Blue-Green Zero-Downtime Container Swap on Port 4000**:
+       - SSH invokes `scripts/deploy-monorepo.sh deploy`.
+       - Pulls newly built GHCR images on the VPS.
+       - Starts a candidate container (`limart-api_next`) alongside the live API container.
+       - Probes HTTP health at `http://127.0.0.1:4000/health` (up to 45s retries).
+       - Once healthy, seamlessly swaps container names and port 4000 bindings with zero dropped requests.
+       - Drains connections on the old container (`limart-api_old`) for 3 seconds before stopping.
+       - Replaces static SPA Nginx containers (`limart-admin`, `limart-staff`) and reloads Caddy reverse proxy (`caddy reload`).
+- **Decommissioned Legacy Pipelines**:
+  - Legacy standalone Next.js monolith pipeline (`deploy.yml`) is completely removed.
+  - Multi-branch staging workflows consolidated into single trunk-based `main` pipeline.
 
 ================================================================================
 5. ESSENTIAL COMMANDS CHEATSHEET
@@ -123,7 +134,7 @@ ssh contabo "docker logs --tail 50 limart-valkey"          # Valkey cache logs
 # Probe HTTP health
 curl -sI https://limart.khanhdp.com | head -n 5           # Prod HTTP status
 curl -s https://limart.khanhdp.com/health                 # Prod API health JSON
-curl -s https://limart2.khanhdp.com/health                # Staging canary API health JSON
+curl -s https://limart2.khanhdp.com/health                # Canary API health JSON
 ```
 
 ### Safe Recovery & Restart Procedures
@@ -156,10 +167,15 @@ ssh contabo "cd /opt/checkin-app && ./scripts/pgbackrest-restore.sh --time 'YYYY
 > [!IMPORTANT]
 > **Strict Orchestrator Boundary**: The Master Agent in this repository is strictly an **Executive Assistant & Orchestrator**.
 > - **The Master Agent MUST NOT** directly implement code, edit multi-line files, run deep debugging loops, or iterate tests in the master session.
-> - **ALL engineering tasks** (coding, bugfixes, refactoring, test suites, E2E browser tests, benchmarks, log tracing) **MUST BE DELEGATED TO SUBAGENTS**.
+> - **ALL engineering tasks** (coding, bug reproduction, refactoring, test suites, E2E browser tests, benchmarks, log tracing) **MUST BE DELEGATED TO SPECIALIZED SUBAGENTS**.
 > - Rule: `.agent/rules/master-orchestration.md` | Skill: `.agent/skills/subagent-orchestrator/SKILL.md`.
 
 - **Master Agent Responsibilities**: Planning, requirement clarification with maintainer (supportive Vietnamese), subagent supervision, auditing return payloads & diffs, cross-contract verification, and handover summaries.
+- **Mandatory Real-Time ASAP Maintainer Telemetry**:
+  The agent MUST report ASAP in clear, friendly Vietnamese to the maintainer:
+  1. **Đang làm gì**: Tóm tắt ngắn gọn hành động cụ thể đang diễn ra.
+  2. **Sắp làm gì**: Bước tiếp theo chuẩn bị thực hiện ngay sau đó.
+  3. **Mức độ rủi ro**: Đánh giá rõ ràng (`Thấp` / `Trung bình` / `Cao`) kèm giải thích ngắn gọn nếu có rủi ro đến hệ thống hoặc dữ liệu.
 - **Mandatory Subagent Naming**:
   ```text
   [YYYY-MM-DD HH:mm | #<issue>] <Descriptive Role>
@@ -172,3 +188,18 @@ ssh contabo "cd /opt/checkin-app && ./scripts/pgbackrest-restore.sh --time 'YYYY
     * `[2026-10-07 11:45] Valkey Cache Concurrency Benchmarker`
 - **Durable Disk Handover Protocol**: Subagents execute changes and test suites directly on disk, returning structured summaries (files modified, test pass/fail counts, residual risks). The master agent verifies disk state and reports the executive summary to the maintainer.
 
+================================================================================
+7. MONOREPO AGENT HIERARCHY DIRECTORY
+================================================================================
+The LimArt monorepo maintains modular, service-scoped agent rule files. Each service inherits the root directives from this file (`@../../AGENTS.md`) and defines specialized operational invariants for its subsystem:
+
+| Scope / Service File | Subsystem & Role | Tech Stack & Core Architectural Patterns |
+| :--- | :--- | :--- |
+| [`apps/api/AGENTS.md`](file://apps/api/AGENTS.md) | High-performance RESTful API | Hono REST API, Bun/Node.js 22, Repository Pattern, Zod OpenAPI, Valkey 8 Cache, Sentry APM |
+| [`apps/admin-spa/AGENTS.md`](file://apps/admin-spa/AGENTS.md) | Management & Store Admin SPA | React 19, Vite SPA, Radix UI, Tailwind CSS, TanStack Table, Admin Auth Guards |
+| [`apps/staff-pwa/AGENTS.md`](file://apps/staff-pwa/AGENTS.md) | Staff Attendance & Task PWA | React 19, Vite PWA, Offline Service Worker, QR Check-in, Webview breakout |
+| [`packages/db/AGENTS.md`](file://packages/db/AGENTS.md) | Central Database & Schema Hub | Prisma Client singleton, schema integrity, zero destructive resets, pgBackRest PITR |
+| [`packages/shared/AGENTS.md`](file://packages/shared/AGENTS.md) | Shared Types & Constants | Cross-package TypeScript interfaces, DTOs, Zod validation schemas, business constants |
+| [`packages/audit-trail/AGENTS.md`](file://packages/audit-trail/AGENTS.md) | Cryptographic Audit Trail | Cryptographic SHA-256 chained audit logs, Merkle batch shift anchoring, fraud detection |
+| [`packages/zero-downtime-deploy/AGENTS.md`](file://packages/zero-downtime-deploy/AGENTS.md) | Deployment Automation | Blue-green container swap orchestrator, HTTP socket drain, candidate health verification |
+| [`packages/spa-version-guard/AGENTS.md`](file://packages/spa-version-guard/AGENTS.md) | Client Version Synchronization | SPA update version guard, proactive cache clearing, Service Worker auto-update prompt |

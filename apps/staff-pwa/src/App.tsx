@@ -29,6 +29,7 @@ import { initPWARegistration } from "./lib/pwa-register";
 import { RouterProvider, usePathname, useRouter } from "./lib/router";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { PwaInstallModal } from "./components/pwa";
+import { useAppVersionGuard, VersionGuardBanner } from "@checkin/spa-version-guard";
 
 function AppContent() {
   const pathname = usePathname();
@@ -217,6 +218,8 @@ function AppContent() {
 }
 
 export const App: React.FC = () => {
+  const { isUpdating } = useAppVersionGuard();
+
   // Initialize PWA Service Worker Registration
   useEffect(() => {
     initPWARegistration();
@@ -224,6 +227,7 @@ export const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
+      <VersionGuardBanner isUpdating={isUpdating} />
       <RouterProvider>
         <AppContent />
       </RouterProvider>

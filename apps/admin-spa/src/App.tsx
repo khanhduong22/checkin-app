@@ -4,6 +4,7 @@ import { SWRConfig } from "swr";
 import { swrFetcher } from "@/lib/api";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminPageLoadingSkeleton } from "@/components/ui/AdminPageLoadingSkeleton";
+import { useAppVersionGuard, VersionGuardBanner } from "@checkin/spa-version-guard";
 
 // Dynamic Code-Splitting: Route-level lazy loading
 const DashboardPage = React.lazy(() =>
@@ -69,6 +70,8 @@ const ChangelogPage = React.lazy(() =>
 );
 
 export default function App() {
+  const { isUpdating } = useAppVersionGuard();
+
   return (
     <SWRConfig
       value={{
@@ -78,6 +81,7 @@ export default function App() {
         shouldRetryOnError: false,
       }}
     >
+      <VersionGuardBanner isUpdating={isUpdating} />
       <BrowserRouter basename="/admin">
         <Suspense fallback={<AdminPageLoadingSkeleton />}>
           <Routes>
