@@ -377,6 +377,17 @@ staffRoute.post("/schedule/register", authMiddleware, async (c) => {
       }
       const [sH, sM] = startTime.split(":").map(Number);
       const [eH, eM] = endTime.split(":").map(Number);
+
+      if (sH < 8 || sH > 17) {
+        return c.json({ success: false, error: "Giờ bắt đầu chỉ được từ 8h đến 17h!" }, 400);
+      }
+      if (eH < 11 || eH > 21) {
+        return c.json({ success: false, error: "Giờ kết thúc chỉ được từ 11h đến 21h!" }, 400);
+      }
+      const VALID_MINUTES = [0, 15, 30, 45];
+      if (!VALID_MINUTES.includes(sM) || !VALID_MINUTES.includes(eM)) {
+        return c.json({ success: false, error: "Số phút chỉ được chọn: 0, 15, 30 hoặc 45!" }, 400);
+      }
       if (eH * 60 + eM <= sH * 60 + sM) {
         return c.json({ success: false, error: "Giờ kết thúc phải sau giờ bắt đầu!" }, 400);
       }

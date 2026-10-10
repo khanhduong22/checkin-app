@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, Clock, Trash2, RefreshCw } from "lucide-react";
 import { useRouter } from "@/lib/router";
 import { toast } from "sonner";
 import { getAuthToken } from "@/lib/api-client";
 
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const START_HOURS = Array.from({ length: 10 }, (_, i) => String(i + 8).padStart(2, "0")); // 08..17
+const END_HOURS = Array.from({ length: 11 }, (_, i) => String(i + 11).padStart(2, "0")); // 11..21
+const MINUTES = ["00", "15", "30", "45"];
 
 function formatShiftLabel(type?: string, start?: string, end?: string): string {
   if (type === "MORNING") return "Sáng (8:30 - 12:00)";
@@ -52,11 +54,24 @@ export default function ScheduleClient({
 }: ScheduleClientProps) {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [startTime, setStartTime] = useState("08:30");
-  const [endTime, setEndTime] = useState("12:00");
+  const [startHour, setStartHour] = useState("08");
+  const [startMinute, setStartMinute] = useState("30");
+  const [endHour, setEndHour] = useState("12");
+  const [endMinute, setEndMinute] = useState("00");
   const [activePreset, setActivePreset] = useState<string | null>("MORNING");
   const [showAddForm, setShowAddForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const startTime = `${startHour}:${startMinute}`;
+  const endTime = `${endHour}:${endMinute}`;
+
+  const applyTimeRange = (sh: string, sm: string, eh: string, em: string, preset: string | null) => {
+    setStartHour(sh);
+    setStartMinute(sm);
+    setEndHour(eh);
+    setEndMinute(em);
+    setActivePreset(preset);
+  };
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -100,9 +115,7 @@ export default function ScheduleClient({
 
   const handleOpenDate = (date: Date) => {
     setSelectedDate(date);
-    setStartTime("08:30");
-    setEndTime("12:00");
-    setActivePreset("MORNING");
+    applyTimeRange("08", "30", "12", "00", "MORNING");
     setShowAddForm(false);
   };
 
@@ -441,11 +454,7 @@ export default function ScheduleClient({
                       type="button"
                       variant={activePreset === "MORNING" ? "default" : "outline"}
                       size="sm"
-                      onClick={() => {
-                        setStartTime("08:30");
-                        setEndTime("12:00");
-                        setActivePreset("MORNING");
-                      }}
+                      onClick={() => applyTimeRange("08", "30", "12", "00", "MORNING")}
                       className={`h-8 text-[11px] rounded-xl font-bold cursor-pointer ${
                         activePreset === "MORNING"
                           ? "bg-amber-600 hover:bg-amber-700 text-white"
@@ -458,11 +467,7 @@ export default function ScheduleClient({
                       type="button"
                       variant={activePreset === "AFTERNOON" ? "default" : "outline"}
                       size="sm"
-                      onClick={() => {
-                        setStartTime("13:30");
-                        setEndTime("17:30");
-                        setActivePreset("AFTERNOON");
-                      }}
+                      onClick={() => applyTimeRange("13", "30", "17", "30", "AFTERNOON")}
                       className={`h-8 text-[11px] rounded-xl font-bold cursor-pointer ${
                         activePreset === "AFTERNOON"
                           ? "bg-amber-600 hover:bg-amber-700 text-white"
@@ -475,11 +480,7 @@ export default function ScheduleClient({
                       type="button"
                       variant={activePreset === "FULL" ? "default" : "outline"}
                       size="sm"
-                      onClick={() => {
-                        setStartTime("08:30");
-                        setEndTime("17:30");
-                        setActivePreset("FULL");
-                      }}
+                      onClick={() => applyTimeRange("08", "30", "17", "30", "FULL")}
                       className={`h-8 text-[11px] rounded-xl font-bold cursor-pointer ${
                         activePreset === "FULL"
                           ? "bg-amber-600 hover:bg-amber-700 text-white"
@@ -493,34 +494,78 @@ export default function ScheduleClient({
 
                 {/* Free Custom Hours Inputs */}
                 <div className="p-3 bg-stone-50/80 rounded-2xl border border-stone-200 space-y-2.5">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
                       <label className="text-[10px] font-bold text-stone-600 block mb-1">
-                        Giờ bắt đầu:
+                        Bắt đầu (8h - 17h):
                       </label>
-                      <Input
-                        type="time"
-                        value={startTime}
-                        onChange={(e) => {
-                          setStartTime(e.target.value);
-                          setActivePreset(null);
-                        }}
-                        className="h-9 text-xs font-semibold bg-white rounded-xl border-stone-200"
-                      />
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={startHour}
+                          onChange={(e) => {
+                            setStartHour(e.target.value);
+                            setActivePreset(null);
+                          }}
+                          className="h-9 flex-1 text-xs font-semibold bg-white rounded-xl border border-stone-200 px-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer text-stone-800"
+                        >
+                          {START_HOURS.map((h) => (
+                            <option key={h} value={h}>
+                              {h}h
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-xs font-bold text-stone-400">:</span>
+                        <select
+                          value={startMinute}
+                          onChange={(e) => {
+                            setStartMinute(e.target.value);
+                            setActivePreset(null);
+                          }}
+                          className="h-9 flex-1 text-xs font-semibold bg-white rounded-xl border border-stone-200 px-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer text-stone-800"
+                        >
+                          {MINUTES.map((m) => (
+                            <option key={m} value={m}>
+                              {m}p
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-stone-600 block mb-1">
-                        Giờ kết thúc:
+                        Kết thúc (11h - 21h):
                       </label>
-                      <Input
-                        type="time"
-                        value={endTime}
-                        onChange={(e) => {
-                          setEndTime(e.target.value);
-                          setActivePreset(null);
-                        }}
-                        className="h-9 text-xs font-semibold bg-white rounded-xl border-stone-200"
-                      />
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={endHour}
+                          onChange={(e) => {
+                            setEndHour(e.target.value);
+                            setActivePreset(null);
+                          }}
+                          className="h-9 flex-1 text-xs font-semibold bg-white rounded-xl border border-stone-200 px-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer text-stone-800"
+                        >
+                          {END_HOURS.map((h) => (
+                            <option key={h} value={h}>
+                              {h}h
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-xs font-bold text-stone-400">:</span>
+                        <select
+                          value={endMinute}
+                          onChange={(e) => {
+                            setEndMinute(e.target.value);
+                            setActivePreset(null);
+                          }}
+                          className="h-9 flex-1 text-xs font-semibold bg-white rounded-xl border border-stone-200 px-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer text-stone-800"
+                        >
+                          {MINUTES.map((m) => (
+                            <option key={m} value={m}>
+                              {m}p
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
 

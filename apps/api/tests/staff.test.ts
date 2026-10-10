@@ -435,8 +435,8 @@ describe("Staff Routes", () => {
         },
         body: JSON.stringify({
           dateStr: "2026-10-15",
-          startTime: "15:00",
-          endTime: "10:00",
+          startTime: "16:00",
+          endTime: "14:00",
         }),
       });
 
@@ -444,6 +444,66 @@ describe("Staff Routes", () => {
       const json = await res.json();
       expect(json.success).toBe(false);
       expect(json.error).toContain("Giờ kết thúc phải sau giờ bắt đầu");
+    });
+
+    it("returns 400 when start hour is outside 8-17", async () => {
+      const res = await app.request("/api/staff/schedule/register", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          dateStr: "2026-10-15",
+          startTime: "07:00",
+          endTime: "12:00",
+        }),
+      });
+
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toContain("Giờ bắt đầu chỉ được từ 8h đến 17h");
+    });
+
+    it("returns 400 when end hour is outside 11-21", async () => {
+      const res = await app.request("/api/staff/schedule/register", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          dateStr: "2026-10-15",
+          startTime: "09:00",
+          endTime: "22:00",
+        }),
+      });
+
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toContain("Giờ kết thúc chỉ được từ 11h đến 21h");
+    });
+
+    it("returns 400 when minute is not in [0, 15, 30, 45]", async () => {
+      const res = await app.request("/api/staff/schedule/register", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          dateStr: "2026-10-15",
+          startTime: "09:10",
+          endTime: "12:00",
+        }),
+      });
+
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toContain("Số phút chỉ được chọn: 0, 15, 30 hoặc 45");
     });
 
     it("returns 400 when shift overlaps with existing shift", async () => {
